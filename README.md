@@ -9,6 +9,7 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Infinite canvas.** Pan and zoom forever; the paper only stores the areas you draw on.
 - **Layers.** Add, duplicate, merge down, reorder, hide, rename, and set opacity per layer.
 - **Groups with hotkeys.** New group puts the active layer into a fresh group. Collapse, hide and rename groups. Drag layers in the layers panel to reorder them or drop them into a group, and drag a group's header to move the whole group. Give up to 9 groups a Ctrl+1–9 hotkey to jump straight to that group's drawing, however far apart they are on the canvas.
+- **Selections, Photoshop-style.** Rectangle and ellipse (S), lasso (L) and magic wand (W, with tolerance and contiguous options). Shift adds, Alt subtracts, Shift+Alt intersects. The brush and eraser only paint inside the selection. Delete clears it, Ctrl+drag moves the selected pixels, Ctrl+C / X / V copy, cut and paste in place on a new layer. Ctrl+Shift+I inverts and Ctrl+D deselects.
 - **Notes.** Press T (or the note button) and click to pin a text note to the canvas. Notes pan and zoom with the drawing; drag the top strip to move one. They aren't included in PNG export.
 - **Find a layer's drawing.** Ctrl+click a layer or group in the layers panel to flash its contents on the canvas.
 - **Color picker preview.** Hold Alt to see the color under the cursor next to your current one, then click or drag to pick it.
@@ -16,7 +17,7 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Custom alpha brushes.** Import any PNG or JPG as a brush tip (white paints, black is empty, or use the PNG's transparency). Drop images straight onto the canvas.
 - **Clean anti-aliasing.** Round tips are drawn as continuous strokes using exact distance to the stroke path, and image tips use max blending, so edges stay smooth at every angle and size.
 - **Independent brush and eraser.** Each keeps its own tip, size, opacity, spacing, smoothing, pressure and rotation settings.
-- **Straight lines.** Hold Shift (or Shift+click) and drag a line out from that point. It follows your pen, snapping to 10° steps, with faint guide lines at 0°, 45°, 90° and 135°, and it's drawn with your real brush and pen pressure. Release Shift to go back to freehand from the end of the line.
+- **Straight lines.** Hold Shift (or Shift+click) and drag a line out from that point. It follows your pen, snapping to 10° steps and onto the faint guide lines at 0°, 45°, 90° and 135°, and it's drawn with your real brush and pen pressure. Release Shift to go back to freehand from the end of the line.
 - **Pen pressure** for size and/or opacity, plus stroke smoothing.
 - **Autosave** in your browser, and PNG export trimmed to your drawing.
 
@@ -31,6 +32,13 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 | Pick color | Hold Alt to preview, then click or drag |
 | Jump to group | Ctrl + 1–9 |
 | Brush / eraser | B / E |
+| Rectangle / ellipse select | S (press again for ellipse) |
+| Lasso / magic wand | L / W |
+| Add / subtract / intersect | Shift / Alt / Shift + Alt while selecting |
+| Move selected pixels | Ctrl + drag with a select tool |
+| Clear selected pixels | Delete |
+| Deselect / invert / select all | Ctrl + D / Ctrl + Shift + I / Ctrl + A |
+| Copy / cut / paste | Ctrl + C / Ctrl + X / Ctrl + V |
 | Place a note | T, then click |
 | Delete layer | X |
 | Flash a layer's drawing | Ctrl + click it in the layers panel |

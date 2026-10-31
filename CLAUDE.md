@@ -24,6 +24,14 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - The undo copy of an existing tile is taken lazily (`PENDING` placeholder, filled in `bake`). **Call `settle()` before anything that reads or replaces tile canvases** (undo/redo, layer ops, merge, clear, export, save).
 - **Canvas 2D fallback:** as before, the entry keeps `orig` and an undo clone, and `flushStroke` composites `orig + color×buf` into the tile every frame.
 
+**Selection** (added 2026-10-31; Ben asked for "the basic setup from Photoshop").
+- `sel` is a coverage mask on the layers' tile grid: `m` maps a tile key to a `Uint8Array` (0–255) or one number for a uniform tile, and tiles not in `m` have the value `out`. `out` is 255 after Invert or Select all, so a selection can include the endless empty paper. `putNorm` collapses uniform tiles; selections are never mutated, so undo entries (`{kind:'sel', sel}`) just hold the old object.
+- Shapes: `rectSel` (pixel-aligned, hard edge), `pathSel` (canvas-filled and anti-aliased; ellipse and lasso, with a "tile wholly inside" shortcut for the ellipse). `combine` does add / subtract / intersect, plus `invertSel` and `shiftSel` (whole-pixel offsets).
+- `wandSel`: the magic wand compares premultiplied RGBA within `S.tol` on the active layer only, contiguous (`S.contig`) or everywhere. Empty tiles are handled a whole tile at a time. If the flood reaches the empty ring of tiles around the drawing, `out` becomes 255.
+- **Painting is clipped** by `clipStroke()` at the top of `uploadStroke` / `flushStroke`: buffer = min(buffer, mask) over each frame's dirty rects only, so it costs nothing without a selection. This is exact with MAX blending, because min(max(a,b),m) = max(min(a,m),min(b,m)).
+- Marching ants (`selPath`): the 50% outline as merged pixel-edge runs in a cached `Path2D`, drawn into a screen-sized cache canvas (`drawAnts`), so strokes over a busy selection pay for one blit a frame. They animate every 150 ms, but not during a stroke or a drag, or above 150k segments.
+- Pixels: `lift` takes the selected part of a layer as tile canvases (with a history map, it also removes it). `placeFloat` draws them back at an offset. These drive Delete (`clearSelected`), Ctrl+drag move (`startMove` / `endMove`; one undo step, with the old selection in `extra`), and Ctrl+C / X / V (`copySel` / `pasteClip`; paste goes in place on a new layer). Selection isn't saved between sessions.
+
 **Notes.** `#notes` holds DOM cards above `#ov`. Each note is `{id, x, y, text}` in world units, saved to localStorage `sinopia.notes`.
 - `layoutNotes()` runs after a scene render only when the view has changed, so notes add no work during strokes. A card is a `translate` + `scale(view.z × dpr)`, so it's 220 px wide at 100% zoom.
 - An empty note is removed on blur.
@@ -66,7 +74,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - **Debug URL flags:** `?gl=0` forces canvas 2D; `?worker=0` / `?worker=1` turns the raster worker off / always on.
 - World units: 1 world px = 1 device px at 100% zoom (`view.z` is CSS px per world px, so 100% = `1/dpr`).
 
-**Undo.** Entries are either `{kind:'tiles', layer, map: key→canvas-before|null}` or `{kind:'layers', list, active}`, and either can carry an `extra` entry (used by merge-down). Redo stores the inverse.
+**Undo.** Entries are `{kind:'tiles', layer, map: key→canvas-before|null}`, `{kind:'layers', list, active}` or `{kind:'sel', sel}`. Any of them can carry an `extra` entry (merge-down, and a selection move's old selection). Redo stores the inverse.
 
 **Persistence.**
 - Tiles go to IndexedDB `sinopia/tiles`, keyed `"<layerId>:<tx>,<ty>"`, with debounced saves.
@@ -81,13 +89,15 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 | Action | Input |
 |---|---|
-| Straight line | Hold Shift while drawing, or Shift+press. It's a rubber band from the anchor (the stroke's current point) to the pen, always snapped to 10° steps (`LINE_STEP`), with pressure going from the anchor's to the pen's. Four faint guides (0/45/90/135°) are drawn through the anchor, white on gray or dark paper and graphite on light paper. Main-thread strokes preview with the real brush: `previewLine` restores the last preview's area from a buffer snapshot and re-rasterizes. Worker strokes preview as an overlay line. Releasing Shift or the pen commits through the real `Stroke` (`commitLine`), and freehand resumes from the line's end. Ben's spec (2026-10-31). |
+| Straight line | Hold Shift while drawing, or Shift+press. It's a rubber band from the anchor (the stroke's current point) to the pen, always snapped to 10° steps (`LINE_STEP`) and also onto the 45° diagonals, because the guides show 45° and a 10° grid can't reach it (that mismatch was a reported bug), with pressure going from the anchor's to the pen's. Four faint guides (0/45/90/135°) are drawn through the anchor, white on gray or dark paper and graphite on light paper. Main-thread strokes preview with the real brush: `previewLine` restores the last preview's area from a buffer snapshot and re-rasterizes. Worker strokes preview as an overlay line. Releasing Shift or the pen commits through the real `Stroke` (`commitLine`), and freehand resumes from the line's end. Ben's spec (2026-10-31). |
 | Resize brush | Ctrl + drag. Same speed at every zoom: 1 screen px = 2 px of diameter, which is what 100% zoom gave before. Ben asked for this; he does *not* want brush size to follow zoom. |
 | Pan | Space + drag, middle mouse, two fingers (or one finger once a pen has been seen) |
 | Zoom | Ctrl + Space + drag (right/up = in), wheel, pinch |
 | Pick color | Hold Alt: a preview box shows the color under the cursor over the current color, with its hex. Click or drag to pick. Sampling reads the tile canvases (`sampleAt`), averaging one screen pixel's footprint. |
 | Jump to group | Ctrl + 1–9: selects the group and glides to frame its drawing (`jumpGroup` / `animateView`). |
 | Brush / eraser | B / E |
+| Select | S rectangle (S again: ellipse), L lasso, W magic wand (tolerance and Contiguous show in the toolbar). Mode comes from the modifiers held at press: Shift adds, Alt subtracts, Shift+Alt intersects. Shift or Alt pressed *during* a drag makes a square/circle or draws from the center. Dragging inside a selection moves the outline, and a click without a drag deselects. M stays mirror, so select isn't on M as it is in Photoshop. |
+| Selection actions | Ctrl+drag (with a select tool) moves the selected pixels, or the whole layer with no selection. Delete/Backspace clears them. Ctrl+D or Esc deselects, Ctrl+Shift+I inverts, Ctrl+A selects all. Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste in place on a new layer. Invert and Deselect buttons appear in the toolbar while there's a selection. |
 | Note | T (or toolbar button) then click: places a text note. Esc cancels. |
 | Delete layer | X |
 | Flash a layer's drawing | Ctrl + click a layer or group row: accent-tinted silhouette plus dashed bounds, fading over 1.6 s (`highlight`). It doesn't change the active layer. |
@@ -100,7 +110,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 ## UI layout
 
-- **Toolbar groups** (in order): brush, eraser, note and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
+- **Toolbar groups** (in order): brush, eraser, note, the four select tools (with wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
 - **Brush panel** opens on the left: tips, import alpha, dynamics, stroke test.
 - **Layers panel** opens on the right: layer list and actions, then paper color.
 - **Theme:** cool blue-greys with a blueprint-blue accent, tight corner radii (2–6px). It follows the system light or dark setting through CSS tokens on `:root`.
@@ -117,6 +127,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
   - Exports are pixel-identical between `?gl=0` and WebGL, and between `?worker=0` and `?worker=1`. This covered round and image tips, radial and both-axis symmetry, the pen eraser end, back-to-back strokes and undo.
   - Live screen output is within 2/255 during and after strokes. Zoomed far out, thin lines differ slightly, because the GPU's trilinear mips blend levels where 2D's `lodOf` picks one.
   - To re-check, load both variants in same-origin iframes and diff the export images.
+- **Selection (checked 2026-10-31)** with synthetic pointer events in `?gl=0&worker=0` (reading `#stage` pixels) and in WebGL with `?worker=1` (reading through the Alt picker). Covered: clipped painting, Delete, Ctrl+drag move, undo of each, the wand (contiguous, on empty paper, with invert), ellipse, lasso, and copy/paste.
 
 ## Known gaps / candidate next steps
 
@@ -124,6 +135,6 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 2. **Worker threshold tuning:** `useWorker`'s 400 is an estimate. Tune it on Ben's PC if very large brushes feel laggy (worker) or stall (main thread).
 3. **Canvas rotation** (Leonardo has it). This is now easy in the WebGL vertex shader.
 4. Optional "build-up" mode for soft brushes (MAX blending means a single stroke never darkens over itself).
-5. Selection / transform tools, layer thumbnails, blend modes.
+5. Transform (scale/rotate the selection), feather and polygonal lasso, a wand "sample all layers" option, and layer thumbnails. Selection basics are in.
 6. Save and load a project file (currently it lives only in browser storage plus PNG export).
 7. **Straight lines:** now a rubber band with a hard 10° snap and a 4-line guide, per Ben. Tune `LINE_STEP` or the guide alpha if he asks.

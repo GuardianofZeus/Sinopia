@@ -48,6 +48,7 @@ body{
 }
 #stage,#ov{position:fixed; inset:0; width:100%; height:100%; display:block}
 #ov{touch-action:none; cursor:none}
+#ov.sel{cursor:crosshair} #ov.sel.mv{cursor:move}
 #ov.grab{cursor:grab} #ov.grabbing{cursor:grabbing} #ov.zoom{cursor:zoom-in} #ov.text{cursor:text}
 
 /* notes live on the paper, so they keep paper-like colors in both themes; positioned in world space by layoutNotes() */
@@ -223,6 +224,19 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <button class="btn" id="tErase" title="Eraser (E)" aria-label="Eraser"><svg viewBox="0 0 18 18"><path d="M7 15h8"/><path d="M3.5 11.5l7-7 4 4-6.5 6.5H6.5z"/><path d="M7 8l4 4"/></svg></button>
       <button class="btn" id="tNote" title="Note (T): click the canvas to place one" aria-label="Note"><svg viewBox="0 0 18 18"><path d="M3.5 3.5h11v7l-4 4h-7z"/><path d="M10.5 14.5v-4h4"/><path d="M6 7h6M6 9.5h3"/></svg></button>
       <span class="sep"></span>
+      <button class="btn" id="tRect" title="Rectangle select (S; press S again for ellipse)" aria-label="Rectangle select"><svg viewBox="0 0 18 18"><rect x="3" y="3.5" width="12" height="11" stroke-dasharray="2.4 2"/></svg></button>
+      <button class="btn" id="tEllipse" title="Ellipse select (S twice)" aria-label="Ellipse select"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="5.5" stroke-dasharray="2.4 2"/></svg></button>
+      <button class="btn" id="tLasso" title="Lasso (L)" aria-label="Lasso"><svg viewBox="0 0 18 18"><path d="M5.2 12.4C2.6 11 2.6 7.2 5.4 5.2s8-2.1 9.6.6-1 6.4-4.9 6.9c-1.9.2-3.5-.1-4.9-.3z" stroke-dasharray="2.4 2"/><path d="M5.2 12.4c-.6 1.4.2 2.6 1.8 3.1"/></svg></button>
+      <button class="btn" id="tWand" title="Magic wand (W): selects similar color on the active layer" aria-label="Magic wand"><svg viewBox="0 0 18 18"><path d="M3 15l8.5-8.5"/><path d="M13 2.5v2M13 8.5v2M9.5 6.5h1.5M15 6.5h1.5M10.6 4.1l.9.9M15.4 8.9l-.9-.9M15.4 4.1l-.9.9"/></svg></button>
+      <span id="selOpts" class="row" hidden style="gap:4px;padding:0 4px">
+        <span id="wandOpts" class="row" style="gap:4px">
+          <input class="num" type="number" id="tol" min="0" max="255" aria-label="Wand tolerance" title="Tolerance: how different a color can be and still be selected (0–255)">
+          <button class="btn" id="contig" title="Only select connected pixels">Contiguous</button>
+        </span>
+        <button class="btn" id="selInv" title="Invert selection (Ctrl+Shift+I)">Invert</button>
+        <button class="btn" id="selNone" title="Deselect (Ctrl+D)">Deselect</button>
+      </span>
+      <span class="sep"></span>
       <button class="btn" id="brushBtn" title="Brush settings" aria-label="Brush settings" aria-expanded="false"><svg viewBox="0 0 18 18"><path d="M3 5h12M3 9h12M3 13h12"/><circle cx="6" cy="5" r="1.6"/><circle cx="12" cy="9" r="1.6"/><circle cx="8" cy="13" r="1.6"/></svg></button>
     </div>
     <div class="group">
@@ -313,7 +327,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 
 <div class="status">
   <button class="pill" id="zoomOut" title="Reset zoom to 100%">100%</button>
-  <span class="pill hint">Hold Shift while drawing for straight lines · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
+  <span class="pill hint" id="hint">Hold Shift while drawing for straight lines · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
   <span class="pill toast" id="toast" hidden></span>
 </div>
 
@@ -321,13 +335,15 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   <h1>Sinopia</h1>
   <p>An infinite sketch surface. Draw anywhere and the paper grows with you. Your drawing saves in this browser as you go.</p>
   <div class="keys">
-    <span>Hold <kbd>Shift</kbd></span><span>Drag a straight line out from where you pressed. It snaps to 10° steps, with faint guides at 0°, 45° and 90°. Release Shift to go back to freehand</span>
+    <span>Hold <kbd>Shift</kbd></span><span>Drag a straight line out from where you pressed. It snaps to 10° steps and onto the faint 0°, 45° and 90° guides. Release Shift to go back to freehand</span>
     <span><kbd>Ctrl</kbd> + drag</span><span>Resize the brush (same speed at any zoom)</span>
     <span><kbd>Space</kbd> + drag</span><span>Pan (or middle mouse, or two fingers)</span>
     <span><kbd>Ctrl</kbd> + <kbd>Space</kbd> + drag</span><span>Zoom (right or up zooms in). Wheel and pinch work too</span>
     <span>Hold <kbd>Alt</kbd></span><span>Preview the color under the cursor. Click or drag to pick it</span>
     <span><kbd>[</kbd> <kbd>]</kbd></span><span>Smaller / larger brush</span>
     <span><kbd>B</kbd> <kbd>E</kbd> <kbd>M</kbd></span><span>Brush, eraser, cycle mirror</span>
+    <span><kbd>S</kbd> <kbd>L</kbd> <kbd>W</kbd></span><span>Select: rectangle (S again for ellipse), lasso, magic wand. Shift adds, Alt subtracts. Brush and eraser stay inside the selection</span>
+    <span><kbd>Ctrl</kbd> + drag</span><span>With a select tool: move the selected pixels. <kbd>Delete</kbd> clears them, <kbd>Ctrl</kbd>+<kbd>D</kbd> deselects</span>
     <span><kbd>T</kbd></span><span>Note: click the canvas to place a text note. Drag its top strip to move it</span>
     <span><kbd>X</kbd></span><span>Delete the active layer (undo brings it back)</span>
     <span><kbd>Ctrl</kbd> + <kbd>Z</kbd></span><span>Undo (add <kbd>Shift</kbd> to redo)</span>
@@ -526,7 +542,7 @@ let dpr = 1, W = 0, H = 0;
 let R = null, GL = false;                     // rendering backend (WebGL 2, or canvas 2D fallback)
 const view = { x: 0, y: 0, z: 1 };            // css px = world * z + (x, y); 100% zoom = 1 world px per device px
 const S = { size: 20, opacity: 1, color: '#1b2532', erase: false, spacing: 0.12, smooth: 0.35,
-            pSize: true, pOpac: false, rot: 'none', paper: '#808080', brush: 0,
+            pSize: true, pOpac: false, rot: 'none', paper: '#808080', brush: 0, tol: 32, contig: true,
             tools: { brush: { brush: 0, size: 20, opacity: 1 }, erase: { brush: 1, size: 48, opacity: 1, spacing: 0.12, smooth: 0.2, pSize: false, pOpac: true, rot: 'none' } } };
 const TOOL_KEYS = ['brush', 'size', 'opacity', 'spacing', 'smooth', 'pSize', 'pOpac', 'rot'];   // everything a tool remembers on its own
 const toolProfile = () => Object.fromEntries(TOOL_KEYS.map(k => [k, S[k]]));
@@ -536,6 +552,7 @@ let groups = [], nextGid = 1;                 // {id, name, visible, open, key (
 const allLayers = new Map();
 const undoStack = [], redoStack = [];
 let hadView = false;
+let sel = null, selTool = null;               // the selection mask (see "selection"), and the active select tool: rect | ellipse | lasso | wand
 
 const LS = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
@@ -753,6 +770,7 @@ function foldDirty(e, wr) {
 function dirtyWorld(wr) { if (wr) dirtyScene({ x0: wr.x0 * view.z + view.x, y0: wr.y0 * view.z + view.y, x1: wr.x1 * view.z + view.x, y1: wr.y1 * view.z + view.y }); }
 function flushStroke() {
   const [cr, cg, cb] = stroke.rgb, erase = stroke.erase;
+  if (sel) clipStroke();
   let wr = null;
   for (const e of stroke.T.entries.values()) {
     if (e.x1 < 0) continue;
@@ -769,12 +787,13 @@ function flushStroke() {
       d[j + 3] = oa * 255;
     }
     e.g.putImageData(e.img, 0, 0, e.x0, e.y0, e.x1 - e.x0 + 1, e.y1 - e.y0 + 1);
-    e.t.v++;
+    e.t.v++; e.t.blank = false;
     wr = foldDirty(e, wr);
   }
   dirtyWorld(wr);
 }
 function uploadStroke() {   // WebGL: send only the changed rows of each stroke buffer to its texture
+  if (sel) clipStroke();
   let wr = null;
   for (const e of stroke.T.entries.values()) {
     if (e.x1 < 0) continue;
@@ -860,7 +879,9 @@ function lineMove(wx, wy, p) {
   stroke.cursor = { x: wx, y: wy, p };
   if (Math.hypot(dx, dy) * view.z < 2) { L.end = null; stroke.raw = { x: L.ax, y: L.ay, p }; }
   else {
-    const a = Math.round(Math.atan2(dy, dx) / LINE_STEP) * LINE_STEP, ux = Math.cos(a), uy = Math.sin(a), t = dx * ux + dy * uy;
+    // snap to 10° steps, and also onto the 45° diagonals the guides show (45° isn't a 10° step)
+    const raw = Math.atan2(dy, dx), a10 = Math.round(raw / LINE_STEP) * LINE_STEP, a45 = Math.round(raw / (Math.PI / 4)) * (Math.PI / 4);
+    const a = Math.abs(raw - a45) <= Math.abs(raw - a10) ? a45 : a10, ux = Math.cos(a), uy = Math.sin(a), t = dx * ux + dy * uy;
     L.end = { x: L.ax + ux * t, y: L.ay + uy * t, p };
     stroke.raw = { x: L.end.x, y: L.end.y, p };   // so pen-up smoothing adds nothing past the line's end
   }
@@ -1044,6 +1065,7 @@ function onWorker({ data: m }) {
 /* ---------- undo ---------- */
 function pushUndo(e) { undoStack.push(e); if (undoStack.length > 80) undoStack.shift(); redoStack.length = 0; syncHistory(); }
 function applyEntry(e) {
+  if (e.kind === 'sel') { const inv = { kind: 'sel', sel }; sel = e.sel; selChanged(); return inv; }
   if (e.kind === 'tiles') {
     const inv = { kind: 'tiles', layer: e.layer, map: new Map() };
     for (const [k, before] of e.map) {
@@ -1190,6 +1212,384 @@ function clearLayer() {
   for (const [k, t] of cur.tiles) e.map.set(k, t.c);
   cur.tiles.clear(); pushUndo(e); markSave(cur, e.map.keys()); dirtyScene();
   toast('Layer cleared. Undo brings it back.');
+}
+
+/* ---------- selection ----------
+   A selection is a coverage mask on the layers' 512² tile grid: `m` maps a tile key to a Uint8Array (0-255 per pixel)
+   or one number for a uniform tile, and every tile not in `m` has the value `out` (255 after Invert or Select all,
+   so a selection can include the endless empty paper). Selections are never changed in place, so undo can keep them.
+   Brush and eraser coverage is clamped to the mask (clipStroke) over each frame's dirty rects only. */
+let selSeq = 0, antsPhase = 0, antsTimer = 0, antsC = null, antsKey = '', selC = null, clip = null;
+const EMPTY = { m: new Map(), out: 0 };
+const selGet = (s, k) => s.m.has(k) ? s.m.get(k) : s.out;
+const keyXY = k => { const i = k.indexOf(','); return [+k.slice(0, i), +k.slice(i + 1)]; };
+function putNorm(m, k, v, out) {   // store a tile, collapsing uniform arrays to a number and dropping tiles equal to `out`
+  if (typeof v !== 'number') { const a = v[0]; let i = 1; while (i < v.length && v[i] === a) i++; if (i === v.length) v = a; }
+  if (v !== out) m.set(k, v);
+}
+function mkSel(m, out) { return !m.size && !out ? null : { m, out, id: ++selSeq, path: null, n: 0 }; }
+function selAt(wx, wy) {
+  if (!sel) return 0;
+  const X = Math.floor(wx), Y = Math.floor(wy), tx = Math.floor(X / TILE), ty = Math.floor(Y / TILE), v = selGet(sel, tkey(tx, ty));
+  return typeof v === 'number' ? v : v[(Y - ty * TILE) * TILE + X - tx * TILE];
+}
+function clipStroke() {
+  for (const e of stroke.T.entries.values()) {
+    if (e.x1 < 0) continue;
+    const v = selGet(sel, e.k), buf = e.buf;
+    if (v === 255) continue;
+    for (let y = e.y0; y <= e.y1; y++) {
+      const a = y * TILE + e.x0, b = y * TILE + e.x1;
+      if (typeof v !== 'number') { for (let i = a; i <= b; i++) if (buf[i] > v[i]) buf[i] = v[i]; }
+      else if (!v) buf.fill(0, a, b + 1);
+      else for (let i = a; i <= b; i++) if (buf[i] > v) buf[i] = v;
+    }
+  }
+}
+/* shapes: a pixel-aligned rectangle, or any path filled with canvas anti-aliasing (ellipse, lasso) */
+function rectSel(x0, y0, x1, y1) {
+  const m = new Map();
+  for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y1 - 1) / TILE); ty++) for (let tx = Math.floor(x0 / TILE); tx <= Math.floor((x1 - 1) / TILE); tx++) {
+    const ox = tx * TILE, oy = ty * TILE, a0 = Math.max(x0, ox) - ox, a1 = Math.min(x1, ox + TILE) - ox, b0 = Math.max(y0, oy) - oy, b1 = Math.min(y1, oy + TILE) - oy;
+    if (!a0 && !b0 && a1 === TILE && b1 === TILE) { m.set(tkey(tx, ty), 255); continue; }
+    const v = new Uint8Array(TILE * TILE);
+    for (let y = b0; y < b1; y++) v.fill(255, y * TILE + a0, y * TILE + a1);
+    m.set(tkey(tx, ty), v);
+  }
+  return mkSel(m, 0);
+}
+function pathSel(x0, y0, x1, y1, draw, inside) {
+  if (!selC) selC = mk(TILE, TILE);
+  const g = selC.getContext('2d', { willReadFrequently: true }), m = new Map();
+  for (let ty = Math.floor(y0 / TILE); ty <= Math.floor(y1 / TILE); ty++) for (let tx = Math.floor(x0 / TILE); tx <= Math.floor(x1 / TILE); tx++) {
+    const ox = tx * TILE, oy = ty * TILE, k = tkey(tx, ty);
+    if (inside && inside(ox, oy)) { m.set(k, 255); continue; }   // tile wholly inside a convex shape: no need to draw it
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, TILE, TILE);
+    g.setTransform(1, 0, 0, 1, -ox, -oy); g.beginPath(); draw(g); g.fillStyle = '#fff'; g.fill();
+    const d = g.getImageData(0, 0, TILE, TILE).data, v = new Uint8Array(TILE * TILE);
+    for (let i = 0; i < v.length; i++) v[i] = d[i * 4 + 3];
+    putNorm(m, k, v, 0);
+  }
+  return mkSel(m, 0);
+}
+/* Shift adds, Alt subtracts, Shift+Alt intersects (as in Photoshop) */
+function combine(A, B, op) {
+  A = A || EMPTY; B = B || EMPTY;
+  const f = op === 'add' ? (a, b) => a > b ? a : b : op === 'sub' ? (a, b) => a < 255 - b ? a : 255 - b : (a, b) => a < b ? a : b;
+  const out = f(A.out, B.out), m = new Map();
+  for (const k of new Set([...A.m.keys(), ...B.m.keys()])) {
+    const a = selGet(A, k), b = selGet(B, k);
+    if (typeof a === 'number' && typeof b === 'number') { putNorm(m, k, f(a, b), out); continue; }
+    const v = new Uint8Array(TILE * TILE);
+    if (typeof a === 'number') for (let i = 0; i < v.length; i++) v[i] = f(a, b[i]);
+    else if (typeof b === 'number') for (let i = 0; i < v.length; i++) v[i] = f(a[i], b);
+    else for (let i = 0; i < v.length; i++) v[i] = f(a[i], b[i]);
+    putNorm(m, k, v, out);
+  }
+  return mkSel(m, out);
+}
+function invertSel(s) {
+  s = s || EMPTY;
+  const m = new Map();
+  for (const [k, v] of s.m) putNorm(m, k, typeof v === 'number' ? 255 - v : v.map(x => 255 - x), 255 - s.out);
+  return mkSel(m, 255 - s.out);
+}
+function shiftSel(s, dx, dy) {   // whole-pixel offsets
+  if (!s || (!dx && !dy)) return s;
+  const tmp = new Map(), m = new Map(), out = s.out;
+  const dest = k => { let v = tmp.get(k); if (!v) { v = new Uint8Array(TILE * TILE); if (out) v.fill(out); tmp.set(k, v); } return v; };
+  for (const [k, v] of s.m) {
+    const [tx, ty] = keyXY(k), wx = tx * TILE + dx, wy = ty * TILE + dy;
+    for (let qy = Math.floor(wy / TILE); qy <= Math.floor((wy + TILE - 1) / TILE); qy++) for (let qx = Math.floor(wx / TILE); qx <= Math.floor((wx + TILE - 1) / TILE); qx++) {
+      const D = dest(tkey(qx, qy)), ox = qx * TILE, oy = qy * TILE;
+      const x0 = Math.max(wx, ox), x1 = Math.min(wx + TILE, ox + TILE), y0 = Math.max(wy, oy), y1 = Math.min(wy + TILE, oy + TILE);
+      for (let y = y0; y < y1; y++) {
+        const di = (y - oy) * TILE + x0 - ox, si = (y - wy) * TILE + x0 - wx;
+        if (typeof v === 'number') D.fill(v, di, di + x1 - x0); else D.set(v.subarray(si, si + x1 - x0), di);
+      }
+    }
+  }
+  for (const [k, v] of tmp) putNorm(m, k, v, out);
+  return mkSel(m, out);
+}
+/* magic wand on the active layer: colors within the tolerance (premultiplied RGBA), connected or anywhere.
+   Empty paper is transparent, so it's handled a whole tile at a time; reaching the empty ring around the drawing
+   means the endless outside is selected too. */
+function wandSel(wx, wy) {
+  settle();
+  const L = cur, tol = clamp(S.tol | 0, 0, 255), X = Math.floor(wx), Y = Math.floor(wy), T = TILE;
+  const px = new Map();
+  const data = k => {
+    if (px.has(k)) return px.get(k);
+    const t = L.tiles.get(k), d = t && !t.blank ? t.c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, T, T).data : null;
+    px.set(k, d); return d;
+  };
+  let stx = Math.floor(X / T), sty = Math.floor(Y / T);
+  const sd = data(tkey(stx, sty)), sj = ((Y - sty * T) * T + X - stx * T) * 4;
+  const a0 = sd ? sd[sj + 3] : 0, r0 = sd ? sd[sj] * a0 / 255 : 0, g0 = sd ? sd[sj + 1] * a0 / 255 : 0, b0 = sd ? sd[sj + 2] * a0 / 255 : 0;
+  const match = (d, j) => { const a = d[j + 3]; return Math.abs(a - a0) <= tol && Math.abs(d[j] * a / 255 - r0) <= tol && Math.abs(d[j + 1] * a / 255 - g0) <= tol && Math.abs(d[j + 2] * a / 255 - b0) <= tol; };
+  const clearOk = a0 <= tol && r0 <= tol && g0 <= tol && b0 <= tol;   // empty paper counts as a match
+  if (!S.contig) {
+    const m = new Map(), out = clearOk ? 255 : 0;
+    for (const k of L.tiles.keys()) {
+      const d = data(k);
+      if (!d) { putNorm(m, k, out, out); continue; }
+      const v = new Uint8Array(T * T);
+      for (let i = 0; i < v.length; i++) if (match(d, i * 4)) v[i] = 255;
+      putNorm(m, k, v, out);
+    }
+    return mkSel(m, out);
+  }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const k of L.tiles.keys()) { const [tx, ty] = keyXY(k); x0 = Math.min(x0, tx); x1 = Math.max(x1, tx); y0 = Math.min(y0, ty); y1 = Math.max(y1, ty); }
+  if (!isFinite(x0)) return mkSel(new Map(), 255);   // empty layer: it's all one color
+  x0--; y0--; x1++; y1++;
+  let si = sj / 4;
+  if (stx < x0 || stx > x1 || sty < y0 || sty > y1) { stx = x0; sty = y0; si = 0; }   // far out on empty paper: start from the ring instead
+  const res = new Map(), pend = new Map(), queue = [];
+  let ring = false;
+  const push = (tx, ty, i) => {
+    if (tx < x0 || tx > x1 || ty < y0 || ty > y1) return;
+    const k = tkey(tx, ty); if (res.get(k) === 255) return;
+    let p = pend.get(k); if (!p) { pend.set(k, p = []); queue.push(tx, ty); }
+    p.push(i);
+  };
+  push(stx, sty, si);
+  while (queue.length) {
+    const ty = queue.pop(), tx = queue.pop(), k = tkey(tx, ty), stack = pend.get(k), d = data(k);
+    pend.delete(k);
+    if (!d) {   // empty tile: all of it or none of it
+      if (!clearOk || res.get(k) === 255) continue;
+      res.set(k, 255);
+      if (tx === x0 || tx === x1 || ty === y0 || ty === y1) ring = true;
+      for (const [nx, ny, edge] of [[tx - 1, ty, i => i * T + T - 1], [tx + 1, ty, i => i * T], [tx, ty - 1, i => (T - 1) * T + i], [tx, ty + 1, i => i]]) {
+        if (!data(tkey(nx, ny))) push(nx, ny, 0); else for (let i = 0; i < T; i++) push(nx, ny, edge(i));
+      }
+      continue;
+    }
+    let v = res.get(k); if (!v) res.set(k, v = new Uint8Array(T * T));
+    while (stack.length) {
+      const i = stack.pop();
+      if (v[i] || !match(d, i * 4)) continue;
+      v[i] = 255;
+      const x = i & (T - 1), y = i >> 9;
+      if (x > 0) { if (!v[i - 1]) stack.push(i - 1); } else push(tx - 1, ty, i + T - 1);
+      if (x < T - 1) { if (!v[i + 1]) stack.push(i + 1); } else push(tx + 1, ty, i - T + 1);
+      if (y > 0) { if (!v[i - T]) stack.push(i - T); } else push(tx, ty - 1, i + T * (T - 1));
+      if (y < T - 1) { if (!v[i + T]) stack.push(i + T); } else push(tx, ty + 1, i - T * (T - 1));
+    }
+  }
+  const out = ring ? 255 : 0, m = new Map();
+  for (const [k, v] of res) putNorm(m, k, v, out);
+  if (ring) for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (!res.has(tkey(tx, ty))) m.set(tkey(tx, ty), 0);
+  return mkSel(m, out);
+}
+function setSel(s, noUndo) {
+  if (s === sel) return;
+  if (!noUndo) pushUndo({ kind: 'sel', sel });
+  sel = s; selChanged();
+}
+function selChanged() {
+  clearInterval(antsTimer); antsTimer = 0;
+  if (sel) antsTimer = setInterval(() => { if (!stroke && !act && sel && sel.n < 150000) { antsPhase = (antsPhase + 1) % 8; dirtyOverlay(); } }, 150);
+  syncSelUI(); dirtyOverlay();
+}
+/* marching ants: the mask's 50% outline as merged pixel-edge runs in world space, cached per selection */
+function selPath(s) {
+  if (s.path) return s.path;
+  const p = new Path2D(), cand = new Set(), T = TILE;
+  let n = 0;
+  for (const k of s.m.keys()) { const [tx, ty] = keyXY(k); cand.add(k); cand.add(tkey(tx - 1, ty)); cand.add(tkey(tx, ty - 1)); }
+  for (const k of cand) {
+    const [tx, ty] = keyXY(k), ox = tx * T, oy = ty * T, v = selGet(s, k), flat = typeof v === 'number';
+    for (const horiz of [true, false]) {
+      const nb = selGet(s, horiz ? tkey(tx, ty + 1) : tkey(tx + 1, ty));
+      for (let j = flat ? T : 1; j <= T; j++) {   // edge between row (or column) j-1 and j; j = T is the border with the next tile
+        const A = v, B = j < T ? v : nb;
+        if (typeof A === 'number' && typeof B === 'number') { if ((A >= 128) !== (B >= 128)) { if (horiz) { p.moveTo(ox, oy + j); p.lineTo(ox + T, oy + j); } else { p.moveTo(ox + j, oy); p.lineTo(ox + j, oy + T); } n++; } continue; }
+        const bj = j < T ? j : 0;
+        let run = -1;
+        for (let i = 0; i <= T; i++) {
+          let e = false;
+          if (i < T) {
+            const ia = horiz ? (j - 1) * T + i : i * T + j - 1, ib = horiz ? bj * T + i : i * T + bj;
+            e = ((typeof A === 'number' ? A : A[ia]) >= 128) !== ((typeof B === 'number' ? B : B[ib]) >= 128);
+          }
+          if (e && run < 0) run = i;
+          else if (!e && run >= 0) { if (horiz) { p.moveTo(ox + run, oy + j); p.lineTo(ox + i, oy + j); } else { p.moveTo(ox + j, oy + run); p.lineTo(ox + j, oy + i); } n++; run = -1; }
+        }
+      }
+    }
+  }
+  s.path = p; s.n = n; return p;
+}
+/* drawn into a screen-sized cache, so strokes over a busy selection only pay for one blit a frame */
+function drawAnts(dx, dy) {
+  const p = selPath(sel); if (!sel.n) return;
+  if (!antsC || antsC.width !== ov.width || antsC.height !== ov.height) { antsC = mk(ov.width, ov.height); antsKey = ''; }
+  const key = [view.x, view.y, view.z, dpr, dx, dy, antsPhase, sel.id].join();
+  if (key !== antsKey) {
+    antsKey = key;
+    const g = antsC.getContext('2d'), z = view.z, u = 1 / z;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, antsC.width, antsC.height);
+    g.setTransform(dpr * z, 0, 0, dpr * z, dpr * (view.x + dx * z), dpr * (view.y + dy * z));
+    g.lineWidth = u; g.setLineDash([]); g.strokeStyle = '#fff'; g.stroke(p);
+    g.setLineDash([4 * u, 4 * u]); g.lineDashOffset = -antsPhase * u; g.strokeStyle = '#000'; g.stroke(p);
+  }
+  octx.save(); octx.setTransform(1, 0, 0, 1, 0, 0); octx.drawImage(antsC, 0, 0); octx.restore();
+}
+/* the drag shape before it becomes a selection */
+function dragRect(A) {
+  let dx = A.b.x - A.a.x, dy = A.b.y - A.a.y;
+  if (A.sq) { const s = Math.max(Math.abs(dx), Math.abs(dy)); dx = (dx < 0 ? -1 : 1) * s; dy = (dy < 0 ? -1 : 1) * s; }
+  const r = A.ctr ? { x0: A.a.x - Math.abs(dx), y0: A.a.y - Math.abs(dy), x1: A.a.x + Math.abs(dx), y1: A.a.y + Math.abs(dy) }
+                  : { x0: Math.min(A.a.x, A.a.x + dx), y0: Math.min(A.a.y, A.a.y + dy), x1: Math.max(A.a.x, A.a.x + dx), y1: Math.max(A.a.y, A.a.y + dy) };
+  if (A.tool === 'rect') { r.x0 = Math.round(r.x0); r.y0 = Math.round(r.y0); r.x1 = Math.round(r.x1); r.y1 = Math.round(r.y1); }
+  return r;
+}
+function drawSelDrag(A) {
+  const P = new Path2D(), sx = x => x * view.z + view.x, sy = y => y * view.z + view.y;
+  if (A.tool === 'lasso') A.pts.forEach((q, i) => i ? P.lineTo(sx(q.x), sy(q.y)) : P.moveTo(sx(q.x), sy(q.y)));
+  else {
+    const r = dragRect(A);
+    if (A.tool === 'rect') P.rect(sx(r.x0), sy(r.y0), (r.x1 - r.x0) * view.z, (r.y1 - r.y0) * view.z);
+    else P.ellipse(sx((r.x0 + r.x1) / 2), sy((r.y0 + r.y1) / 2), (r.x1 - r.x0) / 2 * view.z, (r.y1 - r.y0) / 2 * view.z, 0, 0, Math.PI * 2);
+  }
+  octx.save(); octx.lineWidth = 1; octx.strokeStyle = '#fff'; octx.stroke(P);
+  octx.setLineDash([4, 4]); octx.strokeStyle = '#000'; octx.stroke(P); octx.restore();
+}
+function finishSel(A) {
+  let s = null;
+  if (A.tool === 'lasso') {
+    const P = A.pts;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const q of P) { x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x); y1 = Math.max(y1, q.y); }
+    if (P.length > 2 && ((x1 - x0) * view.z >= 3 || (y1 - y0) * view.z >= 3))
+      s = pathSel(x0 - 1, y0 - 1, x1 + 1, y1 + 1, g => { g.moveTo(P[0].x, P[0].y); for (const q of P) g.lineTo(q.x, q.y); g.closePath(); });
+  } else {
+    const r = dragRect(A);
+    if ((r.x1 - r.x0) * view.z >= 2 && (r.y1 - r.y0) * view.z >= 2) {
+      if (A.tool === 'rect') s = r.x1 > r.x0 && r.y1 > r.y0 ? rectSel(r.x0, r.y0, r.x1, r.y1) : null;
+      else {
+        const cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2, rx = (r.x1 - r.x0) / 2, ry = (r.y1 - r.y0) / 2;
+        const inE = (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
+        s = pathSel(r.x0 - 1, r.y0 - 1, r.x1 + 1, r.y1 + 1, g => g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2),
+                    (ox, oy) => inE(ox, oy) && inE(ox + TILE, oy) && inE(ox, oy + TILE) && inE(ox + TILE, oy + TILE));
+      }
+    }
+  }
+  if (!s) { if (A.mode === 'new' && sel) setSel(null); return; }   // a click without a drag deselects
+  setSel(A.mode === 'new' ? s : combine(sel, s, A.mode));
+}
+/* pixels: lift = the selected part of a layer as tile canvases (with `hist`, also removed from the layer) */
+function lift(L, s, hist) {
+  const out = new Map();
+  for (const [k, t] of [...L.tiles]) {
+    const v = selGet(s, k); if (!v || t.blank) continue;
+    if (v === 255) {
+      if (!hist) { out.set(k, cloneCanvas(t.c)); continue; }
+      out.set(k, t.c); if (!hist.map.has(k)) hist.map.set(k, t.c); L.tiles.delete(k); continue;
+    }
+    if (hist && !hist.map.has(k)) hist.map.set(k, cloneCanvas(t.c));
+    const f = cloneCanvas(t.c), fg = f.getContext('2d', { willReadFrequently: true }), im = fg.getImageData(0, 0, TILE, TILE), d = im.data;
+    const g = t.c.getContext('2d', { willReadFrequently: true }), rim = hist ? g.getImageData(0, 0, TILE, TILE) : null, r = rim && rim.data;
+    let any = 0;
+    for (let i = 0, j = 3; i < TILE * TILE; i++, j += 4) {
+      const m = typeof v === 'number' ? v : v[i], a = d[j];
+      d[j] = a * m / 255; any |= d[j];
+      if (r) r[j] = a * (255 - m) / 255;
+    }
+    if (any) { fg.putImageData(im, 0, 0); out.set(k, f); }
+    if (r) { g.putImageData(rim, 0, 0); t.v++; }
+  }
+  return out;
+}
+function placeFloat(L, float, dx, dy, hist) {
+  for (const [k, c] of float) {
+    const [ftx, fty] = keyXY(k), wx = ftx * TILE + dx, wy = fty * TILE + dy;
+    for (let ty = Math.floor(wy / TILE); ty <= Math.floor((wy + TILE - 1) / TILE); ty++) for (let tx = Math.floor(wx / TILE); tx <= Math.floor((wx + TILE - 1) / TILE); tx++) {
+      const dk = tkey(tx, ty); let t = L.tiles.get(dk);
+      if (!hist.map.has(dk)) hist.map.set(dk, t ? cloneCanvas(t.c) : null);
+      if (!t) { t = mkTile(); L.tiles.set(dk, t); }
+      t.c.getContext('2d').drawImage(c, wx - tx * TILE, wy - ty * TILE); t.v++; t.blank = false;
+    }
+  }
+}
+function restoreTiles(L, map) {
+  for (const [k, b] of map) {
+    const t = L.tiles.get(k);
+    if (!b) L.tiles.delete(k); else if (t) { t.c = b; t.v++; } else L.tiles.set(k, mkTile(b));
+  }
+}
+function clearSelected() {
+  if (!sel) { toast('Nothing selected. Use S, L or W to select first.'); return; }
+  if (act || stroke) return;
+  settle();
+  const h = { kind: 'tiles', layer: cur, map: new Map() };
+  lift(cur, sel, h);
+  if (h.map.size) { pushUndo(h); markSave(cur, h.map.keys()); dirtyScene(); }
+}
+/* Ctrl+drag with a select tool: lift the selected pixels (the whole layer with no selection), drag, drop */
+function startMove(id, x, y) {
+  settle();
+  const h = { kind: 'tiles', layer: cur, map: new Map(), extra: { kind: 'sel', sel } };
+  const float = lift(cur, sel || invertSel(null), h);
+  if (!float.size) { restoreTiles(cur, h.map); toast(sel ? 'Nothing selected on ' + cur.name : cur.name + ' is empty'); return; }
+  act = { type: 'move', id, sx: x, sy: y, dx: 0, dy: 0, float, hist: h, layer: cur };
+  dirtyScene();
+}
+function endMove(A) {
+  const { dx, dy, layer: L, hist: h } = A;
+  if (!dx && !dy) { restoreTiles(L, h.map); dirtyScene(); return; }
+  placeFloat(L, A.float, dx, dy, h);
+  sel = shiftSel(sel, dx, dy); selChanged();   // same undo step: h.extra holds the old selection
+  pushUndo(h); markSave(L, h.map.keys()); dirtyScene();
+}
+function drawFloat(A) {
+  const s = TILE * view.z;
+  octx.save(); octx.globalAlpha = A.layer.opacity; octx.imageSmoothingEnabled = view.z * dpr < 3;
+  for (const [k, c] of A.float) {
+    const [tx, ty] = keyXY(k), x = (tx * TILE + A.dx) * view.z + view.x, y = (ty * TILE + A.dy) * view.z + view.y;
+    if (x > W || y > H || x + s < 0 || y + s < 0) continue;
+    octx.drawImage(c, x, y, s, s);
+  }
+  octx.restore();
+}
+/* Ctrl+C / Ctrl+X copy the selection on the active layer (the whole layer with none); Ctrl+V pastes in place on a new layer */
+function copySel(cut) {
+  if (act || stroke) return;
+  settle();
+  const h = cut ? { kind: 'tiles', layer: cur, map: new Map() } : null;
+  const f = lift(cur, sel || invertSel(null), h);
+  if (!f.size) { if (h) restoreTiles(cur, h.map); toast('Nothing to copy on ' + cur.name); return; }
+  clip = { tiles: new Map([...f].map(([k, c]) => [k, cut ? cloneCanvas(c) : c])), sel };
+  if (h) { pushUndo(h); markSave(cur, h.map.keys()); dirtyScene(); }
+  toast(cut ? 'Cut. Ctrl+V pastes it on a new layer.' : 'Copied. Ctrl+V pastes it on a new layer.');
+}
+function pasteClip() {
+  if (act || stroke) return;
+  if (!clip) { toast('Nothing copied yet'); return; }
+  layerOp(() => {
+    const L = newLayer('Pasted'); L.g = cur.g; layers.splice(layers.indexOf(cur) + 1, 0, L); cur = L;
+    for (const [k, c] of clip.tiles) L.tiles.set(k, mkTile(cloneCanvas(c)));
+    markSave(L, L.tiles.keys());
+  });
+  setSel(clip.sel, true);
+  toast('Pasted in place on a new layer. Ctrl+drag with a select tool moves it.');
+}
+const HINT = $('hint').textContent;
+const SEL_HINT = 'Shift adds · Alt subtracts · Shift+Alt intersects · Ctrl-drag moves the pixels · Delete clears · Ctrl+D deselects · B back to brush';
+function syncSelUI() {
+  for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand']]) $(id).classList.toggle('on', selTool === t);
+  $('tErase').classList.toggle('on', S.erase && !selTool); $('tBrush').classList.toggle('on', !S.erase && !selTool);
+  $('selOpts').hidden = !selTool && !sel; $('wandOpts').hidden = selTool !== 'wand';
+  $('selInv').hidden = $('selNone').hidden = !sel;
+  ov.classList.toggle('sel', !!selTool);
+  $('hint').textContent = selTool ? SEL_HINT : HINT;
+}
+function setSelTool(t) {
+  if (t && noteMode) setNoteMode(false);
+  selTool = t; syncSelUI(); dirtyOverlay();
 }
 
 /* ---------- persistence (IndexedDB) ---------- */
@@ -1487,11 +1887,14 @@ function drawOverlay() {
     octx.fillStyle = 'rgb(45,108,176)'; octx.beginPath(); octx.arc(hx, hy, 2, 0, Math.PI * 2); octx.fill();
     octx.restore();
   }
+  if (act && act.type === 'move') drawFloat(act);
+  if (sel) { const m = act && (act.type === 'move' || act.type === 'selmove'); drawAnts(m ? act.dx : 0, m ? act.dy : 0); }
+  if (act && act.type === 'sel') drawSelDrag(act);
   if (stroke && stroke.line) drawLineGuide(stroke.line);
   if (hl) drawHighlight();
   if (act && act.type === 'resize') { ring(act.ax, act.ay, S.size / 2 * view.z, 1); return; }
-  if (hover && hover.type !== 'touch' && !spaceHeld && (act ? act.type === 'pick' : altHeld)) { drawPicker(hover.x, hover.y, act ? act.prev : S.color); return; }
-  if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode) {
+  if (hover && hover.type !== 'touch' && !spaceHeld && (act ? act.type === 'pick' : altHeld && !selTool)) { drawPicker(hover.x, hover.y, act ? act.prev : S.color); return; }
+  if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode && !selTool) {
     const r = S.size / 2 * view.z;
     ring(hover.x, hover.y, r, 1);
     if (sym.mode !== 'off') {
@@ -1607,6 +2010,17 @@ function movePinch() {
 function setCursorMode(e) {
   ov.classList.toggle('grab', spaceHeld && !(e && (e.ctrlKey || e.metaKey)));
   ov.classList.toggle('zoom', spaceHeld && !!(e && (e.ctrlKey || e.metaKey)));
+  ov.classList.toggle('mv', !spaceHeld && !!(e && (e.ctrlKey || e.metaKey)));   // with a select tool, Ctrl-drag moves pixels
+}
+/* select tools: the modifiers held at press pick the mode; Shift / Alt pressed during a drag make a square / draw from the center */
+function selDown(e, x, y) {
+  hideWelcome();
+  if (e.ctrlKey || e.metaKey) { startMove(e.pointerId, x, y); return; }
+  const w = toWorld(x, y), mode = e.shiftKey && e.altKey ? 'int' : e.shiftKey ? 'add' : e.altKey ? 'sub' : 'new';
+  if (selTool === 'wand') { const s = wandSel(w.x, w.y); setSel(mode === 'new' ? s : combine(sel, s, mode)); return; }
+  if (mode === 'new' && selAt(w.x, w.y) >= 128) { act = { type: 'selmove', id: e.pointerId, sx: x, sy: y, dx: 0, dy: 0 }; return; }   // drag inside: move the outline
+  act = { type: 'sel', id: e.pointerId, tool: selTool, mode, sh0: e.shiftKey, alt0: e.altKey, a: w, b: w, pts: [w], sq: false, ctr: false };
+  dirtyOverlay();
 }
 ov.addEventListener('pointerdown', e => {
   e.preventDefault();
@@ -1628,6 +2042,7 @@ ov.addEventListener('pointerdown', e => {
   if (e.button === 1 || spaceHeld) { act = { type: 'pan', id: e.pointerId, lx: x, ly: y }; ov.classList.add('grabbing'); return; }
   if (e.button === 2) return;
   if (noteMode && !e.altKey && !e.ctrlKey && !e.metaKey) { addNote(x, y); return; }
+  if (selTool) { selDown(e, x, y); return; }
   if (e.altKey) { act = { type: 'pick', id: e.pointerId, prev: S.color }; altHeld = true; hover = { x, y, type: e.pointerType }; pickAt(x, y); return; }
   if (e.ctrlKey || e.metaKey) { act = { type: 'resize', id: e.pointerId, ax: x, ay: y, s0: S.size }; dirtyOverlay(); return; }
   if (sym.mode !== 'off' && Math.hypot(x - (sym.cx * view.z + view.x), y - (sym.cy * view.z + view.y)) < 14) { act = { type: 'axis', id: e.pointerId }; return; }
@@ -1656,6 +2071,14 @@ ov.addEventListener('pointermove', e => {
     case 'resize': S.size = clamp(act.s0 + 2 * (e.clientX - act.ax) * dpr, 1, 3000); syncSize(); dirtyOverlay(); break;
     case 'axis': { const w = toWorld(e.clientX, e.clientY); sym.cx = w.x; sym.cy = w.y; dirtyOverlay(); break; }
     case 'pick': pickAt(e.clientX, e.clientY); break;
+    case 'sel': {
+      const w = toWorld(e.clientX, e.clientY), last = act.pts[act.pts.length - 1];
+      act.b = w; act.sq = e.shiftKey && !act.sh0; act.ctr = e.altKey && !act.alt0;
+      if (Math.hypot(w.x - last.x, w.y - last.y) * view.z >= 2) act.pts.push(w);
+      dirtyOverlay(); break;
+    }
+    case 'move': case 'selmove':
+      act.dx = Math.round((e.clientX - act.sx) / view.z); act.dy = Math.round((e.clientY - act.sy) / view.z); dirtyOverlay(); break;
     case 'draw': {
       const ce = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
       let evs = ce.length ? ce : [e];
@@ -1684,6 +2107,9 @@ function pointerEnd(e) {
     if (act.wait) { startDraw(act.wait.x, act.wait.y, 0.5, act.wait.erase, false); act.wait = null; }   // a tap that never reported pressure
     if (act.Q && act.Q.q) act.Q.end = true; else if (stroke && !stroke.ending) endStroke();
   }
+  else if (act.type === 'sel') { const A = act; act = null; finishSel(A); }
+  else if (act.type === 'selmove') setSel(act.dx || act.dy ? shiftSel(sel, act.dx, act.dy) : null);   // a click inside deselects
+  else if (act.type === 'move') { const A = act; act = null; endMove(A); }
   act = null; ov.classList.remove('grabbing'); saveSettings(); dirtyOverlay();
 }
 ov.addEventListener('pointerup', pointerEnd);
@@ -1738,7 +2164,7 @@ function addNote(sx, sy) {
   setNoteMode(false); hideWelcome();
   setTimeout(() => ta.focus());
 }
-function setNoteMode(on) { noteMode = on; $('tNote').classList.toggle('on', on); ov.classList.toggle('text', on); dirtyOverlay(); }
+function setNoteMode(on) { if (on && selTool) { selTool = null; syncSelUI(); } noteMode = on; $('tNote').classList.toggle('on', on); ov.classList.toggle('text', on); dirtyOverlay(); }
 function loadNotes() {
   for (const m of LS.get('sinopia.notes') || []) { const n = { id: m.id, x: m.x, y: m.y, text: m.text || '' }; noteSeq = Math.max(noteSeq, n.id); notes.push(n); mountNote(n); }
 }
@@ -1778,12 +2204,24 @@ addEventListener('keydown', e => {
   if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && k === 'y') { e.preventDefault(); redo(); return; }
   if (mod && e.shiftKey && k === 'n') { e.preventDefault(); addLayer(); return; }
+  if (mod && !e.altKey && !act && !stroke) {
+    if (k === 'd' && !e.shiftKey) { e.preventDefault(); setSel(null); return; }
+    if (k === 'i' && e.shiftKey) { e.preventDefault(); setSel(invertSel(sel)); return; }
+    if (k === 'a' && !e.shiftKey) { e.preventDefault(); setSel(invertSel(null)); toast('Everything selected'); return; }
+    if ((k === 'c' || k === 'x') && !e.shiftKey) { e.preventDefault(); copySel(k === 'x'); return; }
+    if (k === 'v' && !e.shiftKey) { e.preventDefault(); pasteClip(); return; }
+  }
   if (mod || e.altKey) return;
-  if (k === 'b') setErase(false);
-  else if (k === 'e') setErase(!S.erase);
+  if (k === 'b') { setSelTool(null); setErase(false); }
+  else if (k === 'e') { const on = selTool ? true : !S.erase; setSelTool(null); setErase(on); }
+  else if (k === 's') setSelTool(selTool === 'rect' ? 'ellipse' : 'rect');
+  else if (k === 'l') setSelTool('lasso');
+  else if (k === 'w') setSelTool('wand');
+  else if (k === 'delete' || k === 'backspace') { e.preventDefault(); clearSelected(); }
   else if (k === 'x') delLayer();
   else if (k === 't') setNoteMode(!noteMode);
   else if (k === 'escape' && noteMode) setNoteMode(false);
+  else if (k === 'escape' && sel && !act) setSel(null);
   else if (k === '[') { S.size = clamp(S.size / 1.15, 1, 3000); syncSize(); dirtyOverlay(); saveSettings(); }
   else if (k === ']') { S.size = clamp(S.size * 1.15, 1, 3000); syncSize(); dirtyOverlay(); saveSettings(); }
   else if (k === 'm') { const order = ['off', 'v', 'h', 'both', 'radial']; setSym(order[(order.indexOf(sym.mode) + 1) % order.length]); }
@@ -1821,11 +2259,18 @@ function setErase(on) {
     S.brush = clamp(S.brush, 0, brushes.length - 1); S.erase = on;
     syncSize(); syncOpacity(); syncDynamics(); selectBrush(S.brush); dirtyOverlay(); saveSettings();
   }
-  $('tErase').classList.toggle('on', on); $('tBrush').classList.toggle('on', !on);
+  $('tErase').classList.toggle('on', on && !selTool); $('tBrush').classList.toggle('on', !on && !selTool);
   $('tipHead').textContent = on ? 'Eraser tip' : 'Brush tip';
 }
-$('tBrush').onclick = () => setErase(false);
-$('tErase').onclick = () => setErase(true);
+$('tBrush').onclick = () => { setSelTool(null); setErase(false); };
+$('tErase').onclick = () => { setSelTool(null); setErase(true); };
+for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand']]) $(id).onclick = () => setSelTool(selTool === t ? null : t);
+$('selInv').onclick = () => setSel(invertSel(sel));
+$('selNone').onclick = () => setSel(null);
+$('tol').value = S.tol;
+$('tol').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 255) { S.tol = v; saveSettings(); } });
+$('contig').classList.toggle('on', S.contig);
+$('contig').onclick = () => { S.contig = !S.contig; $('contig').classList.toggle('on', S.contig); saveSettings(); };
 
 function setColor(c) { S.color = c; $('color').value = c; setErase(false); saveSettings(); }
 $('color').addEventListener('input', e => setColor(e.target.value));
