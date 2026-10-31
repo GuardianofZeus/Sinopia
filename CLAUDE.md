@@ -45,13 +45,13 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - Each layer is a `Map` of `"tx,ty"` → `{c: 512² canvas, v: version, lod mip canvases}`. Tiles exist only where something has been drawn.
 - Layer properties: id, name, visible, opacity, `g` (group id or null). Layers draw in array order, bottom to top.
 - **Groups** (`groups`: id, name, visible, open, key 1–9 or null, last active layer). A group's layers are always contiguous in `layers`: `tidyGroups()` enforces this and drops empty groups after every `layerOp`.
-  - Moving a layer past a group's edge enters or leaves the group, as in Photoshop. The last layer of a group can't leave; use Ungroup instead.
+  - Moving a layer past a group's edge enters or leaves the group, as in Photoshop. Moving a group's last layer out (by arrow or drag) removes the now-empty group, with a toast saying so; undo restores it. The panel can't show empty groups. This used to be blocked, which made "drag my only layer into a fresh group" fail silently.
   - **Drag and drop in the panel** (`startRowDrag` / `dropTarget` / `applyDrop`). Pointer events (works with a pen), capturing on the list, with a 5 px threshold, auto-scroll at the list edges, and the click after a drop swallowed.
     - The middle of a group header drops a layer into the group at the top.
     - A line between rows takes the group of the layer below it.
     - Just under a group's bottom layer, the pointer's x decides: more than 30 px from the left edge joins the group; less leaves the layer outside. The drop line's indent shows which.
     - Dragging a group header moves the whole block, and it can't land inside another group (groups don't nest).
-  - New group adds a group with one empty layer above the current block and takes the next free hotkey.
+  - **New group** takes the next free hotkey. If the active layer isn't in a group, the new group wraps it, as in Photoshop. Ben expects this: making a group over an inked layer and pressing Ctrl+N should frame that ink. If the active layer is already in a group, it makes a new group with a fresh empty layer above that group, since groups don't nest.
   - Visibility goes through `shown(L)`, which includes group visibility. There is no group opacity yet (it needs per-layer framebuffers).
   - Undo `layers` entries snapshot the group list and each layer's `g` (`layerSnap`).
 

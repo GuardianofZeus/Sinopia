@@ -291,7 +291,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
         <h2>Layers</h2>
         <div class="tools">
           <button class="btn sm" id="layerAdd" title="New layer (Ctrl+Shift+N)" aria-label="New layer"><svg viewBox="0 0 18 18"><path d="M9 4v10M4 9h10"/></svg></button>
-          <button class="btn sm" id="groupAdd" title="New group (Ctrl+1–9 jumps to groups)" aria-label="New group"><svg viewBox="0 0 18 18"><path d="M2.5 5.5V14a1 1 0 001 1h11a1 1 0 001-1V7a1 1 0 00-1-1H9L7.5 4h-4a1 1 0 00-1 1.5z"/><path d="M9 8.5v4M7 10.5h4"/></svg></button>
+          <button class="btn sm" id="groupAdd" title="New group from the active layer (Ctrl+1–9 jumps to groups)" aria-label="New group"><svg viewBox="0 0 18 18"><path d="M2.5 5.5V14a1 1 0 001 1h11a1 1 0 001-1V7a1 1 0 00-1-1H9L7.5 4h-4a1 1 0 00-1 1.5z"/><path d="M9 8.5v4M7 10.5h4"/></svg></button>
           <button class="btn sm" id="layerDup" title="Duplicate layer" aria-label="Duplicate layer"><svg viewBox="0 0 18 18"><rect x="6" y="6" width="9" height="9" rx="1.5"/><path d="M12 6V4.5A1.5 1.5 0 0010.5 3h-6A1.5 1.5 0 003 4.5v6A1.5 1.5 0 004.5 12H6"/></svg></button>
           <button class="btn sm" id="layerMerge" title="Merge down" aria-label="Merge down"><svg viewBox="0 0 18 18"><path d="M9 3v8M5.5 7.5L9 11l3.5-3.5M4 15h10"/></svg></button>
           <button class="btn sm" id="layerUp" title="Move up" aria-label="Move layer up"><svg viewBox="0 0 18 18"><path d="M9 14V4M5 8l4-4 4 4"/></svg></button>
@@ -1087,28 +1087,31 @@ function delLayer() {
 /* moving past a group's edge steps into or out of the group (like Photoshop) before moving past it */
 function layerMove(d) {
   const i = layers.indexOf(cur), nb = layers[i + d];
-  if (cur.g && (!nb || nb.g !== cur.g)) return layers.some(L => L !== cur && L.g === cur.g) ? 'leave' : null;   // a group keeps at least one layer
+  if (cur.g && (!nb || nb.g !== cur.g)) return 'leave';
   if (!nb) return null;
   return !cur.g && nb.g ? 'enter' : 'swap';
 }
 function moveLayer(d) {
-  const how = layerMove(d), i = layers.indexOf(cur), nb = layers[i + d];
-  if (!how) { if (cur.g && (!nb || nb.g !== cur.g)) toast('A group keeps at least one layer. Use Ungroup to remove the group.'); return; }
+  const how = layerMove(d), i = layers.indexOf(cur), nb = layers[i + d], was = groupOf(cur);
+  if (!how) return;
   layerOp(() => {
     if (how === 'leave') cur.g = null;
     else if (how === 'enter') { cur.g = nb.g; groupOf(cur).open = true; }
     else { layers.splice(i, 1); layers.splice(i + d, 0, cur); }
   });
+  emptiedToast(was);
 }
 function newGroup() {
   layerOp(() => {
     const used = new Set(groups.map(G => G.key)), key = [1, 2, 3, 4, 5, 6, 7, 8, 9].find(k => !used.has(k)) || null;
     const G = { id: nextGid++, name: 'Group ' + (groups.length + 1), visible: true, open: true, key, active: null };
     groups.push(G);
-    let i = layers.indexOf(cur);
-    if (cur.g) while (i + 1 < layers.length && layers[i + 1].g === cur.g) i++;   // go above the current group, not inside it
+    const jump = key ? ' Ctrl+' + key + ' jumps to it.' : ' All 9 hotkeys are in use.';
+    if (!cur.g) { cur.g = G.id; toast(cur.name + ' is now in ' + G.name + '.' + jump); return; }   // wrap the active layer, like Photoshop
+    let i = layers.indexOf(cur);   // already in a group (no nesting): start a new group with a fresh layer above it
+    while (i + 1 < layers.length && layers[i + 1].g === cur.g) i++;
     const L = newLayer(); L.g = G.id; layers.splice(i + 1, 0, L); cur = L;
-    toast(key ? G.name + ' made. Ctrl+' + key + ' jumps to it.' : G.name + ' made. All 9 hotkeys are in use.');
+    toast(G.name + ' made with a new layer.' + jump);
   });
 }
 function ungroup(G) { layerOp(() => { for (const L of layers) if (L.g === G.id) L.g = null; }); toast(G.name + ' ungrouped. Its layers stay.'); }
@@ -1127,7 +1130,7 @@ function jumpGroup(n) {
   if (!G.visible) G.visible = true;
   saveLayers(); renderLayers(); dirtyScene();
   const b = contentBounds(mine.filter(L => L.visible && L.opacity > 0));
-  if (!b) { toast(G.name + ' is empty. Draw here to give it a place.'); return; }
+  if (!b) { toast(G.name + ' has no drawing yet. Draw in it, or drag an inked layer onto its name.'); return; }
   const pad = 0.12, z = clamp(Math.min(W * (1 - 2 * pad) / (b.maxX - b.minX), H * (1 - 2 * pad) / (b.maxY - b.minY)), 0.02 / dpr, 1 / dpr);
   animateView(z, (b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
 }
@@ -1953,12 +1956,15 @@ function applyDrop(src, t) {
   if (ref && items.includes(ref)) return;
   order.splice(ref ? order.indexOf(ref) + 1 : 0, 0, ...items);
   if (order.every((L, i) => L === layers[i]) && (!src.L || src.L.g === g)) return;   // dropped where it already was
-  if (src.L && src.L.g && src.L.g !== g && !layers.some(L => L !== src.L && L.g === src.L.g)) { toast('A group keeps at least one layer. Use Ungroup to remove the group.'); return; }
+  const was = src.L && groupOf(src.L);
   layerOp(() => {
     layers = order;
     if (src.L) { src.L.g = g; const G = groupOf(src.L); if (G) G.open = true; }
   });
+  emptiedToast(was);
 }
+/* moving a group's last layer out leaves nothing to show, so the group goes too (undo restores it) */
+function emptiedToast(G) { if (G && !groups.includes(G)) toast(G.name + ' had no layers left, so it was removed. Undo brings it back.'); }
 function startRowDrag(ev, src) {
   if (ev.button !== 0 || ev.target.closest('button, select, input')) return;
   const ol = $('layers'), y0 = ev.clientY;

@@ -8,7 +8,7 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 
 - **Infinite canvas.** Pan and zoom forever; the paper only stores the areas you draw on.
 - **Layers.** Add, duplicate, merge down, reorder, hide, rename, and set opacity per layer.
-- **Groups with hotkeys.** Collect layers into groups (collapse, hide, rename). Drag layers in the layers panel to reorder them or drop them into a group, and drag a group's header to move the whole group. Give up to 9 groups a Ctrl+1–9 hotkey to jump straight to that group's drawing, however far apart they are on the canvas.
+- **Groups with hotkeys.** New group puts the active layer into a fresh group. Collapse, hide and rename groups. Drag layers in the layers panel to reorder them or drop them into a group, and drag a group's header to move the whole group. Give up to 9 groups a Ctrl+1–9 hotkey to jump straight to that group's drawing, however far apart they are on the canvas.
 - **Notes.** Press T (or the note button) and click to pin a text note to the canvas. Notes pan and zoom with the drawing; drag the top strip to move one. They aren't included in PNG export.
 - **Find a layer's drawing.** Ctrl+click a layer or group in the layers panel to flash its contents on the canvas.
 - **Color picker preview.** Hold Alt to see the color under the cursor next to your current one, then click or drag to pick it.
