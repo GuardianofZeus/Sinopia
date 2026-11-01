@@ -32,9 +32,21 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - Marching ants (`selPath`): the 50% outline as merged pixel-edge runs in a cached `Path2D`, drawn into a screen-sized cache canvas (`drawAnts`), so strokes over a busy selection pay for one blit a frame. They animate every 150 ms, but not during a stroke or a drag, or above 150k segments.
 - Pixels: `lift` takes the selected part of a layer as tile canvases (with a history map, it also removes it). `placeFloat` draws them back at an offset. These drive Delete (`clearSelected`), Ctrl+drag move (`startMove` / `endMove`; one undo step, with the old selection in `extra`), and Ctrl+C / X / V (`copySel` / `pasteClip`; paste goes in place on a new layer). Selection isn't saved between sessions.
 
+**Workspaces and documents** (added 2026-10-31; Ben’s spec: copy, not a live link; core blend modes; several open at once; not saved for now).
+- `ws` is the active workspace: `canvasWS` or one of `docs`. The globals (`layers`, `cur`, `groups`, the undo stacks, `view`, `sel`) always hold the active one; `switchWS` stashes them on the old workspace and loads the new one. Everything else (engine, worker, tools, selection) works unchanged on either.
+- **New doc** (toolbar, beside Export) and **Open as document** (with a selection) create the document right away (`newDoc`), from the selection’s bounds, or from what’s on screen with no selection. Ben wants sizing to happen afterwards, not in a dialog first.
+- **Doc size** (the same toolbar button inside a document, `docSizeDialog`), like Photoshop’s Canvas Size. You type a width and height, or use the presets (HD, 4K, Square, A4 300 dpi) and the swap button. The new page is previewed on the overlay, centered on the old one (`docArea`, `drawDocArea`), with everything outside dimmed. The dialog is a transparent sheet at the bottom, so the preview stays visible.
+  - Applying (`applyResize`) shifts every layer and the selection so the page starts at (0,0) again, and moves the view so the content doesn’t jump. Pixels outside the page are kept.
+  - It’s one undo step (`{kind:'resize', w, h, dx, dy}`, which returns its own inverse).
+- `openDoc(area)` copies that rectangle of every visible canvas layer (`copyRegion`) into a document whose page is world (0,0)–(w,h). Groups are flattened, the paper color is copied, and the view fits the page (at most 100%).
+- Document layers have `L.doc`. `markSave` and `saveLayers` skip them, and `saveSettings` stores the canvas view, so nothing about documents reaches storage.
+- **Blend modes** (`L.blend`, `BLENDS`), documents only. In WebGL, a document renders into screen-sized buffers (`screenBuf`), scissored to the page. Normal layers draw straight in; a blended layer draws into its own buffer, then `FS_BLEND` mixes it with the buffers below (W3C separable formulas, premultiplied). The page is then copied onto the `PASTEBOARD`. Canvas 2D uses the same modes as `globalCompositeOperation` (`blend2D`). The picker (`blendCh`), export and merge-down also blend. Live strokes on a blended layer blend as you draw.
+- `texClear` keeps the bound framebuffer and turns off the scissor while it clears, because it can run mid-render.
+
 **Notes.** `#notes` holds DOM cards above `#ov`. Each note is `{id, x, y, text}` in world units, saved to localStorage `sinopia.notes`.
 - `layoutNotes()` runs after a scene render only when the view has changed, so notes add no work during strokes. A card is a `translate` + `scale(view.z × dpr)`, so it's 220 px wide at 100% zoom.
 - An empty note is removed on blur.
+- Look (Ben's request): transparent cards with a dark #2a3442 border and text. The whole `#notes` layer has `mix-blend-mode: multiply`, so the ink multiplies into the drawing. `position: fixed` makes the container its own stacking context, so the blend has to sit on the container, not on the cards.
 - Notes aren't in undo or in the PNG export.
 - While Space is held, notes ignore the pointer so panning works over them. Wheel events over a note go to the same `onWheel` as the canvas.
 
@@ -110,6 +122,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 ## UI layout
 
+- **Tabs row** (only when a document is open): Canvas, then each document with its size, and a two-click × to close it (closing discards it).
 - **Toolbar groups** (in order): brush, eraser, note, the four select tools (with wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
 - **Brush panel** opens on the left: tips, import alpha, dynamics, stroke test.
 - **Layers panel** opens on the right: layer list and actions, then paper color.
@@ -127,6 +140,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
   - Exports are pixel-identical between `?gl=0` and WebGL, and between `?worker=0` and `?worker=1`. This covered round and image tips, radial and both-axis symmetry, the pen eraser end, back-to-back strokes and undo.
   - Live screen output is within 2/255 during and after strokes. Zoomed far out, thin lines differ slightly, because the GPU's trilinear mips blend levels where 2D's `lodOf` picks one.
   - To re-check, load both variants in same-origin iframes and diff the export images.
+- **Documents (checked 2026-10-31):** Multiply over orange and gray paper gives exact values in WebGL (picker) and `?gl=0` (stage pixels): #2a461a and #183868. Live strokes blend as drawn. Tab switching keeps each workspace’s undo, selection and view, and storage holds only canvas layers afterwards.
 - **Selection (checked 2026-10-31)** with synthetic pointer events in `?gl=0&worker=0` (reading `#stage` pixels) and in WebGL with `?worker=1` (reading through the Alt picker). Covered: clipped painting, Delete, Ctrl+drag move, undo of each, the wand (contiguous, on empty paper, with invert), ellipse, lasso, and copy/paste.
 
 ## Known gaps / candidate next steps
@@ -136,5 +150,6 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 3. **Canvas rotation** (Leonardo has it). This is now easy in the WebGL vertex shader.
 4. Optional "build-up" mode for soft brushes (MAX blending means a single stroke never darkens over itself).
 5. Transform (scale/rotate the selection), feather and polygonal lasso, a wand "sample all layers" option, and layer thumbnails. Selection basics are in.
-6. Save and load a project file (currently it lives only in browser storage plus PNG export).
-7. **Straight lines:** now a rubber band with a hard 10° snap and a 4-line guide, per Ben. Tune `LINE_STEP` or the guide alpha if he asks.
+6. **Documents next:** saving (IndexedDB, keyed per document), “Place back” onto the canvas, new blank documents of a chosen size, layer thumbnails, and more blend modes. Ben wants many documents open at once in the full app.
+7. Save and load a project file (currently it lives only in browser storage plus PNG export).
+8. **Straight lines:** now a rubber band with a hard 10° snap and a 4-line guide, per Ben. Tune `LINE_STEP` or the guide alpha if he asks.

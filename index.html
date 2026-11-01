@@ -52,19 +52,19 @@ body{
 #ov.grab{cursor:grab} #ov.grabbing{cursor:grabbing} #ov.zoom{cursor:zoom-in} #ov.text{cursor:text}
 
 /* notes live on the paper, so they keep paper-like colors in both themes; positioned in world space by layoutNotes() */
-.notes{position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden}
+/* notes are see-through, drawn in a dark ink that multiplies into the drawing like a marker on paper */
+.notes{position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; mix-blend-mode:multiply}
 .note-card{position:absolute; left:0; top:0; width:220px; transform-origin:0 0; pointer-events:auto;
-  background:#eef3f8; color:#1b2532; border:1px solid #c3cdd8; border-left:3px solid #2d6cb0; border-radius:3px;
-  box-shadow:0 4px 14px rgba(12,28,50,.14), 0 1px 2px rgba(12,28,50,.1)}
+  background:transparent; color:#1b2532; border:1px solid #2a3442; border-left:3px solid #2a3442; border-radius:3px}
 .notes.pass .note-card{pointer-events:none}
 .note-card .grip{height:14px; cursor:move; display:flex; justify-content:flex-end; align-items:center; padding:0 2px;
-  background:repeating-linear-gradient(90deg, transparent 0 3px, rgba(27,37,50,.09) 3px 4px); border-bottom:1px solid #d6dee7}
+  background:repeating-linear-gradient(90deg, transparent 0 3px, rgba(27,37,50,.18) 3px 4px); border-bottom:1px solid rgba(42,52,66,.35)}
 .note-card .nx{width:16px; height:12px; border:0; padding:0; background:transparent; color:#5a6879; font:600 12px/12px var(--font-ui); cursor:pointer; opacity:0}
 .note-card:hover .nx, .note-card:focus-within .nx{opacity:1}
 .note-card textarea{display:block; width:100%; box-sizing:border-box; border:0; outline:0; resize:none; overflow:hidden; background:transparent;
   color:inherit; font:400 14px/1.45 var(--font-ui); padding:7px 10px 9px; -webkit-user-select:text; user-select:text}
 .note-card textarea::placeholder{color:#7a8796}
-.note-card:focus-within{border-left-color:#5a9ae0}
+.note-card:focus-within{border-left-color:#1d4f86}
 
 .ui{
   position:fixed; z-index:2;
@@ -95,6 +95,10 @@ body{
 .btn.sm{height:26px; min-width:26px; padding:0 6px}
 .btn.sm svg{width:15px; height:15px}
 .btn:focus-visible, input:focus-visible, select:focus-visible, .layer:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.tabs .tab{max-width:220px; overflow:hidden; white-space:nowrap}
+.tabs .dim{font-weight:400; color:var(--muted); font-variant-numeric:tabular-nums}
+.tabs .tab.on .dim{color:inherit; opacity:.75}
+.tabs .tabx{margin-left:-2px; margin-right:4px}
 .sep{width:1px; align-self:stretch; background:var(--line); margin:4px 3px}
 
 .slider{display:flex; align-items:center; gap:7px; padding:0 8px; height:32px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
@@ -205,6 +209,10 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .preview img{display:block; max-width:100%; margin:0 auto; -webkit-user-select:auto; user-select:auto}
 .card .row{justify-content:space-between}
 .card .btn{border:1px solid var(--line)}
+.dialog.sheet{background:transparent; align-items:flex-end; padding-bottom:calc(64px + env(safe-area-inset-bottom, 0px))}   /* leaves the canvas preview visible */
+.dialog.sheet .card{width:min(420px, 100%)}
+.field{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
+.field .num{width:66px}
 .card .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:transparent}
 
 @media (max-width:700px){ .hint{display:none} .slider input[type=range]{width:78px} }
@@ -233,6 +241,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
           <input class="num" type="number" id="tol" min="0" max="255" aria-label="Wand tolerance" title="Tolerance: how different a color can be and still be selected (0–255)">
           <button class="btn" id="contig" title="Only select connected pixels">Contiguous</button>
         </span>
+        <button class="btn" id="selDoc" title="Copy the selected area into a new document with blend modes">Open as document</button>
         <button class="btn" id="selInv" title="Invert selection (Ctrl+Shift+I)">Invert</button>
         <button class="btn" id="selNone" title="Deselect (Ctrl+D)">Deselect</button>
       </span>
@@ -263,6 +272,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <button class="btn" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg viewBox="0 0 18 18"><path d="M6 4L3 7l3 3"/><path d="M3 7h7.5a4 4 0 010 8H8"/></svg></button>
       <button class="btn" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg viewBox="0 0 18 18"><path d="M12 4l3 3-3 3"/><path d="M15 7H7.5a4 4 0 000 8H10"/></svg></button>
       <span class="sep"></span>
+      <button class="btn" id="newDoc" title="New document from the selection, or from what's on screen">New doc</button>
       <button class="btn" id="exportBtn" title="Export PNG">Export</button>
       <button class="btn" id="clearBtn" title="Clear the active layer">Clear layer</button>
       <span class="sep"></span>
@@ -270,6 +280,8 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <button class="btn" id="helpBtn" title="Shortcuts (?)" aria-label="Shortcuts">?</button>
     </div>
   </div>
+
+  <div class="group tabs" id="tabs" role="tablist" aria-label="Documents" hidden></div>
 
   <div class="panels">
   <aside class="panel" id="brushPanel" aria-label="Brush settings" hidden>
@@ -315,6 +327,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       </div>
       <ol class="layers" id="layers" aria-label="Layer list"></ol>
       <label class="prop">Layer opacity <input type="range" id="layerOpacity" min="0" max="100" step="1"><output id="layerOpacityOut"></output></label>
+      <label class="prop" id="blendRow" hidden>Blend mode <select id="blend" style="grid-column:span 2"></select></label>
       <p class="note">Double-click a name to rename it. Ctrl+click a layer or group to flash its drawing on the canvas. Drag rows to reorder: drop on a group's name to put a layer in it, or drag a group's header to move the whole group. Each group can have a Ctrl+1–9 hotkey.</p>
     </div>
     <div class="section">
@@ -344,11 +357,29 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
     <span><kbd>B</kbd> <kbd>E</kbd> <kbd>M</kbd></span><span>Brush, eraser, cycle mirror</span>
     <span><kbd>S</kbd> <kbd>L</kbd> <kbd>W</kbd></span><span>Select: rectangle (S again for ellipse), lasso, magic wand. Shift adds, Alt subtracts. Brush and eraser stay inside the selection</span>
     <span><kbd>Ctrl</kbd> + drag</span><span>With a select tool: move the selected pixels. <kbd>Delete</kbd> clears them, <kbd>Ctrl</kbd>+<kbd>D</kbd> deselects</span>
+    <span>New doc</span><span>Copies your selection (or what’s on screen) into a new tab: a fixed-size page with layer blend modes. Inside a document the same button is Doc size, to change the page size. The canvas stays as it was. Documents aren’t saved yet</span>
     <span><kbd>T</kbd></span><span>Note: click the canvas to place a text note. Drag its top strip to move it</span>
     <span><kbd>X</kbd></span><span>Delete the active layer (undo brings it back)</span>
     <span><kbd>Ctrl</kbd> + <kbd>Z</kbd></span><span>Undo (add <kbd>Shift</kbd> to redo)</span>
     <span><kbd>Ctrl</kbd> + <kbd>1</kbd>–<kbd>9</kbd></span><span>Jump to a group and frame its drawing</span>
     <span><kbd>Tab</kbd> <kbd>0</kbd></span><span>Hide the panels, reset zoom</span>
+  </div>
+</div>
+
+<div class="dialog sheet" id="docDlg" hidden>
+  <div class="card" role="dialog" aria-label="Document size">
+    <h2>Document size</h2>
+    <div class="row" style="justify-content:flex-start">
+      <label class="field">Width <input class="num" type="number" id="docW" min="1" max="16384"> px</label>
+      <button class="btn sm" id="docSwap" title="Swap width and height" aria-label="Swap width and height"><svg viewBox="0 0 18 18"><path d="M4 7h10l-3-3M14 11H4l3 3"/></svg></button>
+      <label class="field">Height <input class="num" type="number" id="docH" min="1" max="16384"> px</label>
+    </div>
+    <div class="row" id="docPresets" style="justify-content:flex-start; gap:4px"></div>
+    <p class="note" id="docInfo"></p>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn" id="docCancel">Cancel</button>
+      <button class="btn primary" id="docOk">Apply</button>
+    </div>
   </div>
 </div>
 
@@ -553,6 +584,28 @@ const allLayers = new Map();
 const undoStack = [], redoStack = [];
 let hadView = false;
 let sel = null, selTool = null;               // the selection mask (see "selection"), and the active select tool: rect | ellipse | lasso | wand
+/* workspaces: the infinite canvas, plus documents opened from a rectangle of it (see "documents"). The active one's
+   layers, undo, view and selection live in the globals above; switching tabs swaps them. Documents aren't saved. */
+const canvasWS = { name: 'Canvas', doc: null };
+let ws = canvasWS, docs = [];
+const paperColor = () => ws.doc ? ws.paper : S.paper;
+/* layer blend modes (documents only): the index is the shader's uM; canvas 2D has the same modes as composite operations */
+const BLENDS = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'add', 'soft-light'];
+const BLEND_NAMES = ['Normal', 'Multiply', 'Screen', 'Overlay', 'Darken', 'Lighten', 'Add', 'Soft light'];
+const blend2D = m => !m || m === 'normal' ? 'source-over' : m === 'add' ? 'lighter' : m;
+const PASTEBOARD = [0.235, 0.255, 0.283], PASTEBOARD_CSS = '#3c4148';   // around a document, like Photoshop's work area
+function blendCh(m, b, s) {   // one channel, 0-1; same math as FS_BLEND
+  switch (m) {
+    case 'multiply': return b * s;
+    case 'screen': return b + s - b * s;
+    case 'overlay': return b < 0.5 ? 2 * b * s : 1 - 2 * (1 - b) * (1 - s);
+    case 'darken': return Math.min(b, s);
+    case 'lighten': return Math.max(b, s);
+    case 'add': return Math.min(1, b + s);
+    case 'soft-light': { const d = b <= 0.25 ? ((16 * b - 12) * b + 4) * b : Math.sqrt(b); return s <= 0.5 ? b - (1 - 2 * s) * b * (1 - b) : b + (2 * s - 1) * (d - b); }
+    default: return s;
+  }
+}
 
 const LS = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
@@ -567,15 +620,17 @@ if (saved) {
   if (saved.view && saved.v2) { Object.assign(view, saved.view); hadView = true; }
   S.erase = false;
 }let settingsTimer = 0;
-function saveSettings() { clearTimeout(settingsTimer); settingsTimer = setTimeout(() => LS.set('sinopia.settings', { v2: 1, S, sym, view }), 400); }
+function saveSettings() { clearTimeout(settingsTimer); settingsTimer = setTimeout(() => LS.set('sinopia.settings', { v2: 1, S, sym, view: ws.doc ? canvasWS.view : view }), 400); }
 
 /* ---------- layers ---------- */
 function newLayer(name) {
-  const L = { id: nextId++, name: name || 'Layer ' + (layers.length + 1), visible: true, opacity: 1, tiles: new Map(), g: null };
+  const L = { id: nextId++, name: name || 'Layer ' + (layers.length + 1), visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal' };
+  if (ws.doc) L.doc = true;   // document layers are never saved
   allLayers.set(L.id, L); return L;
 }
 function saveLayers() {
   const G = cur && groupOf(cur); if (G) G.active = cur.id;   // each group remembers its last active layer
+  if (ws.doc) return;
   LS.set('sinopia.layers', { nextId, nextGid, active: cur && cur.id,
     groups: groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
     layers: layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g })) });
@@ -1065,6 +1120,7 @@ function onWorker({ data: m }) {
 /* ---------- undo ---------- */
 function pushUndo(e) { undoStack.push(e); if (undoStack.length > 80) undoStack.shift(); redoStack.length = 0; syncHistory(); }
 function applyEntry(e) {
+  if (e.kind === 'resize') return applyResize(e);
   if (e.kind === 'sel') { const inv = { kind: 'sel', sel }; sel = e.sel; selChanged(); return inv; }
   if (e.kind === 'tiles') {
     const inv = { kind: 'tiles', layer: e.layer, map: new Map() };
@@ -1095,7 +1151,7 @@ function layerOp(mutate) { settle(); const before = layerSnap(); mutate(); tidyG
 function addLayer() { layerOp(() => { const L = newLayer(); L.g = cur.g; layers.splice(layers.indexOf(cur) + 1, 0, L); cur = L; }); }
 function dupLayer() {
   layerOp(() => {
-    const L = newLayer(cur.name + ' copy'); L.opacity = cur.opacity; L.visible = cur.visible; L.g = cur.g;
+    const L = newLayer(cur.name + ' copy'); L.opacity = cur.opacity; L.visible = cur.visible; L.g = cur.g; L.blend = cur.blend;
     for (const [k, t] of cur.tiles) L.tiles.set(k, mkTile(cloneCanvas(t.c)));
     layers.splice(layers.indexOf(cur) + 1, 0, L); cur = L; markSave(L, L.tiles.keys());
   });
@@ -1199,7 +1255,7 @@ function mergeDown() {
     let b = below.tiles.get(k);
     tiles.map.set(k, b ? cloneCanvas(b.c) : null);
     if (!b) { b = mkTile(); below.tiles.set(k, b); }
-    const g = b.c.getContext('2d'); g.globalAlpha = top.visible ? top.opacity : 0; g.drawImage(t.c, 0, 0); g.globalAlpha = 1; b.v++;
+    const g = b.c.getContext('2d'); g.globalAlpha = top.visible ? top.opacity : 0; g.globalCompositeOperation = blend2D(top.blend); g.drawImage(t.c, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; b.v++;
   }
   const entry = Object.assign(layerSnap(), { extra: tiles });
   layers.splice(i, 1); cur = below; tidyGroups();
@@ -1583,7 +1639,7 @@ function syncSelUI() {
   for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand']]) $(id).classList.toggle('on', selTool === t);
   $('tErase').classList.toggle('on', S.erase && !selTool); $('tBrush').classList.toggle('on', !S.erase && !selTool);
   $('selOpts').hidden = !selTool && !sel; $('wandOpts').hidden = selTool !== 'wand';
-  $('selInv').hidden = $('selNone').hidden = !sel;
+  $('selInv').hidden = $('selNone').hidden = !sel; $('selDoc').hidden = !sel || !!ws.doc;
   ov.classList.toggle('sel', !!selTool);
   $('hint').textContent = selTool ? SEL_HINT : HINT;
 }
@@ -1591,6 +1647,159 @@ function setSelTool(t) {
   if (t && noteMode) setNoteMode(false);
   selTool = t; syncSelUI(); dirtyOverlay();
 }
+function selBounds(s) {   // drawn bounds of a selection (an endless one uses the drawing's bounds)
+  if (s.out) { const b = contentBounds(layers.filter(shown)); return b && { x0: b.minX, y0: b.minY, x1: b.maxX, y1: b.maxY }; }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const grow = (a, b, c, d) => { x0 = Math.min(x0, a); y0 = Math.min(y0, b); x1 = Math.max(x1, c); y1 = Math.max(y1, d); };
+  for (const [k, v] of s.m) {
+    const [tx, ty] = keyXY(k), ox = tx * TILE, oy = ty * TILE;
+    if (typeof v === 'number') { if (v) grow(ox, oy, ox + TILE, oy + TILE); continue; }
+    let a0 = TILE, a1 = -1, b0 = TILE, b1 = -1;
+    for (let y = 0; y < TILE; y++) { const r = y * TILE; for (let x = 0; x < TILE; x++) if (v[r + x]) { if (x < a0) a0 = x; if (x > a1) a1 = x; if (y < b0) b0 = y; b1 = y; } }
+    if (a1 >= 0) grow(ox + a0, oy + b0, ox + a1 + 1, oy + b1 + 1);
+  }
+  return isFinite(x0) ? { x0, y0, x1, y1 } : null;
+}
+
+/* ---------- documents ----------
+   "Open as document" copies the selection's bounding rectangle of every visible canvas layer into a new document:
+   a fixed-size page at world (0, 0)-(w, h) with its own layers, undo, view and selection, and layer blend modes.
+   It's a copy, so the canvas never changes. Documents live only until the page closes. */
+let docSeq = 0;
+function copyRegion(L, N, x0, y0, w, h) {
+  for (let dty = 0; dty * TILE < h; dty++) for (let dtx = 0; dtx * TILE < w; dtx++) {
+    const wx = x0 + dtx * TILE, wy = y0 + dty * TILE;
+    let c = null, g = null;
+    for (let sty = Math.floor(wy / TILE); sty <= Math.floor((wy + TILE - 1) / TILE); sty++) for (let stx = Math.floor(wx / TILE); stx <= Math.floor((wx + TILE - 1) / TILE); stx++) {
+      const t = L.tiles.get(tkey(stx, sty)); if (!t || t.blank) continue;
+      if (!c) { c = mk(TILE, TILE); g = c.getContext('2d'); g.beginPath(); g.rect(0, 0, Math.min(TILE, w - dtx * TILE), Math.min(TILE, h - dty * TILE)); g.clip(); }
+      g.drawImage(t.c, stx * TILE - wx, sty * TILE - wy);
+    }
+    if (c) N.tiles.set(tkey(dtx, dty), mkTile(c));
+  }
+}
+function openDoc(A) {   // A: {x, y, w, h} in canvas world px, from the size dialog
+  if (act || stroke || ws.doc) return;
+  settle();
+  const { w, h } = A, b = { x0: A.x, y0: A.y };
+  const D = { name: 'Untitled ' + (++docSeq), doc: { w, h }, paper: S.paper, layers: [], groups: [], undo: [], redo: [], sel: null };
+  for (const L of layers) {
+    if (!shown(L) || !L.tiles.size) continue;
+    const N = newLayer(L.name); N.doc = true; N.opacity = L.opacity;
+    copyRegion(L, N, Math.round(b.x0), Math.round(b.y0), w, h);
+    if (N.tiles.size) D.layers.push(N); else allLayers.delete(N.id);
+  }
+  if (!D.layers.length) { const N = newLayer('Layer 1'); N.doc = true; D.layers.push(N); }
+  D.cur = D.layers[D.layers.length - 1];
+  const z = clamp(Math.min(W * 0.84 / w, (H - 120) * 0.84 / h), 0.02 / dpr, 1 / dpr);   // fit to the window, at most 100%
+  D.view = { z, x: W / 2 - w / 2 * z, y: H / 2 + 20 - h / 2 * z };
+  docs.push(D); switchWS(D);
+  toast(D.name + ': ' + w + ' × ' + h + ' px, ' + D.layers.length + (D.layers.length > 1 ? ' layers' : ' layer') + '. It’s a copy; the canvas tab is unchanged.');
+}
+/* New doc makes the document straight away: the selection's bounds, or what's on screen. Size it afterwards. */
+const DOC_MAX = 16384;
+let docArea = null;
+function newDoc() {
+  if (act || stroke) return;
+  if (ws.doc) { docSizeDialog(); return; }
+  settle();
+  const b = sel && selBounds(sel), a = toWorld(0, 0), c = toWorld(W, H);
+  const r = b || { x0: a.x, y0: a.y, x1: c.x, y1: c.y };
+  const w = clamp(Math.round(r.x1 - r.x0), 1, DOC_MAX), h = clamp(Math.round(r.y1 - r.y0), 1, DOC_MAX);
+  openDoc({ x: Math.round((r.x0 + r.x1) / 2 - w / 2), y: Math.round((r.y0 + r.y1) / 2 - h / 2), w, h });
+}
+/* Doc size (inside a document): type a new size; the new page is previewed, centered on the old one like Photoshop's
+   Canvas Size. Applying shifts every layer so the page starts at (0, 0) again. Pixels outside the page are kept. */
+function docSizeDialog() {
+  if (act || stroke || !ws.doc) return;
+  settle();
+  docArea = { x: 0, y: 0, w: ws.doc.w, h: ws.doc.h };
+  $('docW').value = docArea.w; $('docH').value = docArea.h; syncDocInfo();
+  $('docDlg').hidden = false; $('docW').focus(); $('docW').select(); dirtyOverlay();
+}
+function shiftLayer(L, dx, dy) {
+  if (!dx && !dy) return;
+  const old = L.tiles; L.tiles = new Map();
+  placeFloat(L, new Map([...old].filter(([, t]) => !t.blank).map(([k, t]) => [k, t.c])), dx, dy, { map: new Map() });
+}
+function applyResize(e) {   // {kind:'resize', w, h, dx, dy}: move the content by (dx, dy) and set the page size; returns the inverse
+  const inv = { kind: 'resize', w: ws.doc.w, h: ws.doc.h, dx: -e.dx, dy: -e.dy };
+  for (const L of layers) shiftLayer(L, e.dx, e.dy);
+  sel = shiftSel(sel, e.dx, e.dy); selChanged();
+  ws.doc.w = e.w; ws.doc.h = e.h;
+  view.x -= e.dx * view.z; view.y -= e.dy * view.z;   // the content stays put on screen; the page edges move
+  renderTabs(); dirtyScene();
+  return inv;
+}
+function setDocSize(w, h) {   // keeps the area's center where it was
+  w = clamp(Math.round(w) || 1, 1, DOC_MAX); h = clamp(Math.round(h) || 1, 1, DOC_MAX);
+  const cx = docArea.x + docArea.w / 2, cy = docArea.y + docArea.h / 2;
+  docArea = { x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w, h };
+  syncDocInfo(); dirtyOverlay();
+}
+function syncDocInfo() {
+  const sc = Math.min(1, W * 0.9 / (docArea.w * view.z), H * 0.9 / (docArea.h * view.z));
+  $('docInfo').textContent = 'The dashed box shows the new page, centered on the current one. Nothing outside it is deleted. ' + (sc < 1 ? 'Zoom out to see all of it.' : '');
+}
+function closeDocDialog(apply) {
+  $('docDlg').hidden = true;
+  const A = docArea; docArea = null; dirtyOverlay();
+  if (!apply || !A || !ws.doc || (A.w === ws.doc.w && A.h === ws.doc.h && !A.x && !A.y)) return;
+  pushUndo(applyResize({ kind: 'resize', w: A.w, h: A.h, dx: -A.x, dy: -A.y }));
+  toast(ws.name + ' is now ' + A.w + ' × ' + A.h + ' px. Undo puts it back.');
+}
+function drawDocArea() {
+  const A = docArea, x = A.x * view.z + view.x, y = A.y * view.z + view.y, w = A.w * view.z, h = A.h * view.z;
+  octx.save();
+  octx.fillStyle = 'rgba(10,20,34,.35)'; octx.beginPath(); octx.rect(0, 0, W, H); octx.rect(x, y, w, h); octx.fill('evenodd');   // dim everything outside
+  octx.lineWidth = 1; octx.strokeStyle = '#fff'; octx.strokeRect(x + 0.5, y + 0.5, w, h);
+  octx.setLineDash([6, 4]); octx.strokeStyle = '#2d6cb0'; octx.strokeRect(x + 0.5, y + 0.5, w, h); octx.setLineDash([]);
+  const label = A.w + ' × ' + A.h + ' px';
+  octx.font = '600 12px "Libre Franklin", Arial, sans-serif'; const tw = octx.measureText(label).width;
+  octx.fillStyle = 'rgba(12,20,32,.85)'; octx.fillRect(x, y - 22, tw + 12, 19);
+  octx.fillStyle = '#fff'; octx.textBaseline = 'middle'; octx.fillText(label, x + 6, y - 12.5);
+  octx.restore();
+}
+function switchWS(t) {
+  if (t === ws || act || stroke) return;
+  settle(); if (anim) { cancelAnimationFrame(anim); anim = 0; }
+  Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: { ...view }, sel });
+  ws = t;
+  layers = t.layers; cur = t.cur; groups = t.groups; sel = t.sel;
+  undoStack.push(...t.undo); redoStack.push(...t.redo); Object.assign(view, t.view);
+  hl = null; if (noteMode) setNoteMode(false);
+  notesEl.hidden = !!t.doc; $('paper').value = paperColor();
+  $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc';
+  $('newDoc').title = t.doc ? 'Change the page size (Canvas Size)' : 'New document from the selection, or from what\'s on screen';
+  selChanged(); syncHistory(); renderLayers(); renderTabs(); updateZoomLabel(); dirtyScene();
+}
+function closeDoc(D) {
+  if (ws === D) switchWS(canvasWS);
+  if (ws === D) return;   // mid-stroke
+  docs = docs.filter(o => o !== D);
+  for (const L of D.layers) allLayers.delete(L.id);
+  renderTabs(); toast(D.name + ' closed');
+}
+function renderTabs() {
+  const el = $('tabs'); el.hidden = !docs.length; el.innerHTML = '';
+  for (const D of [canvasWS, ...docs]) {
+    const b = document.createElement('button'); b.className = 'btn tab' + (D === ws ? ' on' : '');
+    b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', D === ws);
+    b.textContent = D.name;
+    if (D.doc) { const sz = document.createElement('span'); sz.className = 'dim'; sz.textContent = D.doc.w + '×' + D.doc.h; b.appendChild(sz); }
+    b.onclick = () => switchWS(D);
+    el.appendChild(b);
+    if (!D.doc) continue;
+    const x = document.createElement('button'); x.className = 'btn sm tabx'; x.textContent = '×'; x.title = 'Close ' + D.name + ' (documents aren’t saved)'; x.setAttribute('aria-label', 'Close ' + D.name);
+    x.onclick = () => {   // two clicks, since closing throws the document away
+      if (x.dataset.arm) { closeDoc(D); return; }
+      x.dataset.arm = 1; x.textContent = 'Close?'; x.classList.add('warn');
+      setTimeout(() => { delete x.dataset.arm; x.textContent = '×'; x.classList.remove('warn'); }, 3000);
+    };
+    el.appendChild(x);
+  }
+}
+const opText = L => (ws.doc && L.blend !== 'normal' ? BLEND_NAMES[BLENDS.indexOf(L.blend)] + ' · ' : '') + Math.round(L.opacity * 100) + '%';
 
 /* ---------- persistence (IndexedDB) ---------- */
 let db = null; const saveSet = new Set(); let saveTimer = 0, saving = false;
@@ -1603,7 +1812,7 @@ function idbOpen() {
 function idb(mode, fn) {
   return new Promise(res => { try { const tx = db.transaction('tiles', mode); fn(tx.objectStore('tiles')); tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => res(false); } catch (e) { res(false); } });
 }
-function markSave(layer, keys) { for (const k of keys) saveSet.add(layer.id + ':' + k); clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 1000); }
+function markSave(layer, keys) { if (layer.doc) return; for (const k of keys) saveSet.add(layer.id + ':' + k); clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 1000); }
 async function flushSave() {
   if (!db || saving) return; settle(); saving = true;
   const ks = [...saveSet]; saveSet.clear();
@@ -1687,6 +1896,27 @@ void main() { o = texture(uT, uv) * uO; }`;
 precision highp float; in vec2 uv; uniform sampler2D uT, uS; uniform vec3 uC; uniform float uO, uE; out vec4 o;
 void main() { vec4 d = texture(uT, uv); float s = texture(uS, uv).r;
   o = (uE > 0.5 ? d * (1.0 - s) : vec4(uC * s, s) + d * (1.0 - s)) * uO; }`;
+  /* documents: a layer with a blend mode is drawn into its own buffer, then mixed with everything below it.
+     W3C separable blending in premultiplied alpha; uM indexes BLENDS. Screen-sized buffers are read with texelFetch. */
+  const FS_BLEND = `#version 300 es
+precision highp float; uniform sampler2D uT, uS; uniform float uO; uniform int uM; out vec4 o;
+float soft(float b, float s) { float d = b <= 0.25 ? ((16.0 * b - 12.0) * b + 4.0) * b : sqrt(b);
+  return s <= 0.5 ? b - (1.0 - 2.0 * s) * b * (1.0 - b) : b + (2.0 * s - 1.0) * (d - b); }
+vec3 mixc(vec3 b, vec3 s) {
+  if (uM == 1) return b * s;
+  if (uM == 2) return b + s - b * s;
+  if (uM == 3) return mix(2.0 * b * s, 1.0 - 2.0 * (1.0 - b) * (1.0 - s), step(0.5, b));
+  if (uM == 4) return min(b, s);
+  if (uM == 5) return max(b, s);
+  if (uM == 6) return min(vec3(1.0), b + s);
+  if (uM == 7) return vec3(soft(b.r, s.r), soft(b.g, s.g), soft(b.b, s.b));
+  return s; }
+void main() { ivec2 p = ivec2(gl_FragCoord.xy); vec4 d = texelFetch(uT, p, 0), s = texelFetch(uS, p, 0) * uO;
+  vec3 cb = d.a > 0.0 ? d.rgb / d.a : vec3(0.0), cs = s.a > 0.0 ? s.rgb / s.a : vec3(0.0);
+  o = vec4(s.rgb * (1.0 - d.a) + d.rgb * (1.0 - s.a) + s.a * d.a * mixc(cb, cs), s.a + d.a * (1.0 - s.a)); }`;
+  const FS_COPY = `#version 300 es
+precision highp float; uniform sampler2D uT; out vec4 o;
+void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
   const BUDGET = 320 * 1024 * 1024, texTiles = new Set(), pool = new Map();
   let P = null, gen = 0, fno = 0, used = 0, upEnd = 0, pending = false;
   const bytes = n => n * n * 16 / 3;   // RGBA plus mip chain
@@ -1695,11 +1925,11 @@ void main() { vec4 d = texture(uT, uv); float s = texture(uS, uv).r;
     for (const [type, src] of [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]]) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); gl.attachShader(p, s); }
     gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
-    const u = {}; for (const n of ['uR', 'uV', 'uT', 'uS', 'uC', 'uO', 'uE']) u[n] = gl.getUniformLocation(p, n);
+    const u = {}; for (const n of ['uR', 'uV', 'uT', 'uS', 'uC', 'uO', 'uE', 'uM']) u[n] = gl.getUniformLocation(p, n);
     return { p, u };
   }
   function init() {
-    P = { tile: prog(FS_TILE), stroke: prog(FS_STROKE), fbo: gl.createFramebuffer() };
+    P = { tile: prog(FS_TILE), stroke: prog(FS_STROKE), blend: prog(FS_BLEND), copy: prog(FS_COPY), fbo: gl.createFramebuffer(), scr: [] };
     gl.bindVertexArray(gl.createVertexArray());
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
@@ -1712,6 +1942,8 @@ void main() { vec4 d = texture(uT, uv); float s = texture(uS, uv).r;
     P.lin = smp(gl.LINEAR); P.near = smp(gl.NEAREST);
     gl.useProgram(P.stroke.p); gl.uniform1i(P.stroke.u.uT, 0); gl.uniform1i(P.stroke.u.uS, 1);
     gl.useProgram(P.tile.p); gl.uniform1i(P.tile.u.uT, 0);
+    gl.useProgram(P.blend.p); gl.uniform1i(P.blend.u.uT, 0); gl.uniform1i(P.blend.u.uS, 1);
+    gl.useProgram(P.copy.p); gl.uniform1i(P.copy.u.uT, 0);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
     gen++; used = 0; texTiles.clear(); pool.clear();
@@ -1723,9 +1955,13 @@ void main() { vec4 d = texture(uT, uv); float s = texture(uS, uv).r;
     if (!tex) { tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texStorage2D(gl.TEXTURE_2D, Math.log2(n) + 1, fmt, n, n); }
     return { tex, k, n, gen, stale: true, v: -1, used: fno };
   }
+  let curFB = null;
+  const bindFB = fb => { curFB = fb; gl.bindFramebuffer(gl.FRAMEBUFFER, fb); };
   function texClear(r) {
+    const sc = gl.isEnabled(gl.SCISSOR_TEST); if (sc) gl.disable(gl.SCISSOR_TEST);
     gl.bindFramebuffer(gl.FRAMEBUFFER, P.fbo); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.tex, 0);
-    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.bindFramebuffer(gl.FRAMEBUFFER, curFB);
+    if (sc) gl.enable(gl.SCISSOR_TEST);
     r.stale = true;
   }
   function texFree(r) {
@@ -1774,13 +2010,30 @@ void main() { vec4 d = texture(uT, uv); float s = texture(uS, uv).r;
       dropTile(t);
     }
   }
+  function screenBuf(i) {   // screen-sized RGBA buffers for documents, remade when the canvas size changes
+    let b = P.scr[i];
+    if (b && b.w === cv.width && b.h === cv.height) return b;
+    if (b) { gl.deleteTexture(b.tex); gl.deleteFramebuffer(b.fb); }
+    b = P.scr[i] = { tex: gl.createTexture(), fb: gl.createFramebuffer(), w: cv.width, h: cv.height };
+    gl.bindTexture(gl.TEXTURE_2D, b.tex); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, b.w, b.h);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, b.fb); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, b.tex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, curFB); gl.bindTexture(gl.TEXTURE_2D, null);
+    return b;
+  }
   function render(rect, force) {
     if (gl.isContextLost()) return;
     fno++; pending = false; upEnd = force ? Infinity : performance.now() + 4;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, cv.width, cv.height); gl.activeTexture(gl.TEXTURE0);
-    const pc = hexToRgb(S.paper);
-    gl.clearColor(pc[0] / 255, pc[1] / 255, pc[2] / 255, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    bindFB(null); gl.viewport(0, 0, cv.width, cv.height); gl.activeTexture(gl.TEXTURE0);
+    const pc = hexToRgb(paperColor()), doc = ws.doc;
     const z = view.z * dpr, ox = view.x * dpr, oy = view.y * dpr, size = TILE * z;
+    let A = null, B = null, Lb = null;
+    if (doc) {   // documents: everything goes into screen buffer A, clipped to the document rect, then onto the pasteboard
+      A = screenBuf(0); B = screenBuf(1); Lb = screenBuf(2);
+      const x0 = Math.round(ox), y0 = Math.round(oy), x1 = Math.round(doc.w * z + ox), y1 = Math.round(doc.h * z + oy);
+      bindFB(A.fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.enable(gl.SCISSOR_TEST); gl.scissor(x0, cv.height - y1, Math.max(0, x1 - x0), Math.max(0, y1 - y0));
+    }
+    gl.clearColor(pc[0] / 255, pc[1] / 255, pc[2] / 255, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     const smp = z < 3 ? P.lin : P.near; gl.bindSampler(0, smp); gl.bindSampler(1, smp);
     const tx0 = Math.floor(-ox / size), tx1 = Math.floor((cv.width - ox) / size), ty0 = Math.floor(-oy / size), ty1 = Math.floor((cv.height - oy) / size);
     let on = null;
@@ -1802,13 +2055,32 @@ void main() { vec4 d = texture(uT, uv); float s = texture(uS, uv).r;
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
     const span = (tx1 - tx0 + 1) * (ty1 - ty0 + 1);
-    for (const L of layers) {   // tiles in a layer never overlap, so drawing each at the layer's opacity equals layer opacity
-      if (!shown(L) || !L.tiles.size) continue;
+    const drawLayer = (L, op) => {   // tiles in a layer never overlap, so drawing each at the layer's opacity equals layer opacity
       if (span <= L.tiles.size) {
-        for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t, L.opacity); }
+        for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t, op); }
       } else {
-        for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= tx0 && tx <= tx1 && ty >= ty0 && ty <= ty1) draw(tx, ty, t, L.opacity); }
+        for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= tx0 && tx <= tx1 && ty >= ty0 && ty <= ty1) draw(tx, ty, t, op); }
       }
+    };
+    const quad = () => { gl.uniform2f(on.u.uV, cv.width, cv.height); gl.uniform4f(on.u.uR, 0, 0, cv.width, cv.height); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
+    for (const L of layers) {
+      if (!shown(L) || !L.tiles.size) continue;
+      const m = doc ? BLENDS.indexOf(L.blend) : 0;
+      if (m <= 0) { drawLayer(L, L.opacity); continue; }
+      bindFB(Lb.fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      drawLayer(L, 1);
+      bindFB(B.fb); gl.disable(gl.BLEND); on = P.blend; gl.useProgram(on.p);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, Lb.tex); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, A.tex);
+      gl.uniform1f(on.u.uO, L.opacity); gl.uniform1i(on.u.uM, m); quad();
+      gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
+      gl.enable(gl.BLEND); [A, B] = [B, A]; bindFB(A.fb);
+    }
+    if (doc) {
+      gl.disable(gl.SCISSOR_TEST); bindFB(null);
+      const pb = PASTEBOARD; gl.clearColor(pb[0], pb[1], pb[2], 1); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.disable(gl.BLEND); on = P.copy; gl.useProgram(on.p); gl.bindTexture(gl.TEXTURE_2D, A.tex);
+      gl.enable(gl.SCISSOR_TEST); quad(); gl.disable(gl.SCISSOR_TEST);
+      gl.bindTexture(gl.TEXTURE_2D, null); gl.enable(gl.BLEND);
     }
     if (texTiles.size && (used > BUDGET || fno % 240 === 0)) evict();
     if (pending) dirtyScene();
@@ -1846,8 +2118,12 @@ function renderScene(ctx, rect) {
     if (X1 <= X0 || Y1 <= Y0) return;
     ctx.save(); ctx.beginPath(); ctx.rect(X0, Y0, X1 - X0, Y1 - Y0); ctx.clip();
   }
-  ctx.fillStyle = S.paper; ctx.fillRect(X0, Y0, X1 - X0, Y1 - Y0);
-  const z = view.z * dpr, ox = view.x * dpr, oy = view.y * dpr, size = TILE * z;
+  const z = view.z * dpr, ox = view.x * dpr, oy = view.y * dpr, size = TILE * z, doc = ws.doc;
+  if (doc) {   // pasteboard, then everything clipped to the document
+    ctx.fillStyle = PASTEBOARD_CSS; ctx.fillRect(X0, Y0, X1 - X0, Y1 - Y0);
+    ctx.save(); ctx.beginPath(); ctx.rect(Math.round(ox), Math.round(oy), Math.round(doc.w * z + ox) - Math.round(ox), Math.round(doc.h * z + oy) - Math.round(oy)); ctx.clip();
+  }
+  ctx.fillStyle = paperColor(); ctx.fillRect(X0, Y0, X1 - X0, Y1 - Y0);
   ctx.imageSmoothingEnabled = z < 3; ctx.imageSmoothingQuality = 'low';
   const tx0 = Math.floor((X0 - ox) / size), tx1 = Math.floor((X1 - ox) / size), ty0 = Math.floor((Y0 - oy) / size), ty1 = Math.floor((Y1 - oy) / size);
   const draw = (tx, ty, t) => {
@@ -1857,19 +2133,21 @@ function renderScene(ctx, rect) {
   const span = (tx1 - tx0 + 1) * (ty1 - ty0 + 1);
   for (const L of layers) {
     if (!shown(L) || !L.tiles.size) continue;
-    ctx.globalAlpha = L.opacity;
+    ctx.globalAlpha = L.opacity; ctx.globalCompositeOperation = doc ? blend2D(L.blend) : 'source-over';
     if (span <= L.tiles.size) {
       for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t); }
     } else {
       for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= tx0 && tx <= tx1 && ty >= ty0 && ty <= ty1) draw(tx, ty, t); }
     }
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  if (doc) ctx.restore();
   if (rect) ctx.restore();
 }
 function drawOverlay() {
   octx.setTransform(1, 0, 0, 1, 0, 0); octx.clearRect(0, 0, ov.width, ov.height);
   octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (ws.doc) { octx.strokeStyle = 'rgba(0,0,0,.45)'; octx.lineWidth = 1; octx.strokeRect(Math.round(view.x) - 0.5, Math.round(view.y) - 0.5, Math.round(ws.doc.w * view.z) + 1, Math.round(ws.doc.h * view.z) + 1); }
   const SYM = 'rgba(45,108,176,0.6)';
   if (sym.mode !== 'off') {
     const hx = sym.cx * view.z + view.x, hy = sym.cy * view.z + view.y;
@@ -1892,6 +2170,7 @@ function drawOverlay() {
   if (act && act.type === 'sel') drawSelDrag(act);
   if (stroke && stroke.line) drawLineGuide(stroke.line);
   if (hl) drawHighlight();
+  if (docArea) drawDocArea();
   if (act && act.type === 'resize') { ring(act.ax, act.ay, S.size / 2 * view.z, 1); return; }
   if (hover && hover.type !== 'touch' && !spaceHeld && (act ? act.type === 'pick' : altHeld && !selTool)) { drawPicker(hover.x, hover.y, act ? act.prev : S.color); return; }
   if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode && !selTool) {
@@ -1909,7 +2188,7 @@ function drawOverlay() {
 /* Shift-line guide: four very light lines (0°, 45°, 90°, 135°) through the anchor */
 function drawLineGuide(L) {
   const x = L.ax * view.z + view.x, y = L.ay * view.z + view.y, len = Math.hypot(W, H);
-  const [pr, pg, pb] = hexToRgb(S.paper), light = (0.299 * pr + 0.587 * pg + 0.114 * pb) / 255 > 0.62;
+  const [pr, pg, pb] = hexToRgb(paperColor()), light = (0.299 * pr + 0.587 * pg + 0.114 * pb) / 255 > 0.62;
   octx.save(); octx.lineWidth = 1; octx.strokeStyle = light ? 'rgba(27,37,50,0.16)' : 'rgba(255,255,255,0.3)';   // faint, but visible on any paper
   octx.beginPath();
   for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4, c = Math.cos(a) * len, s = Math.sin(a) * len; octx.moveTo(x - c, y - s); octx.lineTo(x + c, y + s); }
@@ -2164,7 +2443,7 @@ function addNote(sx, sy) {
   setNoteMode(false); hideWelcome();
   setTimeout(() => ta.focus());
 }
-function setNoteMode(on) { if (on && selTool) { selTool = null; syncSelUI(); } noteMode = on; $('tNote').classList.toggle('on', on); ov.classList.toggle('text', on); dirtyOverlay(); }
+function setNoteMode(on) { if (on && ws.doc) { toast('Notes live on the canvas tab'); return; } if (on && selTool) { selTool = null; syncSelUI(); } noteMode = on; $('tNote').classList.toggle('on', on); ov.classList.toggle('text', on); dirtyOverlay(); }
 function loadNotes() {
   for (const m of LS.get('sinopia.notes') || []) { const n = { id: m.id, x: m.x, y: m.y, text: m.text || '' }; noteSeq = Math.max(noteSeq, n.id); notes.push(n); mountNote(n); }
 }
@@ -2177,14 +2456,16 @@ function sampleAt(sx, sy) {
   const X = Math.floor(w.x - n / 2 + 0.5), Y = Math.floor(w.y - n / 2 + 0.5);
   const tx = Math.floor(X / TILE), ty = Math.floor(Y / TILE), lx = X - tx * TILE, ly = Y - ty * TILE;
   const bw = Math.min(n, TILE - lx), bh = Math.min(n, TILE - ly), k = tkey(tx, ty);
-  let [r, g, b] = hexToRgb(S.paper);
+  let [r, g, b] = hexToRgb(paperColor());
+  if (ws.doc && (w.x < 0 || w.y < 0 || w.x >= ws.doc.w || w.y >= ws.doc.h)) return PASTEBOARD.map(v => v * 255);
   for (const L of layers) {
     const t = shown(L) && L.tiles.get(k); if (!t) continue;
     const d = t.c.getContext('2d', { willReadFrequently: true }).getImageData(lx, ly, bw, bh).data;
     let pr = 0, pg = 0, pb = 0, pa = 0;
     for (let i = 0; i < d.length; i += 4) { const a = d[i + 3] / 255; pr += d[i] * a; pg += d[i + 1] * a; pb += d[i + 2] * a; pa += a; }
-    const m = bw * bh, o = L.opacity;
-    r = r * (1 - pa / m * o) + pr / m * o; g = g * (1 - pa / m * o) + pg / m * o; b = b * (1 - pa / m * o) + pb / m * o;
+    if (!pa) continue;
+    const a = pa / (bw * bh) * L.opacity, mode = ws.doc ? L.blend : 'normal', mix = (c, s) => c * (1 - a) + a * 255 * blendCh(mode, c / 255, s / pa / 255);
+    r = mix(r, pr); g = mix(g, pg); b = mix(b, pb);
   }
   return [r, g, b];
 }
@@ -2443,7 +2724,7 @@ function renderLayers() {
     li.className = 'layer' + (G ? ' in' : '') + (L === cur ? ' on' : '') + (L.visible ? '' : ' hid'); li.tabIndex = 0;
     li.setAttribute('aria-selected', L === cur);
     const name = document.createElement('span'); name.className = 'name'; name.textContent = L.name;
-    const op = document.createElement('span'); op.className = 'op'; op.textContent = Math.round(L.opacity * 100) + '%';
+    const op = document.createElement('span'); op.className = 'op'; op.textContent = opText(L);
     li.append(eyeBtn(L.visible, 'layer', () => { L.visible = !L.visible; }), name, op);
     li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight([L], L.name); else if (cur !== L) { cur = L; saveLayers(); renderLayers(); } };
     li.onkeydown = ev => { if (ev.key === 'Enter') { cur = L; saveLayers(); renderLayers(); } };
@@ -2452,15 +2733,30 @@ function renderLayers() {
     ol.appendChild(li);
   }
   $('layerOpacity').value = Math.round(cur.opacity * 100); $('layerOpacityOut').textContent = Math.round(cur.opacity * 100) + '%';
+  $('blendRow').hidden = !ws.doc; $('blend').value = cur.blend;
   const i = layers.indexOf(cur);
   $('layerUp').disabled = !layerMove(1); $('layerDown').disabled = !layerMove(-1);
   $('layerMerge').disabled = i <= 0; $('layerDel').disabled = layers.length < 2;
 }
+$('blend').innerHTML = BLENDS.map((m, i) => '<option value="' + m + '">' + BLEND_NAMES[i] + '</option>').join('');
+$('blend').onchange = e => { cur.blend = e.target.value; e.target.blur(); renderLayers(); dirtyScene(); };
+$('selDoc').onclick = newDoc; $('newDoc').onclick = newDoc;
+$('docW').addEventListener('input', () => setDocSize(+$('docW').value, docArea.h));
+$('docH').addEventListener('input', () => setDocSize(docArea.w, +$('docH').value));
+$('docSwap').onclick = () => { setDocSize(docArea.h, docArea.w); $('docW').value = docArea.w; $('docH').value = docArea.h; };
+for (const [label, w, h] of [['HD', 1920, 1080], ['4K', 3840, 2160], ['Square', 2048, 2048], ['A4 300 dpi', 2480, 3508]]) {
+  const b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.title = w + ' × ' + h + ' px';
+  b.onclick = () => { setDocSize(w, h); $('docW').value = w; $('docH').value = h; };
+  $('docPresets').appendChild(b);
+}
+$('docOk').onclick = () => closeDocDialog(true);
+$('docCancel').onclick = () => closeDocDialog(false);
+$('docDlg').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') closeDocDialog(true); if (e.key === 'Escape') closeDocDialog(false); });
 $('layerAdd').onclick = addLayer; $('layerDup').onclick = dupLayer; $('layerDel').onclick = delLayer; $('groupAdd').onclick = newGroup;
 $('layerUp').onclick = () => moveLayer(1); $('layerDown').onclick = () => moveLayer(-1); $('layerMerge').onclick = mergeDown;
 $('layerOpacity').addEventListener('input', e => {
   cur.opacity = e.target.value / 100; $('layerOpacityOut').textContent = e.target.value + '%';
-  const li = $('layers').querySelector('.layer.on .op'); if (li) li.textContent = e.target.value + '%';
+  const li = $('layers').querySelector('.layer.on .op'); if (li) li.textContent = opText(cur);
   dirtyScene(); saveLayers();
 });
 
@@ -2513,7 +2809,7 @@ function syncDynamics() {
   $('pSize').checked = S.pSize; $('pOpac').checked = S.pOpac; $('rot').value = S.rot;
 }
 syncDynamics();
-$('paper').value = S.paper; $('paper').addEventListener('input', e => { S.paper = e.target.value; dirtyScene(); saveSettings(); });
+$('paper').value = S.paper; $('paper').addEventListener('input', e => { if (ws.doc) ws.paper = e.target.value; else { S.paper = e.target.value; saveSettings(); } dirtyScene(); });
 
 /* stroke test: the same angles/sizes/pressure cases as the offline simulation */
 function testStrokes() {
@@ -2563,20 +2859,20 @@ function toggleWelcome() { $('welcome').classList.toggle('gone'); }
 let exportBlob = null, exportUrl = null;
 async function doExport() {
   settle();
-  const vis = layers.filter(shown), bb = contentBounds(vis);
+  const vis = layers.filter(shown), doc = ws.doc, bb = doc ? { minX: 0, minY: 0, maxX: doc.w, maxY: doc.h } : contentBounds(vis);   // a document exports at its own size
   if (!bb) { toast('Nothing visible to export yet'); return; }
   const { minX, minY, maxX, maxY } = bb;
-  const pad = 32, w = maxX - minX + pad * 2, h = maxY - minY + pad * 2;
+  const pad = doc ? 0 : 32, w = maxX - minX + pad * 2, h = maxY - minY + pad * 2;
   const s = Math.min(1, 12000 / Math.max(w, h));
   const c = mk(Math.round(w * s), Math.round(h * s)), g = c.getContext('2d');
-  if (!$('exportTransparent').checked) { g.fillStyle = S.paper; g.fillRect(0, 0, c.width, c.height); }
+  if (!$('exportTransparent').checked) { g.fillStyle = paperColor(); g.fillRect(0, 0, c.width, c.height); }
   g.scale(s, s); g.translate(pad - minX, pad - minY);
-  for (const L of vis) { g.globalAlpha = L.opacity; for (const [k, t] of L.tiles) { const [tx, ty] = k.split(',').map(Number); g.drawImage(t.c, tx * TILE, ty * TILE); } }
+  for (const L of vis) { g.globalAlpha = L.opacity; g.globalCompositeOperation = doc ? blend2D(L.blend) : 'source-over'; for (const [k, t] of L.tiles) { const [tx, ty] = k.split(',').map(Number); g.drawImage(t.c, tx * TILE, ty * TILE); } }
   exportBlob = await new Promise(r => c.toBlob(r, 'image/png'));
   if (exportUrl) URL.revokeObjectURL(exportUrl);
   exportUrl = URL.createObjectURL(exportBlob);
   $('exportImg').src = exportUrl;
-  $('exportInfo').textContent = c.width + ' × ' + c.height + ' px, visible layers flattened and trimmed to your drawing' + (s < 1 ? ' (scaled to fit 12,000 px)' : '') + (standalone ? '.' : '. Right-click the image (long-press on touch) and choose Save Image As.');
+  $('exportInfo').textContent = c.width + ' × ' + c.height + ' px, visible layers flattened' + (doc ? '' : ' and trimmed to your drawing') + (s < 1 ? ' (scaled to fit 12,000 px)' : '') + (standalone ? '.' : '. Right-click the image (long-press on touch) and choose Save Image As.');
   $('exportDlg').hidden = false;
 }
 $('exportBtn').onclick = doExport;
