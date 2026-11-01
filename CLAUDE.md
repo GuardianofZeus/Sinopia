@@ -32,6 +32,23 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - Marching ants (`selPath`): the 50% outline as merged pixel-edge runs in a cached `Path2D`, drawn into a screen-sized cache canvas (`drawAnts`), so strokes over a busy selection pay for one blit a frame. They animate every 150 ms, but not during a stroke or a drag, or above 150k segments.
 - Pixels: `lift` takes the selected part of a layer as tile canvases (with a history map, it also removes it). `placeFloat` draws them back at an offset. These drive Delete (`clearSelected`), Ctrl+drag move (`startMove` / `endMove`; one undo step, with the old selection in `extra`), and Ctrl+C / X / V (`copySel` / `pasteClip`; paste goes in place on a new layer). Selection isn't saved between sessions.
 
+**Free transform** (Ctrl+T or the toolbar button; added 2026-10-31, Ben asked for "Photoshop's transform, with warps and all").
+- `startTransform` lifts the selected pixels of the active layer (the whole layer with no selection) into one source image. The box is the selection ∩ layer bounds plus a 2 px clear border, which keeps rotated edges smooth. A selection is also made into a mask image (`maskCanvas`).
+- `xf.pts` is either 4 corners (a homography, so scale, rotate, skew and distort/perspective) or 16 bicubic Bézier control points (Warp). The Warp button converts between them.
+- Both preview and commit render through a 32×32 triangle grid (`xfGrid`) on a separate small WebGL 2 canvas (`meshGL` / `meshDraw`) with mipmapped sampling, so it works the same under `?gl=0`.
+  - The preview renders only the on-screen part, and is cached on the points and view.
+  - Commit (`xfEnd(true)`) draws into the layer tiles in 2048 px chunks. It runs the mask through the same mesh to make the new selection (via `readPixels`, flipped).
+  - It's one undo step: tile befores, plus the old selection in `extra`.
+- Handles (`xfHit` / `xfDown` / `xfMove`): corners scale proportionally (Shift for free, Alt from the center); edges scale one axis. Inside moves; outside rotates (Shift for 15° steps). Ctrl+corner distorts, Ctrl+edge skews. In Warp, dragging a corner point also moves its handles.
+- While a transform is open, only Enter, Esc and Ctrl+Z (which cancels) work, plus pan and zoom. Switching tabs applies it.
+
+**Modifiers** (`L.mods`, Blender-style stack; added 2026-10-31, Array only for now).
+- An Array is `{type:'array', on, mode, count, dx, dy, rot, scale, cx, cy}`. **Radial** mode (`mode:'radial'`) ignores the offset and rotation and turns each copy 360/count about the pivot. Switching to it puts the pivot below the drawing, so you get a ring right away. Each copy is the previous one rotated and scaled about the pivot (cx, cy), then offset. Stacked arrays multiply (two make a grid). `copiesOf(L)` returns one world matrix per copy (cached on a JSON key, capped at 512).
+- **Non-destructive and live:** pixels never change. WebGL draws each tile once per copy through a `uX` matrix in the vertex shader (device space V·M·V⁻¹), culling tiles per copy. Canvas 2D does the same with `setTransform`, and `dirtyWorld` redraws everything during a stroke on a layer with modifiers. So copies follow the stroke as it's drawn.
+- `bakeCopies(L)` renders the copies into tile canvases. Apply (one undo step: tiles plus a `{kind:'mods'}` entry), export, merge-down and Open as document all use it. The picker samples each copy at its inverse-mapped point. Selection, wand, lift and transform work on the source pixels.
+- UI is in the layers panel: + Array, Apply, and per-modifier cards. Each card has an eye, move up/down, remove, a Linear/Radial switch, and **sliders**, each with a number box that can type past the slider's range. Offset sliders span ±3× the drawing's size. There's also Center pivot.
+- **On-canvas handles** (`modHandles` / `modHit` / `dragModHandle`), shown while the layers panel is open: a pivot ring (both modes) and, for Linear, a dashed arrow from the pivot whose square end sets the offset (Shift snaps it to 45°). They take priority over drawing within 11 px, like the mirror center handle. Adding, removing and reordering are undoable; editing the numbers isn't (like opacity). Modifiers are saved with the layer metadata.
+
 **Workspaces and documents** (added 2026-10-31; Ben’s spec: copy, not a live link; core blend modes; several open at once; not saved for now).
 - `ws` is the active workspace: `canvasWS` or one of `docs`. The globals (`layers`, `cur`, `groups`, the undo stacks, `view`, `sel`) always hold the active one; `switchWS` stashes them on the old workspace and loads the new one. Everything else (engine, worker, tools, selection) works unchanged on either.
 - **New doc** (toolbar, beside Export) and **Open as document** (with a selection) create the document right away (`newDoc`), from the selection’s bounds, or from what’s on screen with no selection. Ben wants sizing to happen afterwards, not in a dialog first.
@@ -66,7 +83,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - Layer properties: id, name, visible, opacity, `g` (group id or null). Layers draw in array order, bottom to top.
 - **Groups** (`groups`: id, name, visible, open, key 1–9 or null, last active layer). A group's layers are always contiguous in `layers`: `tidyGroups()` enforces this and drops empty groups after every `layerOp`.
   - Moving a layer past a group's edge enters or leaves the group, as in Photoshop. Moving a group's last layer out (by arrow or drag) removes the now-empty group, with a toast saying so; undo restores it. The panel can't show empty groups. This used to be blocked, which made "drag my only layer into a fresh group" fail silently.
-  - **Drag and drop in the panel** (`startRowDrag` / `dropTarget` / `applyDrop`). Pointer events (works with a pen), capturing on the list, with a 5 px threshold, auto-scroll at the list edges, and the click after a drop swallowed.
+  - **Drag and drop in the panel** (`startRowDrag` / `dropTarget` / `applyDrop`). Pointer events (works with a pen), with a 5 px threshold. The list captures the pointer only once a drag starts: capturing on press made the browser send the click to the list, so clicking a row stopped selecting the layer (a reported bug). The release is listened for on the window. Also auto-scroll at the list edges, and the click after a drop swallowed.
     - The middle of a group header drops a layer into the group at the top.
     - A line between rows takes the group of the layer below it.
     - Just under a group's bottom layer, the pointer's x decides: more than 30 px from the left edge joins the group; less leaves the layer outside. The drop line's indent shows which.
@@ -108,6 +125,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Pick color | Hold Alt: a preview box shows the color under the cursor over the current color, with its hex. Click or drag to pick. Sampling reads the tile canvases (`sampleAt`), averaging one screen pixel's footprint. |
 | Jump to group | Ctrl + 1–9: selects the group and glides to frame its drawing (`jumpGroup` / `animateView`). |
 | Brush / eraser | B / E |
+| Free transform | Ctrl+T (toolbar button too). Corner = scale, keeping proportions (Shift for free, Alt from the center). Edge = one axis. Inside = move. Outside = rotate (Shift for 15° steps). Ctrl+corner = distort, Ctrl+edge = skew. The Warp, Flip H, Flip V, Cancel and Apply buttons show in the toolbar. Enter applies, Esc or Ctrl+Z cancels. |
 | Select | S rectangle (S again: ellipse), L lasso, W magic wand (tolerance and Contiguous show in the toolbar). Mode comes from the modifiers held at press: Shift adds, Alt subtracts, Shift+Alt intersects. Shift or Alt pressed *during* a drag makes a square/circle or draws from the center. Dragging inside a selection moves the outline, and a click without a drag deselects. M stays mirror, so select isn't on M as it is in Photoshop. |
 | Selection actions | Ctrl+drag (with a select tool) moves the selected pixels, or the whole layer with no selection. Delete/Backspace clears them. Ctrl+D or Esc deselects, Ctrl+Shift+I inverts, Ctrl+A selects all. Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste in place on a new layer. Invert and Deselect buttons appear in the toolbar while there's a selection. |
 | Note | T (or toolbar button) then click: places a text note. Esc cancels. |
@@ -123,7 +141,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 ## UI layout
 
 - **Tabs row** (only when a document is open): Canvas, then each document with its size, and a two-click × to close it (closing discards it).
-- **Toolbar groups** (in order): brush, eraser, note, the four select tools (with wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
+- **Toolbar groups** (in order): brush, eraser, note, the four select tools, free transform (with its Warp / Flip / Cancel / Apply bar while active; wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
 - **Brush panel** opens on the left: tips, import alpha, dynamics, stroke test.
 - **Layers panel** opens on the right: layer list and actions, then paper color.
 - **Theme:** cool blue-greys with a blueprint-blue accent, tight corner radii (2–6px). It follows the system light or dark setting through CSS tokens on `:root`.
@@ -149,7 +167,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 2. **Worker threshold tuning:** `useWorker`'s 400 is an estimate. Tune it on Ben's PC if very large brushes feel laggy (worker) or stall (main thread).
 3. **Canvas rotation** (Leonardo has it). This is now easy in the WebGL vertex shader.
 4. Optional "build-up" mode for soft brushes (MAX blending means a single stroke never darkens over itself).
-5. Transform (scale/rotate the selection), feather and polygonal lasso, a wand "sample all layers" option, and layer thumbnails. Selection basics are in.
+5. More modifiers (radial array as its own type, mirror, offset/jitter), transform options typed as numbers, feather and polygonal lasso, a wand "sample all layers" option, and layer thumbnails. Selection basics are in.
 6. **Documents next:** saving (IndexedDB, keyed per document), “Place back” onto the canvas, new blank documents of a chosen size, layer thumbnails, and more blend modes. Ben wants many documents open at once in the full app.
 7. Save and load a project file (currently it lives only in browser storage plus PNG export).
 8. **Straight lines:** now a rubber band with a hard 10° snap and a 4-line guide, per Ben. Tune `LINE_STEP` or the guide alpha if he asks.

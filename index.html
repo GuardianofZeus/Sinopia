@@ -99,6 +99,13 @@ body{
 .tabs .dim{font-weight:400; color:var(--muted); font-variant-numeric:tabular-nums}
 .tabs .tab.on .dim{color:inherit; opacity:.75}
 .tabs .tabx{margin-left:-2px; margin-right:4px}
+.mods{display:flex; flex-direction:column; gap:6px}
+.mod{border:1px solid var(--line); border-radius:3px; background:var(--chrome-2); padding:6px 8px 8px; display:flex; flex-direction:column; gap:5px}
+.mod.off{opacity:.55}
+.mod .head b{flex:1; font-size:12px}
+.mod .sliders{display:flex; flex-direction:column; gap:4px}
+.mod .prop{grid-template-columns:58px 1fr 52px; gap:6px; font-size:11.5px}
+.mod .num{width:100%; box-sizing:border-box}
 .sep{width:1px; align-self:stretch; background:var(--line); margin:4px 3px}
 
 .slider{display:flex; align-items:center; gap:7px; padding:0 8px; height:32px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
@@ -236,6 +243,14 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <button class="btn" id="tEllipse" title="Ellipse select (S twice)" aria-label="Ellipse select"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="5.5" stroke-dasharray="2.4 2"/></svg></button>
       <button class="btn" id="tLasso" title="Lasso (L)" aria-label="Lasso"><svg viewBox="0 0 18 18"><path d="M5.2 12.4C2.6 11 2.6 7.2 5.4 5.2s8-2.1 9.6.6-1 6.4-4.9 6.9c-1.9.2-3.5-.1-4.9-.3z" stroke-dasharray="2.4 2"/><path d="M5.2 12.4c-.6 1.4.2 2.6 1.8 3.1"/></svg></button>
       <button class="btn" id="tWand" title="Magic wand (W): selects similar color on the active layer" aria-label="Magic wand"><svg viewBox="0 0 18 18"><path d="M3 15l8.5-8.5"/><path d="M13 2.5v2M13 8.5v2M9.5 6.5h1.5M15 6.5h1.5M10.6 4.1l.9.9M15.4 8.9l-.9-.9M15.4 4.1l-.9.9"/></svg></button>
+      <button class="btn" id="tXf" title="Free transform (Ctrl+T): scale, rotate, skew, distort, warp the selection or the layer" aria-label="Free transform"><svg viewBox="0 0 18 18"><path d="M4.5 4.5h9v9h-9z"/><path d="M3 3h3v3H3zM12 3h3v3h-3zM12 12h3v3h-3zM3 12h3v3H3z" fill="currentColor" stroke="none"/></svg></button>
+      <span id="xfBar" class="row" hidden style="gap:4px;padding:0 4px">
+        <button class="btn" id="xfWarp" title="Warp: bend the image with a 4×4 mesh">Warp</button>
+        <button class="btn" id="xfFlipH" title="Flip horizontal">Flip H</button>
+        <button class="btn" id="xfFlipV" title="Flip vertical">Flip V</button>
+        <button class="btn" id="xfCancel" title="Cancel (Esc)">Cancel</button>
+        <button class="btn on" id="xfOk" title="Apply (Enter)">Apply</button>
+      </span>
       <span id="selOpts" class="row" hidden style="gap:4px;padding:0 4px">
         <span id="wandOpts" class="row" style="gap:4px">
           <input class="num" type="number" id="tol" min="0" max="255" aria-label="Wand tolerance" title="Tolerance: how different a color can be and still be selected (0–255)">
@@ -328,7 +343,18 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <ol class="layers" id="layers" aria-label="Layer list"></ol>
       <label class="prop">Layer opacity <input type="range" id="layerOpacity" min="0" max="100" step="1"><output id="layerOpacityOut"></output></label>
       <label class="prop" id="blendRow" hidden>Blend mode <select id="blend" style="grid-column:span 2"></select></label>
+
       <p class="note">Double-click a name to rename it. Ctrl+click a layer or group to flash its drawing on the canvas. Drag rows to reorder: drop on a group's name to put a layer in it, or drag a group's header to move the whole group. Each group can have a Ctrl+1–9 hotkey.</p>
+    </div>
+    <div class="section">
+      <div class="head">
+        <h2>Modifiers</h2>
+        <div class="tools">
+          <button class="btn sm" id="modAdd" title="Add an Array modifier to the active layer">+ Array</button>
+          <button class="btn sm" id="modApply" title="Bake the modifiers into the layer's pixels">Apply</button>
+        </div>
+      </div>
+      <div id="mods" class="mods"></div>
     </div>
     <div class="section">
       <h2>Paper</h2>
@@ -358,6 +384,8 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
     <span><kbd>S</kbd> <kbd>L</kbd> <kbd>W</kbd></span><span>Select: rectangle (S again for ellipse), lasso, magic wand. Shift adds, Alt subtracts. Brush and eraser stay inside the selection</span>
     <span><kbd>Ctrl</kbd> + drag</span><span>With a select tool: move the selected pixels. <kbd>Delete</kbd> clears them, <kbd>Ctrl</kbd>+<kbd>D</kbd> deselects</span>
     <span>New doc</span><span>Copies your selection (or what’s on screen) into a new tab: a fixed-size page with layer blend modes. Inside a document the same button is Doc size, to change the page size. The canvas stays as it was. Documents aren’t saved yet</span>
+    <span><kbd>Ctrl</kbd> + <kbd>T</kbd></span><span>Free transform the selection (or layer): drag corners to scale, outside to rotate, Ctrl+corner to distort. Warp bends it with a mesh. Enter applies, Esc cancels</span>
+    <span>Modifiers</span><span>In the layers panel, + Array repeats a layer in a line or a ring (Radial). Use the sliders, or drag the pivot and offset handles on the canvas. Copies follow your drawing live, and Apply bakes them in</span>
     <span><kbd>T</kbd></span><span>Note: click the canvas to place a text note. Drag its top strip to move it</span>
     <span><kbd>X</kbd></span><span>Delete the active layer (undo brings it back)</span>
     <span><kbd>Ctrl</kbd> + <kbd>Z</kbd></span><span>Undo (add <kbd>Shift</kbd> to redo)</span>
@@ -624,7 +652,7 @@ function saveSettings() { clearTimeout(settingsTimer); settingsTimer = setTimeou
 
 /* ---------- layers ---------- */
 function newLayer(name) {
-  const L = { id: nextId++, name: name || 'Layer ' + (layers.length + 1), visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal' };
+  const L = { id: nextId++, name: name || 'Layer ' + (layers.length + 1), visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [] };
   if (ws.doc) L.doc = true;   // document layers are never saved
   allLayers.set(L.id, L); return L;
 }
@@ -633,7 +661,7 @@ function saveLayers() {
   if (ws.doc) return;
   LS.set('sinopia.layers', { nextId, nextGid, active: cur && cur.id,
     groups: groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
-    layers: layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g })) });
+    layers: layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, mods: L.mods })) });
 }
 const groupOf = L => L.g ? groups.find(G => G.id === L.g) || null : null;
 const shown = L => L.visible && L.opacity > 0 && (!L.g || !groupOf(L) || groupOf(L).visible);
@@ -822,7 +850,7 @@ function foldDirty(e, wr) {
   e.x0 = e.y0 = TILE; e.x1 = e.y1 = -1;
   return wr ? { x0: Math.min(wr.x0, r.x0), y0: Math.min(wr.y0, r.y0), x1: Math.max(wr.x1, r.x1), y1: Math.max(wr.y1, r.y1) } : r;
 }
-function dirtyWorld(wr) { if (wr) dirtyScene({ x0: wr.x0 * view.z + view.x, y0: wr.y0 * view.z + view.y, x1: wr.x1 * view.z + view.x, y1: wr.y1 * view.z + view.y }); }
+function dirtyWorld(wr) { if (wr && stroke && copiesOf(stroke.layer)) { dirtyScene(); return; } if (wr) dirtyScene({ x0: wr.x0 * view.z + view.x, y0: wr.y0 * view.z + view.y, x1: wr.x1 * view.z + view.x, y1: wr.y1 * view.z + view.y }); }
 function flushStroke() {
   const [cr, cg, cb] = stroke.rgb, erase = stroke.erase;
   if (sel) clipStroke();
@@ -1121,6 +1149,7 @@ function onWorker({ data: m }) {
 function pushUndo(e) { undoStack.push(e); if (undoStack.length > 80) undoStack.shift(); redoStack.length = 0; syncHistory(); }
 function applyEntry(e) {
   if (e.kind === 'resize') return applyResize(e);
+  if (e.kind === 'mods') { const inv = modSnap(e.layer); e.layer.mods = e.mods; saveLayers(); renderLayers(); return inv; }
   if (e.kind === 'sel') { const inv = { kind: 'sel', sel }; sel = e.sel; selChanged(); return inv; }
   if (e.kind === 'tiles') {
     const inv = { kind: 'tiles', layer: e.layer, map: new Map() };
@@ -1141,8 +1170,8 @@ function applyEntry(e) {
   saveLayers(); renderLayers();
   return inv;
 }
-function undo() { if (act || stroke || !undoStack.length) return; settle(); redoStack.push(applyEntry(undoStack.pop())); syncHistory(); dirtyScene(); }
-function redo() { if (act || stroke || !redoStack.length) return; settle(); undoStack.push(applyEntry(redoStack.pop())); syncHistory(); dirtyScene(); }
+function undo() { if (xf) { xfEnd(false); return; } if (act || stroke || !undoStack.length) return; settle(); redoStack.push(applyEntry(undoStack.pop())); syncHistory(); dirtyScene(); }
+function redo() { if (xf) return; if (act || stroke || !redoStack.length) return; settle(); undoStack.push(applyEntry(redoStack.pop())); syncHistory(); dirtyScene(); }
 function syncHistory() { $('undo').disabled = !undoStack.length; $('redo').disabled = !redoStack.length; }
 
 /* ---------- layer operations ---------- */
@@ -1151,7 +1180,7 @@ function layerOp(mutate) { settle(); const before = layerSnap(); mutate(); tidyG
 function addLayer() { layerOp(() => { const L = newLayer(); L.g = cur.g; layers.splice(layers.indexOf(cur) + 1, 0, L); cur = L; }); }
 function dupLayer() {
   layerOp(() => {
-    const L = newLayer(cur.name + ' copy'); L.opacity = cur.opacity; L.visible = cur.visible; L.g = cur.g; L.blend = cur.blend;
+    const L = newLayer(cur.name + ' copy'); L.opacity = cur.opacity; L.visible = cur.visible; L.g = cur.g; L.blend = cur.blend; L.mods = JSON.parse(JSON.stringify(cur.mods));
     for (const [k, t] of cur.tiles) L.tiles.set(k, mkTile(cloneCanvas(t.c)));
     layers.splice(layers.indexOf(cur) + 1, 0, L); cur = L; markSave(L, L.tiles.keys());
   });
@@ -1250,8 +1279,8 @@ function mergeDown() {
   const i = layers.indexOf(cur); if (i < 1) { toast('No layer below to merge into'); return; }
   settle();
   const top = cur, below = layers[i - 1];
-  const tiles = { kind: 'tiles', layer: below, map: new Map() };
-  for (const [k, t] of top.tiles) {
+  const tiles = { kind: 'tiles', layer: below, map: new Map() }, baked = bakeCopies(top);   // modifiers are applied by merging
+  for (const [k, t] of baked ? [...baked].map(([k, c]) => [k, { c }]) : top.tiles) {
     let b = below.tiles.get(k);
     tiles.map.set(k, b ? cloneCanvas(b.c) : null);
     if (!b) { b = mkTile(); below.tiles.set(k, b); }
@@ -1641,7 +1670,7 @@ function syncSelUI() {
   $('selOpts').hidden = !selTool && !sel; $('wandOpts').hidden = selTool !== 'wand';
   $('selInv').hidden = $('selNone').hidden = !sel; $('selDoc').hidden = !sel || !!ws.doc;
   ov.classList.toggle('sel', !!selTool);
-  $('hint').textContent = selTool ? SEL_HINT : HINT;
+  $('hint').textContent = xf ? XF_HINT : selTool ? SEL_HINT : HINT;
 }
 function setSelTool(t) {
   if (t && noteMode) setNoteMode(false);
@@ -1686,7 +1715,8 @@ function openDoc(A) {   // A: {x, y, w, h} in canvas world px, from the size dia
   for (const L of layers) {
     if (!shown(L) || !L.tiles.size) continue;
     const N = newLayer(L.name); N.doc = true; N.opacity = L.opacity;
-    copyRegion(L, N, Math.round(b.x0), Math.round(b.y0), w, h);
+    const bk = bakeCopies(L);
+    copyRegion(bk ? { tiles: new Map([...bk].map(([k, c]) => [k, { c }])) } : L, N, Math.round(b.x0), Math.round(b.y0), w, h);
     if (N.tiles.size) D.layers.push(N); else allLayers.delete(N.id);
   }
   if (!D.layers.length) { const N = newLayer('Layer 1'); N.doc = true; D.layers.push(N); }
@@ -1762,6 +1792,7 @@ function drawDocArea() {
 }
 function switchWS(t) {
   if (t === ws || act || stroke) return;
+  if (xf) xfEnd(true);
   settle(); if (anim) { cancelAnimationFrame(anim); anim = 0; }
   Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: { ...view }, sel });
   ws = t;
@@ -1801,6 +1832,372 @@ function renderTabs() {
 }
 const opText = L => (ws.doc && L.blend !== 'normal' ? BLEND_NAMES[BLENDS.indexOf(L.blend)] + ' · ' : '') + Math.round(L.opacity * 100) + '%';
 
+/* ---------- free transform (Ctrl+T) ----------
+   Like Photoshop: the selected pixels of the active layer (the whole layer with no selection) are lifted into one
+   source image, and its outline is either 4 corners (scale, rotate, skew, distort/perspective, via a homography) or
+   a 4×4 bicubic Bézier warp mesh. Both preview and commit render the source through a 32×32 triangle grid on a small
+   separate WebGL 2 canvas (meshGL), with mipmaps, so any shape resamples cleanly. Commit draws the result back into
+   the layer in 2048 px chunks and transforms the selection mask the same way. One undo step. */
+let xf = null, MG = null;
+const XF_N = 32;
+function meshGL() {
+  if (MG !== null) return MG;
+  const c = mk(1, 1), gl = c.getContext('webgl2', { premultipliedAlpha: true, preserveDrawingBuffer: true, antialias: false, depth: false });
+  if (!gl) return MG = false;
+  const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+  const p = gl.createProgram();
+  gl.attachShader(p, sh(gl.VERTEX_SHADER, '#version 300 es\nin vec2 p; in vec2 t; out vec2 uv; void main() { uv = t; gl_Position = vec4(p, 0.0, 1.0); }'));
+  gl.attachShader(p, sh(gl.FRAGMENT_SHADER, '#version 300 es\nprecision highp float; uniform sampler2D s; in vec2 uv; out vec4 o; void main() { o = texture(s, uv); }'));
+  gl.bindAttribLocation(p, 0, 'p'); gl.bindAttribLocation(p, 1, 't'); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return MG = false;
+  gl.useProgram(p); gl.bindVertexArray(gl.createVertexArray());
+  const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 16, 8);
+  const idx = [], n = XF_N + 1;
+  for (let j = 0; j < XF_N; j++) for (let i = 0; i < XF_N; i++) { const a = j * n + i; idx.push(a, a + 1, a + n, a + 1, a + n + 1, a + n); }
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+  gl.disable(gl.BLEND); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  return MG = { c, gl, count: idx.length, buf: new Float32Array(n * n * 4), max: gl.getParameter(gl.MAX_TEXTURE_SIZE) };
+}
+function meshTex(img) {
+  const gl = MG.gl, t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+/* draw the grid (world x, y, u, v) into MG.c, which is w × h px showing world (wx0, wy0) at k px per world px */
+function meshDraw(tex, grid, wx0, wy0, k, w, h) {
+  const gl = MG.gl, b = MG.buf;
+  if (MG.c.width !== w || MG.c.height !== h) { MG.c.width = w; MG.c.height = h; }
+  gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  for (let i = 0; i < grid.length; i += 4) { b[i] = (grid[i] - wx0) * k / w * 2 - 1; b[i + 1] = 1 - (grid[i + 1] - wy0) * k / h * 2; b[i + 2] = grid[i + 2]; b[i + 3] = grid[i + 3]; }
+  gl.bufferData(gl.ARRAY_BUFFER, b, gl.STREAM_DRAW);
+  gl.bindTexture(gl.TEXTURE_2D, tex); gl.drawElements(gl.TRIANGLES, MG.count, gl.UNSIGNED_SHORT, 0);
+}
+function homog(P) {   // unit square -> quad P (TL, TR, BR, BL)
+  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = P;
+  const dx1 = x1 - x2, dx2 = x3 - x2, dy1 = y1 - y2, dy2 = y3 - y2, sx = x0 - x1 + x2 - x3, sy = y0 - y1 + y2 - y3;
+  let g = 0, h = 0;
+  if (Math.abs(sx) > 1e-9 || Math.abs(sy) > 1e-9) { const den = dx1 * dy2 - dx2 * dy1 || 1e-9; g = (sx * dy2 - dx2 * sy) / den; h = (dx1 * sy - sx * dy1) / den; }
+  const a = x1 - x0 + g * x1, b = x3 - x0 + h * x3, d = y1 - y0 + g * y1, e = y3 - y0 + h * y3;
+  return (u, v) => { const w = g * u + h * v + 1; return [(a * u + b * v + x0) / w, (d * u + e * v + y0) / w]; };
+}
+const bern = t => { const m = 1 - t; return [m * m * m, 3 * t * m * m, 3 * t * t * m, t * t * t]; };
+function bezier(P) {   // 4×4 control points, row by row
+  return (u, v) => {
+    const bu = bern(u), bv = bern(v); let x = 0, y = 0;
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) { const k = bu[i] * bv[j], q = P[j * 4 + i]; x += k * q[0]; y += k * q[1]; }
+    return [x, y];
+  };
+}
+const xfMap = X => X.pts.length === 16 ? bezier(X.pts) : homog(X.pts);
+function xfGrid(X) {
+  const f = xfMap(X), n = XF_N + 1, g = new Float64Array(n * n * 4);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const u = i / XF_N, v = j / XF_N, [x, y] = f(u, v), o = (j * n + i) * 4; g[o] = x; g[o + 1] = y; g[o + 2] = u; g[o + 3] = v; }
+  return g;
+}
+function maskCanvas(sl, x0, y0, w, h) {   // the selection as a white image with the mask in alpha
+  const c = mk(w, h), g = c.getContext('2d'), im = g.createImageData(w, h), d = im.data;
+  for (let y = 0; y < h; y++) {
+    const Y = y0 + y, ty = Math.floor(Y / TILE), ly = Y - ty * TILE; let tx = null, v = 0;
+    for (let x = 0; x < w; x++) {
+      const X = x0 + x, ntx = Math.floor(X / TILE); if (ntx !== tx) { tx = ntx; v = selGet(sl, tkey(tx, ty)); }
+      const j = (y * w + x) * 4; d[j] = d[j + 1] = d[j + 2] = 255; d[j + 3] = typeof v === 'number' ? v : v[ly * TILE + X - tx * TILE];
+    }
+  }
+  g.putImageData(im, 0, 0); return c;
+}
+function startTransform() {
+  if (act || stroke || xf) return;
+  if (!meshGL()) { toast('Transform needs WebGL 2, which this browser doesn’t have'); return; }
+  settle();
+  const L = cur, lb = contentBounds([L]);
+  if (!lb) { toast(L.name + ' is empty'); return; }
+  let r = { x0: lb.minX, y0: lb.minY, x1: lb.maxX, y1: lb.maxY };
+  if (sel && !sel.out) {
+    const b = selBounds(sel);
+    r = b && { x0: Math.max(r.x0, Math.floor(b.x0)), y0: Math.max(r.y0, Math.floor(b.y0)), x1: Math.min(r.x1, Math.ceil(b.x1)), y1: Math.min(r.y1, Math.ceil(b.y1)) };
+    if (!r || r.x1 <= r.x0 || r.y1 <= r.y0) { toast('Nothing selected on ' + L.name); return; }
+  }
+  r = { x0: r.x0 - 2, y0: r.y0 - 2, x1: r.x1 + 2, y1: r.y1 + 2 };   // a clear border keeps the edges smooth when rotated
+  const w = r.x1 - r.x0, h = r.y1 - r.y0;
+  if (w > MG.max || h > MG.max) { toast('That’s ' + w + ' × ' + h + ' px. Transform works on up to ' + MG.max + ' px at a time.'); return; }
+  const hist = { kind: 'tiles', layer: L, map: new Map(), extra: { kind: 'sel', sel } };
+  const float = lift(L, sel || invertSel(null), hist);
+  if (!float.size) { restoreTiles(L, hist.map); toast('Nothing selected on ' + L.name); return; }
+  const src = mk(w, h), g = src.getContext('2d');
+  for (const [k, c] of float) { const [tx, ty] = keyXY(k); g.drawImage(c, tx * TILE - r.x0, ty * TILE - r.y0); }
+  xf = { L, hist, r, tex: meshTex(src), mtex: sel ? meshTex(maskCanvas(sel, r.x0, r.y0, w, h)) : null,
+         pts: [[r.x0, r.y0], [r.x1, r.y0], [r.x1, r.y1], [r.x0, r.y1]], key: '' };
+  hideWelcome(); syncXfUI(); dirtyScene();
+}
+const corners = X => X.pts.length === 16 ? [X.pts[0], X.pts[3], X.pts[15], X.pts[12]] : X.pts;
+function xfCenter(X) { const c = corners(X); return [(c[0][0] + c[1][0] + c[2][0] + c[3][0]) / 4, (c[0][1] + c[1][1] + c[2][1] + c[3][1]) / 4]; }
+const xfAngle = X => { const c = corners(X); return Math.atan2(c[1][1] - c[0][1], c[1][0] - c[0][0]); };
+const aff = (A, pts) => pts.map(([x, y]) => mapPt(A, x, y));
+const about = (c, phi, sx, sy) => {   // scale (sx, sy) along the box's axes (angle phi) about point c
+  const co = Math.cos(phi), si = Math.sin(phi);
+  return mmul([1, 0, 0, 1, c[0], c[1]], mmul([co, si, -si, co, 0, 0], mmul([sx, 0, 0, sy, 0, 0], mmul([co, -si, si, co, 0, 0], [1, 0, 0, 1, -c[0], -c[1]]))));
+};
+function xfFlip(h) { if (!xf) return; xf.pts = aff(about(xfCenter(xf), xfAngle(xf), h ? -1 : 1, h ? 1 : -1), xf.pts); dirtyOverlay(); }
+function xfWarp() {
+  if (!xf) return;
+  if (xf.pts.length === 16) { xf.pts = corners(xf).map(p => p.slice()); }   // back to corners (keeps the outer shape)
+  else { const f = homog(xf.pts), out = []; for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) out.push(f(i / 3, j / 3)); xf.pts = out; }
+  syncXfUI(); dirtyOverlay();
+}
+function xfEnd(apply) {
+  const X = xf; if (!X) return;
+  xf = null; act = null; ov.style.cursor = '';
+  const L = X.L, h = X.hist, gl = MG.gl;
+  if (apply) {
+    const grid = xfGrid(X);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < grid.length; i += 4) { x0 = Math.min(x0, grid[i]); x1 = Math.max(x1, grid[i]); y0 = Math.min(y0, grid[i + 1]); y1 = Math.max(y1, grid[i + 1]); }
+    x0 = Math.floor(x0) - 1; y0 = Math.floor(y0) - 1; x1 = Math.ceil(x1) + 1; y1 = Math.ceil(y1) + 1;
+    const ms = X.mtex ? new Map() : null, CH = 2048;
+    const dest = k => { let v = ms.get(k); if (!v) ms.set(k, v = new Uint8Array(TILE * TILE)); return v; };
+    for (let cy = y0; cy < y1; cy += CH) for (let cx = x0; cx < x1; cx += CH) {
+      const cw = Math.min(CH, x1 - cx), chh = Math.min(CH, y1 - cy);
+      meshDraw(X.tex, grid, cx, cy, 1, cw, chh);
+      for (let ty = Math.floor(cy / TILE); ty <= Math.floor((cy + chh - 1) / TILE); ty++) for (let tx = Math.floor(cx / TILE); tx <= Math.floor((cx + cw - 1) / TILE); tx++) {
+        const k = tkey(tx, ty); let t = L.tiles.get(k);
+        if (!h.map.has(k)) h.map.set(k, t ? cloneCanvas(t.c) : null);
+        if (!t) { t = mkTile(); L.tiles.set(k, t); }
+        t.c.getContext('2d').drawImage(MG.c, cx - tx * TILE, cy - ty * TILE); t.v++; t.blank = false;
+      }
+      if (ms) {   // the selection goes through the same mesh
+        meshDraw(X.mtex, grid, cx, cy, 1, cw, chh);
+        const px = new Uint8Array(cw * chh * 4); gl.readPixels(0, 0, cw, chh, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        for (let y = 0; y < chh; y++) {
+          const Y = cy + y, ty = Math.floor(Y / TILE), row = (chh - 1 - y) * cw;
+          for (let x = 0; x < cw; x++) { const a = px[(row + x) * 4 + 3]; if (!a) continue; const X2 = cx + x, tx = Math.floor(X2 / TILE); dest(tkey(tx, ty))[(Y - ty * TILE) * TILE + X2 - tx * TILE] = a; }
+        }
+      }
+    }
+    if (ms) { const m = new Map(); for (const [k, v] of ms) putNorm(m, k, v, 0); sel = mkSel(m, 0); selChanged(); }
+    pushUndo(h); markSave(L, h.map.keys());
+  } else restoreTiles(L, h.map);
+  gl.deleteTexture(X.tex); if (X.mtex) gl.deleteTexture(X.mtex);
+  syncXfUI(); dirtyScene();
+}
+/* hit test in screen px: a handle index, 'in' (move), or 'out' (rotate) */
+function xfHit(x, y) {
+  const S = p => [p[0] * view.z + view.x, p[1] * view.z + view.y], X = xf;
+  const hs = X.pts.length === 16 ? X.pts.map(S) : [...X.pts.map(S), ...[0, 1, 2, 3].map(i => { const a = S(X.pts[i]), b = S(X.pts[(i + 1) % 4]); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; })];
+  let best = -1, bd = 10;
+  hs.forEach((p, i) => { const d = Math.hypot(p[0] - x, p[1] - y); if (d < bd) { bd = d; best = i; } });
+  if (best >= 0) return best;
+  const f = xfMap(X), poly = [];
+  for (let i = 0; i <= 16; i++) poly.push(S(f(i / 16, 0)));
+  for (let i = 1; i <= 16; i++) poly.push(S(f(1, i / 16)));
+  for (let i = 1; i <= 16; i++) poly.push(S(f(1 - i / 16, 1)));
+  for (let i = 1; i < 16; i++) poly.push(S(f(0, 1 - i / 16)));
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside; }
+  return inside ? 'in' : 'out';
+}
+function xfDown(e, x, y) {
+  const h = xfHit(x, y), w = toWorld(x, y), mod = e.ctrlKey || e.metaKey;
+  act = { type: 'xf', id: e.pointerId, h, w0: w, pts0: xf.pts.map(p => p.slice()), c: xfCenter(xf), phi: xfAngle(xf), mod };
+  dirtyOverlay();
+}
+function xfMove(e) {
+  const A = act, X = xf, w = toWorld(e.clientX, e.clientY), dx = w.x - A.w0.x, dy = w.y - A.w0.y, P = A.pts0;
+  if (A.h === 'in') X.pts = aff([1, 0, 0, 1, dx, dy], P);
+  else if (A.h === 'out') {
+    let t = Math.atan2(w.y - A.c[1], w.x - A.c[0]) - Math.atan2(A.w0.y - A.c[1], A.w0.x - A.c[0]);
+    if (e.shiftKey) t = Math.round(t / (Math.PI / 12)) * (Math.PI / 12);   // 15° steps
+    const co = Math.cos(t), si = Math.sin(t);
+    X.pts = aff(mmul([1, 0, 0, 1, A.c[0], A.c[1]], mmul([co, si, -si, co, 0, 0], [1, 0, 0, 1, -A.c[0], -A.c[1]])), P);
+  } else if (P.length === 16) {   // warp: drag a control point; a corner brings its handles along
+    const i = A.h, out = P.map(p => p.slice()), mv = j => { out[j] = [P[j][0] + dx, P[j][1] + dy]; };
+    mv(i);
+    if (i === 0) [1, 4, 5].forEach(mv); else if (i === 3) [2, 7, 6].forEach(mv); else if (i === 12) [8, 13, 9].forEach(mv); else if (i === 15) [11, 14, 10].forEach(mv);
+    X.pts = out;
+  } else if (A.mod && A.h < 4) { const out = P.map(p => p.slice()); out[A.h] = [P[A.h][0] + dx, P[A.h][1] + dy]; X.pts = out; }   // Ctrl+corner: distort
+  else if (A.mod) {   // Ctrl+edge: skew along the edge
+    const a = A.h - 4, b = (a + 1) % 4, ex = P[b][0] - P[a][0], ey = P[b][1] - P[a][1], L2 = ex * ex + ey * ey || 1, t = (dx * ex + dy * ey) / L2;
+    const out = P.map(p => p.slice()); out[a] = [P[a][0] + ex * t, P[a][1] + ey * t]; out[b] = [P[b][0] + ex * t, P[b][1] + ey * t]; X.pts = out;
+  } else {   // scale from the opposite handle (or the center with Alt); corners keep proportions unless Shift is held
+    const mid = i => [(P[i][0] + P[(i + 1) % 4][0]) / 2, (P[i][1] + P[(i + 1) % 4][1]) / 2];
+    const H0 = A.h < 4 ? P[A.h] : mid(A.h - 4), anc = e.altKey ? A.c : A.h < 4 ? P[(A.h + 2) % 4] : mid((A.h - 4 + 2) % 4);
+    const co = Math.cos(-A.phi), si = Math.sin(-A.phi), loc = (x, y) => [co * (x - anc[0]) - si * (y - anc[1]), si * (x - anc[0]) + co * (y - anc[1])];
+    const q0 = loc(H0[0], H0[1]), q = loc(H0[0] + dx, H0[1] + dy), r = (a, b) => Math.abs(b) < 1e-6 ? 1 : a / b;
+    let sx = 1, sy = 1;
+    if (A.h < 4) { if (e.shiftKey) { sx = r(q[0], q0[0]); sy = r(q[1], q0[1]); } else sx = sy = (q[0] * q0[0] + q[1] * q0[1]) / ((q0[0] * q0[0] + q0[1] * q0[1]) || 1); }
+    else if (A.h === 4 || A.h === 6) { sy = r(q[1], q0[1]); if (e.shiftKey) sx = sy; }
+    else { sx = r(q[0], q0[0]); if (e.shiftKey) sy = sx; }
+    X.pts = aff(about(anc, A.phi, sx, sy), P);
+  }
+  dirtyOverlay();
+}
+function xfCursor(x, y) {
+  const h = xfHit(x, y);
+  ov.style.cursor = h === 'in' ? 'move' : h === 'out' ? 'alias' : 'crosshair';
+}
+function drawXf() {
+  const X = xf, grid = xfGrid(X), k = view.z * dpr, ox = view.x * dpr, oy = view.y * dpr;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < grid.length; i += 4) { const sx = grid[i] * k + ox, sy = grid[i + 1] * k + oy; x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy); }
+  x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(ov.width, Math.ceil(x1)); y1 = Math.min(ov.height, Math.ceil(y1));
+  if (x1 > x0 && y1 > y0) {
+    const key = JSON.stringify(X.pts) + [view.x, view.y, view.z, x0, y0, x1, y1].join();
+    if (key !== X.key) { X.key = key; meshDraw(X.tex, grid, (x0 - ox) / k, (y0 - oy) / k, k, x1 - x0, y1 - y0); }
+    octx.save(); octx.setTransform(1, 0, 0, 1, 0, 0); octx.globalAlpha = X.L.opacity; octx.drawImage(MG.c, x0, y0); octx.restore();
+  }
+  const S = p => [p[0] * view.z + view.x, p[1] * view.z + view.y], f = xfMap(X);
+  octx.save(); octx.lineWidth = 1;
+  const curve = (g) => { octx.beginPath(); for (let i = 0; i <= 24; i++) { const [px, py] = S(g(i / 24)); i ? octx.lineTo(px, py) : octx.moveTo(px, py); } octx.stroke(); };
+  const lines = () => {
+    for (const v of [0, 1]) curve(t => f(t, v)); for (const u of [0, 1]) curve(t => f(u, t));
+    if (X.pts.length === 16) { for (const v of [1 / 3, 2 / 3]) curve(t => f(t, v)); for (const u of [1 / 3, 2 / 3]) curve(t => f(u, t)); }
+  };
+  octx.strokeStyle = 'rgba(255,255,255,.8)'; octx.lineWidth = 3; lines();
+  octx.strokeStyle = '#2d6cb0'; octx.lineWidth = 1; lines();
+  const hs = X.pts.length === 16 ? X.pts.map(S) : [...X.pts.map(S), ...[0, 1, 2, 3].map(i => { const a = S(X.pts[i]), b = S(X.pts[(i + 1) % 4]); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; })];
+  if (X.pts.length === 16) {   // handle lines from each corner to its two edge handles
+    octx.strokeStyle = 'rgba(45,108,176,.7)'; octx.beginPath();
+    for (const [a, b] of [[0, 1], [0, 4], [3, 2], [3, 7], [12, 13], [12, 8], [15, 14], [15, 11]]) { octx.moveTo(...hs[a]); octx.lineTo(...hs[b]); }
+    octx.stroke();
+  }
+  hs.forEach(([px, py], i) => {
+    const corner = X.pts.length === 16 ? [0, 3, 12, 15].includes(i) : true, r = corner ? 4 : 3;
+    octx.fillStyle = '#fff'; octx.strokeStyle = '#2d6cb0';
+    octx.beginPath(); if (X.pts.length === 16 && !corner) octx.arc(px, py, r, 0, Math.PI * 2); else octx.rect(px - r, py - r, r * 2, r * 2);
+    octx.fill(); octx.stroke();
+  });
+  octx.restore();
+}
+const XF_HINT = 'Drag a corner to scale (Shift: free, Alt: from center) · drag outside to rotate (Shift: 15°) · Ctrl+corner distorts · Ctrl+edge skews · Enter applies · Esc cancels';
+function syncXfUI() {
+  $('xfBar').hidden = !xf; $('xfWarp').classList.toggle('on', !!xf && xf.pts.length === 16);
+  $('hint').textContent = xf ? (xf.pts.length === 16 ? 'Warp: drag the points and handles · drag inside to move, outside to rotate · Enter applies · Esc cancels' : XF_HINT) : selTool ? SEL_HINT : HINT;
+}
+
+/* ---------- modifiers ----------
+   A layer's modifier stack (L.mods), like Blender's. For now there's one type, Array: count copies, each one offset
+   by (dx, dy) and rotated / scaled about a pivot (cx, cy) relative to the one before. Stacked arrays multiply (two
+   make a grid). The layer's own pixels are never changed: the copies are drawn at render time (copiesOf gives one
+   world matrix per copy), so they update live while you paint. Apply bakes them into pixels. */
+const MAX_COPIES = 512, ID = [1, 0, 0, 1, 0, 0];
+const mmul = (A, B) => [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3], A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]];
+const minv = M => { const d = M[0] * M[3] - M[1] * M[2]; return [M[3] / d, -M[1] / d, -M[2] / d, M[0] / d, (M[2] * M[5] - M[3] * M[4]) / d, (M[1] * M[4] - M[0] * M[5]) / d]; };
+const mapPt = (M, x, y) => [M[0] * x + M[2] * y + M[4], M[1] * x + M[3] * y + M[5]];
+function arrayStep(m) {   // rotate and scale about the pivot, then offset; radial: an even turn about the pivot
+  if (m.mode === 'radial') m = Object.assign({}, m, { rot: 360 / clamp(m.count | 0, 1, 64), dx: 0, dy: 0 });
+  const r = (+m.rot || 0) * Math.PI / 180, k = (+m.scale || 100) / 100, c = Math.cos(r) * k, n = Math.sin(r) * k;
+  return [c, n, -n, c, m.cx - c * m.cx + n * m.cy + (+m.dx || 0), m.cy - n * m.cx - c * m.cy + (+m.dy || 0)];
+}
+function copiesOf(L) {   // null when the layer has no active modifiers
+  const on = L.mods && L.mods.filter(m => m.on);
+  if (!on || !on.length) return null;
+  const key = JSON.stringify(on);
+  if (L.cpKey === key) return L.cp;
+  let list = [ID];
+  for (const m of on) {
+    const T = arrayStep(m), n = clamp(m.count | 0, 1, 64), out = [];
+    for (const C of list) { let P = ID; for (let i = 0; i < n && out.length < MAX_COPIES; i++) { out.push(mmul(P, C)); P = mmul(T, P); } }
+    list = out;
+  }
+  L.cpKey = key; L.cp = list; return list;
+}
+function boxUnder(M, b) {   // world bounds of rect b (minX..maxY) after matrix M
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of [[b.minX, b.minY], [b.maxX, b.minY], [b.minX, b.maxY], [b.maxX, b.maxY]]) { const [u, v] = mapPt(M, x, y); x0 = Math.min(x0, u); y0 = Math.min(y0, v); x1 = Math.max(x1, u); y1 = Math.max(y1, v); }
+  return { minX: x0, minY: y0, maxX: x1, maxY: y1 };
+}
+/* the layer with its modifiers baked in, as tile canvases (null without modifiers) */
+function bakeCopies(L) {
+  const cps = copiesOf(L); if (!cps) return null;
+  settle();
+  const out = new Map(), b = contentBounds([L]); if (!b) return out;
+  const boxes = cps.map(M => boxUnder(M, b)), src = [...L.tiles].filter(([, t]) => !t.blank);
+  let X0 = Infinity, Y0 = Infinity, X1 = -Infinity, Y1 = -Infinity;
+  for (const q of boxes) { X0 = Math.min(X0, q.minX); Y0 = Math.min(Y0, q.minY); X1 = Math.max(X1, q.maxX); Y1 = Math.max(Y1, q.maxY); }
+  for (let ty = Math.floor(Y0 / TILE); ty <= Math.floor(Y1 / TILE); ty++) for (let tx = Math.floor(X0 / TILE); tx <= Math.floor(X1 / TILE); tx++) {
+    const ox = tx * TILE, oy = ty * TILE; let c = null, g = null;
+    cps.forEach((M, i) => {
+      const q = boxes[i]; if (q.maxX <= ox || q.minX >= ox + TILE || q.maxY <= oy || q.minY >= oy + TILE) return;
+      if (!c) { c = mk(TILE, TILE); g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; }
+      g.setTransform(M[0], M[1], M[2], M[3], M[4] - ox, M[5] - oy);
+      for (const [k, t] of src) { const [sx, sy] = keyXY(k); g.drawImage(t.c, sx * TILE, sy * TILE); }
+    });
+    if (c) out.set(tkey(tx, ty), c);
+  }
+  return out;
+}
+const modSnap = L => ({ kind: 'mods', layer: L, mods: JSON.parse(JSON.stringify(L.mods)) });
+function modOp(L, change) { pushUndo(modSnap(L)); change(); saveLayers(); renderLayers(); dirtyScene(); }
+function addArray() {
+  const b = contentBounds([cur]), c = toWorld(W / 2, H / 2);
+  const cx = b ? (b.minX + b.maxX) / 2 : c.x, cy = b ? (b.minY + b.maxY) / 2 : c.y, w = b ? b.maxX - b.minX : 200;
+  modOp(cur, () => cur.mods.push({ type: 'array', on: true, count: 3, dx: Math.round(w + 40), dy: 0, rot: 0, scale: 100, cx: Math.round(cx), cy: Math.round(cy) }));
+}
+function applyMods() {
+  const L = cur, baked = bakeCopies(L);
+  if (!baked) { toast('No active modifiers to apply'); return; }
+  const e = Object.assign({ kind: 'tiles', layer: L, map: new Map() }, { extra: modSnap(L) });
+  for (const [k, t] of L.tiles) e.map.set(k, t.c);
+  for (const k of baked.keys()) if (!e.map.has(k)) e.map.set(k, null);
+  L.tiles = new Map([...baked].map(([k, c]) => [k, mkTile(c)]));
+  L.mods = L.mods.filter(m => !m.on);
+  pushUndo(e); markSave(L, e.map.keys()); saveLayers(); renderLayers(); dirtyScene();
+  toast('Modifiers applied to ' + L.name + '. Undo brings them back.');
+}
+
+/* on-canvas array handles (while the layers panel is open): drag the pivot ring, or the square at the end of the
+   offset arrow (linear arrays). Shift snaps the offset to 0°/45°/90°. */
+const modHandlesOn = () => !$('layerPanel').hidden && !xf && cur && cur.mods.some(m => m.on);
+function modHandles() {
+  const out = [];
+  cur.mods.forEach(m => {
+    if (!m.on) return;
+    out.push({ m, k: 'pivot', x: m.cx, y: m.cy });
+    if (m.mode !== 'radial') out.push({ m, k: 'offset', x: m.cx + (+m.dx || 0), y: m.cy + (+m.dy || 0) });
+  });
+  return out;
+}
+function modHit(x, y) {
+  let best = null, bd = 11;
+  for (const h of modHandles()) { const d = Math.hypot(h.x * view.z + view.x - x, h.y * view.z + view.y - y); if (d < bd) { bd = d; best = h; } }
+  return best;
+}
+function dragModHandle(A, e) {
+  const w = toWorld(e.clientX, e.clientY), m = A.h.m;
+  if (A.h.k === 'pivot') { m.cx = Math.round(w.x); m.cy = Math.round(w.y); }
+  else {
+    let dx = w.x - m.cx, dy = w.y - m.cy;
+    if (e.shiftKey) { const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4), d = Math.hypot(dx, dy); dx = Math.cos(a) * d; dy = Math.sin(a) * d; }
+    m.dx = Math.round(dx); m.dy = Math.round(dy);
+  }
+  dirtyScene();
+}
+function drawModHandles() {
+  const S = (x, y) => [x * view.z + view.x, y * view.z + view.y];
+  octx.save();
+  for (const h of modHandles()) {
+    const [x, y] = S(h.x, h.y);
+    if (h.k === 'pivot') {
+      for (const [c, lw] of [['rgba(255,255,255,.9)', 3], ['#2d6cb0', 1.5]]) {
+        octx.strokeStyle = c; octx.lineWidth = lw; octx.beginPath(); octx.arc(x, y, 6, 0, Math.PI * 2);
+        octx.moveTo(x - 10, y); octx.lineTo(x + 10, y); octx.moveTo(x, y - 10); octx.lineTo(x, y + 10); octx.stroke();
+      }
+    } else {
+      const [px, py] = S(h.m.cx, h.m.cy), a = Math.atan2(y - py, x - px);
+      for (const [c, lw] of [['rgba(255,255,255,.9)', 3], ['#2d6cb0', 1.5]]) {
+        octx.strokeStyle = c; octx.lineWidth = lw; octx.setLineDash(lw > 2 ? [] : [5, 4]); octx.beginPath(); octx.moveTo(px, py); octx.lineTo(x, y); octx.stroke(); octx.setLineDash([]);
+      }
+      octx.save(); octx.translate(x, y); octx.rotate(a + Math.PI / 4);
+      octx.fillStyle = '#fff'; octx.strokeStyle = '#2d6cb0'; octx.lineWidth = 1.5; octx.fillRect(-5, -5, 10, 10); octx.strokeRect(-5, -5, 10, 10); octx.restore();
+    }
+  }
+  octx.restore();
+}
+
 /* ---------- persistence (IndexedDB) ---------- */
 let db = null; const saveSet = new Set(); let saveTimer = 0, saving = false;
 function idbOpen() {
@@ -1829,7 +2226,7 @@ function initLayers() {
     nextId = meta.nextId || 1; nextGid = meta.nextGid || 1;
     groups = (meta.groups || []).map(G => ({ id: G.id, name: G.name, visible: G.visible !== false, open: G.open !== false, key: G.key || null, active: G.active }));
     for (const G of groups) nextGid = Math.max(nextGid, G.id + 1);
-    for (const m of meta.layers) { const L = { id: m.id, name: m.name, visible: m.visible !== false, opacity: m.opacity == null ? 1 : m.opacity, tiles: new Map(), g: groups.some(G => G.id === m.g) ? m.g : null }; allLayers.set(L.id, L); layers.push(L); nextId = Math.max(nextId, L.id + 1); }
+    for (const m of meta.layers) { const L = { id: m.id, name: m.name, visible: m.visible !== false, opacity: m.opacity == null ? 1 : m.opacity, tiles: new Map(), g: groups.some(G => G.id === m.g) ? m.g : null, blend: 'normal', mods: Array.isArray(m.mods) ? m.mods : [] }; allLayers.set(L.id, L); layers.push(L); nextId = Math.max(nextId, L.id + 1); }
     tidyGroups();
     cur = layers.find(L => L.id === meta.active) || layers[layers.length - 1];
   } else { const L = newLayer('Layer 1'); layers.push(L); cur = L; saveLayers(); }
@@ -1886,8 +2283,8 @@ function makeGL() {
   try { gl = cv.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false }); } catch (e) {}
   if (!gl) return null;
   const VS = `#version 300 es
-in vec2 a; uniform vec4 uR; uniform vec2 uV; out vec2 uv;
-void main() { uv = a; vec2 p = (uR.xy + a * uR.zw) / uV * 2.0 - 1.0; gl_Position = vec4(p.x, -p.y, 0.0, 1.0); }`;
+in vec2 a; uniform vec4 uR; uniform vec2 uV; uniform mat3 uX; out vec2 uv;
+void main() { uv = a; vec2 q = (uX * vec3(uR.xy + a * uR.zw, 1.0)).xy, p = q / uV * 2.0 - 1.0; gl_Position = vec4(p.x, -p.y, 0.0, 1.0); }`;
   const FS_TILE = `#version 300 es
 precision highp float; in vec2 uv; uniform sampler2D uT; uniform float uO; out vec4 o;
 void main() { o = texture(uT, uv) * uO; }`;
@@ -1917,6 +2314,7 @@ void main() { ivec2 p = ivec2(gl_FragCoord.xy); vec4 d = texelFetch(uT, p, 0), s
   const FS_COPY = `#version 300 es
 precision highp float; uniform sampler2D uT; out vec4 o;
 void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
+  const XID = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]), xm = new Float32Array(9);
   const BUDGET = 320 * 1024 * 1024, texTiles = new Set(), pool = new Map();
   let P = null, gen = 0, fno = 0, used = 0, upEnd = 0, pending = false;
   const bytes = n => n * n * 16 / 3;   // RGBA plus mip chain
@@ -1925,7 +2323,7 @@ void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
     for (const [type, src] of [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]]) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); gl.attachShader(p, s); }
     gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
-    const u = {}; for (const n of ['uR', 'uV', 'uT', 'uS', 'uC', 'uO', 'uE', 'uM']) u[n] = gl.getUniformLocation(p, n);
+    const u = {}; for (const n of ['uR', 'uV', 'uT', 'uS', 'uC', 'uO', 'uE', 'uM', 'uX']) u[n] = gl.getUniformLocation(p, n);
     return { p, u };
   }
   function init() {
@@ -1944,6 +2342,7 @@ void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
     gl.useProgram(P.tile.p); gl.uniform1i(P.tile.u.uT, 0);
     gl.useProgram(P.blend.p); gl.uniform1i(P.blend.u.uT, 0); gl.uniform1i(P.blend.u.uS, 1);
     gl.useProgram(P.copy.p); gl.uniform1i(P.copy.u.uT, 0);
+    for (const p of [P.tile, P.stroke, P.blend, P.copy]) { gl.useProgram(p.p); gl.uniformMatrix3fv(p.u.uX, false, XID); }
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
     gen++; used = 0; texTiles.clear(); pool.clear();
@@ -2051,18 +2450,30 @@ void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
       gl.uniform1f(on.u.uO, op);
       gl.bindTexture(gl.TEXTURE_2D, r.tex); mips(r);
       const x0 = Math.round(tx * size + ox), x1 = Math.round((tx + 1) * size + ox), y0 = Math.round(ty * size + oy), y1 = Math.round((ty + 1) * size + oy);
-      gl.uniform4f(on.u.uR, x0, y0, x1 - x0, y1 - y0);
+      gl.uniform4f(on.u.uR, x0, y0, x1 - x0, y1 - y0); gl.uniformMatrix3fv(on.u.uX, false, curX);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
-    const span = (tx1 - tx0 + 1) * (ty1 - ty0 + 1);
-    const drawLayer = (L, op) => {   // tiles in a layer never overlap, so drawing each at the layer's opacity equals layer opacity
-      if (span <= L.tiles.size) {
-        for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t, op); }
+    let curX = XID;
+    const drawTiles = (L, op, a0, a1, b0, b1) => {   // tiles in a layer never overlap, so drawing each at the layer's opacity equals layer opacity
+      if ((a1 - a0 + 1) * (b1 - b0 + 1) <= L.tiles.size) {
+        for (let ty = b0; ty <= b1; ty++) for (let tx = a0; tx <= a1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t, op); }
       } else {
-        for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= tx0 && tx <= tx1 && ty >= ty0 && ty <= ty1) draw(tx, ty, t, op); }
+        for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= a0 && tx <= a1 && ty >= b0 && ty <= b1) draw(tx, ty, t, op); }
       }
     };
-    const quad = () => { gl.uniform2f(on.u.uV, cv.width, cv.height); gl.uniform4f(on.u.uR, 0, 0, cv.width, cv.height); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
+    const drawLayer = (L, op) => {
+      const cps = copiesOf(L);
+      if (!cps) { drawTiles(L, op, tx0, tx1, ty0, ty1); return; }
+      const scr = { minX: -ox / z, minY: -oy / z, maxX: (cv.width - ox) / z, maxY: (cv.height - oy) / z };
+      for (const M of cps) {   // device-space matrix V·M·V⁻¹, and the tiles this copy can show on screen
+        const e = z * M[4] + ox - (M[0] * ox + M[2] * oy), f = z * M[5] + oy - (M[1] * ox + M[3] * oy);
+        xm.set([M[0], M[1], 0, M[2], M[3], 0, e, f, 1]); curX = xm;
+        const q = boxUnder(minv(M), scr);
+        drawTiles(L, op, Math.floor(q.minX / TILE), Math.floor(q.maxX / TILE), Math.floor(q.minY / TILE), Math.floor(q.maxY / TILE));
+      }
+      curX = XID;
+    };
+    const quad = () => { gl.uniform2f(on.u.uV, cv.width, cv.height); gl.uniform4f(on.u.uR, 0, 0, cv.width, cv.height); gl.uniformMatrix3fv(on.u.uX, false, XID); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
     for (const L of layers) {
       if (!shown(L) || !L.tiles.size) continue;
       const m = doc ? BLENDS.indexOf(L.blend) : 0;
@@ -2130,15 +2541,25 @@ function renderScene(ctx, rect) {
     const x0 = Math.round(tx * size + ox), x1 = Math.round((tx + 1) * size + ox), y0 = Math.round(ty * size + oy), y1 = Math.round((ty + 1) * size + oy);
     ctx.drawImage(lodOf(t, size), x0, y0, x1 - x0, y1 - y0);
   };
-  const span = (tx1 - tx0 + 1) * (ty1 - ty0 + 1);
+  const drawTiles = (L, a0, a1, b0, b1) => {
+    if ((a1 - a0 + 1) * (b1 - b0 + 1) <= L.tiles.size) {
+      for (let ty = b0; ty <= b1; ty++) for (let tx = a0; tx <= a1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t); }
+    } else {
+      for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= a0 && tx <= a1 && ty >= b0 && ty <= b1) draw(tx, ty, t); }
+    }
+  };
+  const scr = { minX: (X0 - ox) / z, minY: (Y0 - oy) / z, maxX: (X1 - ox) / z, maxY: (Y1 - oy) / z };
   for (const L of layers) {
     if (!shown(L) || !L.tiles.size) continue;
     ctx.globalAlpha = L.opacity; ctx.globalCompositeOperation = doc ? blend2D(L.blend) : 'source-over';
-    if (span <= L.tiles.size) {
-      for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t); }
-    } else {
-      for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= tx0 && tx <= tx1 && ty >= ty0 && ty <= ty1) draw(tx, ty, t); }
+    const cps = copiesOf(L);
+    if (!cps) { drawTiles(L, tx0, tx1, ty0, ty1); continue; }
+    for (const M of cps) {
+      ctx.setTransform(M[0], M[1], M[2], M[3], z * M[4] + ox - (M[0] * ox + M[2] * oy), z * M[5] + oy - (M[1] * ox + M[3] * oy));
+      const q = boxUnder(minv(M), scr);
+      drawTiles(L, Math.floor(q.minX / TILE), Math.floor(q.maxX / TILE), Math.floor(q.minY / TILE), Math.floor(q.maxY / TILE));
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   if (doc) ctx.restore();
@@ -2166,14 +2587,16 @@ function drawOverlay() {
     octx.restore();
   }
   if (act && act.type === 'move') drawFloat(act);
-  if (sel) { const m = act && (act.type === 'move' || act.type === 'selmove'); drawAnts(m ? act.dx : 0, m ? act.dy : 0); }
+  if (sel && !xf) { const m = act && (act.type === 'move' || act.type === 'selmove'); drawAnts(m ? act.dx : 0, m ? act.dy : 0); }
   if (act && act.type === 'sel') drawSelDrag(act);
   if (stroke && stroke.line) drawLineGuide(stroke.line);
+  if (xf) drawXf();
   if (hl) drawHighlight();
+  if (modHandlesOn()) drawModHandles();
   if (docArea) drawDocArea();
   if (act && act.type === 'resize') { ring(act.ax, act.ay, S.size / 2 * view.z, 1); return; }
-  if (hover && hover.type !== 'touch' && !spaceHeld && (act ? act.type === 'pick' : altHeld && !selTool)) { drawPicker(hover.x, hover.y, act ? act.prev : S.color); return; }
-  if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode && !selTool) {
+  if (hover && hover.type !== 'touch' && !spaceHeld && (act ? act.type === 'pick' : altHeld && !selTool && !xf)) { drawPicker(hover.x, hover.y, act ? act.prev : S.color); return; }
+  if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode && !selTool && !xf) {
     const r = S.size / 2 * view.z;
     ring(hover.x, hover.y, r, 1);
     if (sym.mode !== 'off') {
@@ -2320,10 +2743,12 @@ ov.addEventListener('pointerdown', e => {
   if (spaceHeld && (e.ctrlKey || e.metaKey)) { act = { type: 'zoom', id: e.pointerId, ax: x, ay: y, z0: view.z, w: toWorld(x, y) }; return; }
   if (e.button === 1 || spaceHeld) { act = { type: 'pan', id: e.pointerId, lx: x, ly: y }; ov.classList.add('grabbing'); return; }
   if (e.button === 2) return;
+  if (xf) { xfDown(e, x, y); return; }
   if (noteMode && !e.altKey && !e.ctrlKey && !e.metaKey) { addNote(x, y); return; }
   if (selTool) { selDown(e, x, y); return; }
   if (e.altKey) { act = { type: 'pick', id: e.pointerId, prev: S.color }; altHeld = true; hover = { x, y, type: e.pointerType }; pickAt(x, y); return; }
   if (e.ctrlKey || e.metaKey) { act = { type: 'resize', id: e.pointerId, ax: x, ay: y, s0: S.size }; dirtyOverlay(); return; }
+  if (modHandlesOn()) { const h = modHit(x, y); if (h) { act = { type: 'modh', id: e.pointerId, h }; return; } }
   if (sym.mode !== 'off' && Math.hypot(x - (sym.cx * view.z + view.x), y - (sym.cy * view.z + view.y)) < 14) { act = { type: 'axis', id: e.pointerId }; return; }
   const erase = S.erase || e.button === 5 || (e.buttons & 32) !== 0;
   act = { type: 'draw', id: e.pointerId };
@@ -2340,7 +2765,7 @@ function startDraw(x, y, p, erase, shift) {
 ov.addEventListener('pointermove', e => {
   hover = { x: e.clientX, y: e.clientY, type: e.pointerType };
   if (e.pointerType === 'touch' && touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (!act) { altHeld = e.altKey; dirtyOverlay(); return; }
+  if (!act) { altHeld = e.altKey; if (xf) xfCursor(e.clientX, e.clientY); dirtyOverlay(); return; }
   if (act.type === 'pinch') { if (touches.size >= 2) movePinch(); return; }
   if (e.pointerId !== act.id) return;
   switch (act.type) {
@@ -2348,6 +2773,7 @@ ov.addEventListener('pointermove', e => {
     case 'zoom': setView(act.z0 * Math.exp(((e.clientX - act.ax) - (e.clientY - act.ay)) * 0.008), act.w.x, act.w.y, act.ax, act.ay); break;
     // same speed at every zoom: 1 screen px of drag = 2 px of diameter, as at 100%
     case 'resize': S.size = clamp(act.s0 + 2 * (e.clientX - act.ax) * dpr, 1, 3000); syncSize(); dirtyOverlay(); break;
+    case 'modh': dragModHandle(act, e); break;
     case 'axis': { const w = toWorld(e.clientX, e.clientY); sym.cx = w.x; sym.cy = w.y; dirtyOverlay(); break; }
     case 'pick': pickAt(e.clientX, e.clientY); break;
     case 'sel': {
@@ -2356,6 +2782,7 @@ ov.addEventListener('pointermove', e => {
       if (Math.hypot(w.x - last.x, w.y - last.y) * view.z >= 2) act.pts.push(w);
       dirtyOverlay(); break;
     }
+    case 'xf': xfMove(e); break;
     case 'move': case 'selmove':
       act.dx = Math.round((e.clientX - act.sx) / view.z); act.dy = Math.round((e.clientY - act.sy) / view.z); dirtyOverlay(); break;
     case 'draw': {
@@ -2389,6 +2816,7 @@ function pointerEnd(e) {
   else if (act.type === 'sel') { const A = act; act = null; finishSel(A); }
   else if (act.type === 'selmove') setSel(act.dx || act.dy ? shiftSel(sel, act.dx, act.dy) : null);   // a click inside deselects
   else if (act.type === 'move') { const A = act; act = null; endMove(A); }
+  else if (act.type === 'modh') { saveLayers(); renderMods(); }
   act = null; ov.classList.remove('grabbing'); saveSettings(); dirtyOverlay();
 }
 ov.addEventListener('pointerup', pointerEnd);
@@ -2458,9 +2886,20 @@ function sampleAt(sx, sy) {
   const bw = Math.min(n, TILE - lx), bh = Math.min(n, TILE - ly), k = tkey(tx, ty);
   let [r, g, b] = hexToRgb(paperColor());
   if (ws.doc && (w.x < 0 || w.y < 0 || w.x >= ws.doc.w || w.y >= ws.doc.h)) return PASTEBOARD.map(v => v * 255);
+  const block = (L, X, Y) => {
+    const tx = Math.floor(X / TILE), ty = Math.floor(Y / TILE), t = L.tiles.get(tkey(tx, ty)); if (!t) return null;
+    const lx = X - tx * TILE, ly = Y - ty * TILE;
+    return t.c.getContext('2d', { willReadFrequently: true }).getImageData(lx, ly, Math.min(n, TILE - lx), Math.min(n, TILE - ly));
+  };
+  const looks = [];
   for (const L of layers) {
-    const t = shown(L) && L.tiles.get(k); if (!t) continue;
-    const d = t.c.getContext('2d', { willReadFrequently: true }).getImageData(lx, ly, bw, bh).data;
+    if (!shown(L)) continue;
+    const cps = copiesOf(L);
+    if (!cps) { const t = L.tiles.get(k); if (t) looks.push([L, t.c.getContext('2d', { willReadFrequently: true }).getImageData(lx, ly, bw, bh)]); continue; }
+    for (const M of cps) { const [u, v] = mapPt(minv(M), w.x, w.y), im = block(L, Math.floor(u - n / 2 + 0.5), Math.floor(v - n / 2 + 0.5)); if (im) looks.push([L, im]); }
+  }
+  for (const [L, im] of looks) {
+    const d = im.data, bw = im.width, bh = im.height;
     let pr = 0, pg = 0, pb = 0, pa = 0;
     for (let i = 0; i < d.length; i += 4) { const a = d[i + 3] / 255; pr += d[i] * a; pg += d[i + 1] * a; pb += d[i + 2] * a; pa += a; }
     if (!pa) continue;
@@ -2481,6 +2920,13 @@ addEventListener('keydown', e => {
   if (e.key === 'Control' || e.key === 'Meta') { setCursorMode(e); return; }
   if (e.key === 'Alt') { e.preventDefault(); altHeld = true; dirtyOverlay(); return; }   // preventDefault keeps the browser menu bar from taking focus
   const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+  if (xf) {   // while transforming, only these keys do anything
+    if (k === 'enter') { e.preventDefault(); xfEnd(true); }
+    else if (k === 'escape' || (mod && k === 'z')) { e.preventDefault(); xfEnd(false); }
+    else if (mod && k === 't') e.preventDefault();
+    return;
+  }
+  if (mod && !e.shiftKey && !e.altKey && k === 't') { e.preventDefault(); startTransform(); return; }
   if (mod && !e.shiftKey && !e.altKey && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); jumpGroup(+e.code.slice(5)); return; }
   if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && k === 'y') { e.preventDefault(); redo(); return; }
@@ -2696,20 +3142,22 @@ function startRowDrag(ev, src) {
   const ol = $('layers'), y0 = ev.clientY;
   let dragging = false, target = null;
   const move = e => {
-    if (!dragging) { if (Math.abs(e.clientY - y0) < 5) return; dragging = true; src.li.classList.add('dragging'); }
+    if (!dragging) {   // capture only once it's a drag: capturing on press sends the click to the list, not the row
+      if (Math.abs(e.clientY - y0) < 5) return;
+      dragging = true; src.li.classList.add('dragging'); try { ol.setPointerCapture(e.pointerId); } catch (_) {}
+    }
     const r = ol.getBoundingClientRect();   // auto-scroll near the list's edges
     if (e.clientY < r.top + 18) ol.scrollTop -= 8; else if (e.clientY > r.bottom - 18) ol.scrollTop += 8;
     target = dropTarget(e, src); showDrop(target, src);
   };
   const end = e => {
-    ol.removeEventListener('pointermove', move); ol.removeEventListener('pointerup', end); ol.removeEventListener('pointercancel', end);
+    ol.removeEventListener('pointermove', move); removeEventListener('pointerup', end); removeEventListener('pointercancel', end);
     if (!dragging) return;
     rowDragged = true; setTimeout(() => rowDragged = false);   // swallow the click that follows the drop
     src.li.classList.remove('dragging'); showDrop(null);
     if (e.type === 'pointerup' && target) applyDrop(src, target);
   };
-  try { ol.setPointerCapture(ev.pointerId); } catch (_) {}
-  ol.addEventListener('pointermove', move); ol.addEventListener('pointerup', end); ol.addEventListener('pointercancel', end);
+  ol.addEventListener('pointermove', move); addEventListener('pointerup', end); addEventListener('pointercancel', end);   // on window, so a release anywhere ends it
 }
 function renderLayers() {
   const ol = $('layers'); ol.innerHTML = '';
@@ -2734,12 +3182,60 @@ function renderLayers() {
   }
   $('layerOpacity').value = Math.round(cur.opacity * 100); $('layerOpacityOut').textContent = Math.round(cur.opacity * 100) + '%';
   $('blendRow').hidden = !ws.doc; $('blend').value = cur.blend;
+  renderMods();
   const i = layers.indexOf(cur);
   $('layerUp').disabled = !layerMove(1); $('layerDown').disabled = !layerMove(-1);
   $('layerMerge').disabled = i <= 0; $('layerDel').disabled = layers.length < 2;
 }
 $('blend').innerHTML = BLENDS.map((m, i) => '<option value="' + m + '">' + BLEND_NAMES[i] + '</option>').join('');
 $('blend').onchange = e => { cur.blend = e.target.value; e.target.blur(); renderLayers(); dirtyScene(); };
+$('tXf').onclick = () => xf ? xfEnd(true) : startTransform();
+$('xfWarp').onclick = xfWarp; $('xfFlipH').onclick = () => xfFlip(true); $('xfFlipV').onclick = () => xfFlip(false);
+$('xfCancel').onclick = () => xfEnd(false); $('xfOk').onclick = () => xfEnd(true);
+$('modAdd').onclick = addArray; $('modApply').onclick = applyMods;
+function renderMods() {
+  const box = $('mods'); box.innerHTML = '';
+  $('modApply').disabled = !cur.mods.some(m => m.on);
+  if (!cur.mods.length) { box.innerHTML = '<p class="note">Arrays repeat this layer: copies follow your drawing live. Stack two for a grid, or use Radial for a ring.</p>'; return; }
+  const cb = contentBounds([cur]), span = cb ? Math.max(cb.maxX - cb.minX, cb.maxY - cb.minY) : 300, far = Math.max(1000, Math.ceil(span * 3 / 100) * 100);
+  cur.mods.forEach((m, i) => {
+    const el = document.createElement('div'); el.className = 'mod' + (m.on ? '' : ' off');
+    const head = document.createElement('div'); head.className = 'head';
+    const t = document.createElement('b'); t.textContent = 'Array';
+    const btn = (html, title, fn) => { const b = document.createElement('button'); b.className = 'btn sm'; b.innerHTML = html; b.title = title; b.setAttribute('aria-label', title); b.onclick = fn; return b; };
+    head.append(eyeBtn(m.on, 'modifier', () => { m.on = !m.on; }), t,
+      btn('<svg viewBox="0 0 18 18"><path d="M9 14V4M5 8l4-4 4 4"/></svg>', 'Move up the stack', () => { if (i) modOp(cur, () => cur.mods.splice(i - 1, 0, cur.mods.splice(i, 1)[0])); }),
+      btn('<svg viewBox="0 0 18 18"><path d="M9 4v10M5 10l4 4 4-4"/></svg>', 'Move down the stack', () => { if (i < cur.mods.length - 1) modOp(cur, () => cur.mods.splice(i + 1, 0, cur.mods.splice(i, 1)[0])); }),
+      btn('<svg viewBox="0 0 18 18"><path d="M5 5l8 8M13 5l-8 8"/></svg>', 'Remove modifier', () => modOp(cur, () => cur.mods.splice(i, 1))));
+    const modes = document.createElement('div'); modes.className = 'row'; modes.style.gap = '2px';
+    for (const [md, label, tip] of [['linear', 'Linear', 'Copies in a line: offset, rotate and scale each step'], ['radial', 'Radial', 'Copies evenly around the pivot']]) {
+      const b = btn(label, tip, () => {
+        if ((m.mode || 'linear') === md) return;
+        modOp(cur, () => {
+          m.mode = md;
+          if (md === 'radial' && cb) { m.cx = Math.round((cb.minX + cb.maxX) / 2); m.cy = Math.round(cb.maxY + (cb.maxY - cb.minY) * 0.75 + 40); m.count = Math.max(m.count, 6); }   // a ring below the drawing
+        });
+      });
+      b.classList.toggle('on', (m.mode || 'linear') === md); modes.append(b);
+    }
+    const rows = document.createElement('div'); rows.className = 'sliders';
+    const fields = m.mode === 'radial'
+      ? [['count', 'Count', 2, 64, 1], ['scale', 'Scale %', 25, 200, 1]]
+      : [['count', 'Count', 1, 64, 1], ['dx', 'Offset X', -far, far, 1], ['dy', 'Offset Y', -far, far, 1], ['rot', 'Rotate°', -180, 180, 1], ['scale', 'Scale %', 25, 200, 1]];
+    for (const [k, label, min, max, step] of fields) {
+      const row = document.createElement('label'); row.className = 'prop';
+      const rg = document.createElement('input'); rg.type = 'range'; rg.min = min; rg.max = max; rg.step = step; rg.value = m[k];
+      const nb = document.createElement('input'); nb.type = 'number'; nb.className = 'num'; nb.step = step; nb.value = m[k]; nb.setAttribute('aria-label', label);
+      const set = (v, from) => { if (!isFinite(v)) return; m[k] = v; if (from !== rg) rg.value = v; if (from !== nb) nb.value = v; saveLayers(); dirtyScene(); };
+      rg.oninput = () => set(+rg.value, rg); nb.oninput = () => set(parseFloat(nb.value), nb);   // the number box can go past the slider's range
+      row.append(label, rg, nb); rows.append(row);
+    }
+    const piv = btn('Center pivot', 'Put the pivot at the middle of this layer\'s drawing (or drag the pivot ring on the canvas)', () => { if (cb) { m.cx = Math.round((cb.minX + cb.maxX) / 2); m.cy = Math.round((cb.minY + cb.maxY) / 2); saveLayers(); dirtyScene(); } });
+    const note = document.createElement('p'); note.className = 'note';
+    note.textContent = m.mode === 'radial' ? 'Drag the pivot ring on the canvas to set the center of the ring.' : 'Drag the pivot ring or the arrow’s square on the canvas. Shift snaps the arrow to 45°.';
+    el.append(head, modes, rows, piv, note); box.appendChild(el);
+  });
+}
 $('selDoc').onclick = newDoc; $('newDoc').onclick = newDoc;
 $('docW').addEventListener('input', () => setDocSize(+$('docW').value, docArea.h));
 $('docH').addEventListener('input', () => setDocSize(docArea.w, +$('docH').value));
@@ -2859,7 +3355,8 @@ function toggleWelcome() { $('welcome').classList.toggle('gone'); }
 let exportBlob = null, exportUrl = null;
 async function doExport() {
   settle();
-  const vis = layers.filter(shown), doc = ws.doc, bb = doc ? { minX: 0, minY: 0, maxX: doc.w, maxY: doc.h } : contentBounds(vis);   // a document exports at its own size
+  const vis = layers.filter(shown).map(L => { const b = bakeCopies(L); return b ? Object.assign(Object.create(L), { tiles: new Map([...b].map(([k, c]) => [k, mkTile(c)])) }) : L; });
+  const doc = ws.doc, bb = doc ? { minX: 0, minY: 0, maxX: doc.w, maxY: doc.h } : contentBounds(vis);   // a document exports at its own size
   if (!bb) { toast('Nothing visible to export yet'); return; }
   const { minX, minY, maxX, maxY } = bb;
   const pad = doc ? 0 : 32, w = maxX - minX + pad * 2, h = maxY - minY + pad * 2;
