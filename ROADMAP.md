@@ -37,12 +37,12 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] **Hotkey menu**: a searchable cheat sheet on `?`
 - [x] **Movable panels**: drag the toolbar groups and panels anywhere, and the layout is remembered
 
-## Phase 3: App edition, workspace
+## Phase 3: App edition, workspace (done)
 
-- [ ] Menu bar like Photoshop: File (New, Open, Save .sinopia, Export, Place), Edit, Image, Layer, Select, Filter, View, Help
-- [ ] Project file save and load (all layers, groups, documents, notes)
-- [ ] Keyboard shortcut editor
-- [ ] Copy and paste images from other apps (the clipboard pastes as a new layer)
+- [x] Menu bar like Photoshop: File (New, Open, Save .sinopia, Place, Export), Edit, Image, Layer, Select, View, Help (Filter arrives with Phase 4). Shows when installed, with `?app`, or via App menus in the ? sheet
+- [x] Project file save and load (all layers, groups, documents, notes)
+- [x] Keyboard shortcut editor
+- [x] Copy and paste images from other apps (the clipboard pastes as a new layer)
 
 ## Phase 4: App edition, image work ("go a little crazy")
 

@@ -117,6 +117,22 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - `showMenu(anchor, items)` is a small pop-up menu, used by the New doc ▾ presets (`DOC_PRESETS`, shared with the Doc size dialog; `presetDoc` centers on the selection or screen; `S.docBlank` makes blank pages), and meant for the App edition's menu bar.
 - **Shortcut sheet** (`?`, `#keysDlg`): searchable, built from `KEYS`. **That array is now the source for the in-app shortcut list**, and the welcome card only lists the basics.
 
+**App edition** (Phase 3, 2026-11-06). The menu bar (`#menubar`) shows when installed (`display-mode` standalone or fullscreen), with `?app`, or with the App menus toggle in the ? sheet (`S.app`).
+- `CMDS` is the command list: `[menu, id, label, default key, run, only:'doc'|'canvas']`. Menus, the shortcut editor and custom keys are all built from it.
+- **Custom shortcuts** (`S.keys`, id → combo such as `Ctrl+Shift+N`, from `comboOf`):
+  - `customKey(e)` runs first in keydown (after the transform guard). A custom combo runs its command, and the old default of a rebound command does nothing.
+  - Unchanged defaults still go through the main keydown code.
+  - The editor (`#kbDlg`) moves a clashing combo off the other command.
+- **Project files** (`.sinopia`, `buildProject` / `loadProject`):
+  - Layout: `SINOPIA1`, a uint32 LE header length, the JSON header (spaces = canvas + every open document, with layers, groups, paper and normalized view; tiles as `[space, layerId, key, offset, len]`; notes; guide; sym), then the tile PNGs back to back.
+  - Save uses the File System Access API when available and not in an iframe (Ctrl+S re-saves to the same file); otherwise it downloads.
+  - Open asks first (`ask()`, a themed confirm), replaces the canvas and documents, gives every layer and group new ids, and queues the old IndexedDB tiles for deletion through `saveSet`. Dropping a .sinopia file opens it too.
+- **Place / paste images** (`placeImage`): a new layer at 1:1, centered on the screen or the page, then free transform starts.
+  - Ctrl+V lets the browser's `paste` event decide: an image from another app is placed, unless Sinopia's own copy is newer. `ownClipFresh` is cleared on window blur. A 120 ms fallback covers the case where no paste event comes.
+  - In the App edition, dropping an image places it; on the web, Shift+drop places it and a plain drop imports a brush alpha, as before.
+- **Flip view** (Shift+H, `view.flip`): an extra `scaleX(-1)` in the rotation layout, mirrored in `unrot`. The pixels never change.
+- Fit (Ctrl+0, `fitView`), zoom in and out (Ctrl+= / Ctrl+−).
+
 **Paper color.** The default paper (background) is neutral gray `#808080` (Ben's request). Saved papers still on an old default (`#f7f9fb`, `#fbfaf6`) move to it; a paper color he picked himself is kept. The brush color persists between sessions as before.
 
 **Resize readout.** Ctrl+drag shows only the ring. The px label and the toast were removed at Ben's request.
@@ -188,7 +204,9 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Rotate canvas | Hold R + drag (Shift: 15°; it snaps straight near 0°), R + click straightens, two-finger twist on touch, click the ° pill to reset |
 | Liquify | Ctrl+Shift+X: Push / Twirl / Bloat / Restore, Alt reverses, brush size and opacity set size and strength, Enter applies |
 | Move panels | Drag the dotted grip on the toolbar, a panel or the dock. Double-click to reset |
-| Shortcut sheet | ? (searchable) |
+| Shortcut sheet | ? (searchable). App edition: Edit → Keyboard shortcuts to rebind |
+| Project | Ctrl+S save (.sinopia), Ctrl+Shift+S save as, Ctrl+O open, Ctrl+Shift+P place image, Ctrl+Shift+E export, Ctrl+V pastes images from other apps |
+| View | Ctrl+0 fit, Ctrl+= / Ctrl+− zoom, Shift+H flip view |
 | iPad | Two-finger tap = undo, three-finger tap = redo. Dock on the left: Line (hold, or tap to latch) = Shift, Pick = Alt, Undo, Redo |
 | Mirror cycle | M (off, vertical, horizontal, both, radial; Kaleido option; drag the center handle) |
 | Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |

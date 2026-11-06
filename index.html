@@ -252,6 +252,18 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   background:radial-gradient(circle, var(--muted) .9px, transparent 1.3px) center/5px 5px repeat-y; opacity:.55}
 .bgrip:hover{opacity:1; background-color:var(--chrome-2)}
 .moved{position:fixed !important; margin:0 !important; z-index:3}
+/* App edition menu bar */
+.menubar{padding:2px 3px; gap:0}
+.menubar .mb{height:26px; padding:0 9px; border:0; border-radius:3px; background:transparent; color:var(--ink); font:500 12.5px var(--font-ui); cursor:pointer}
+.menubar .mb:hover, .menubar .mb.on{background:var(--chrome-2)}
+.menubar .brand{font-weight:700; color:var(--accent); padding:0 8px 0 6px; font-size:12.5px; letter-spacing:.02em}
+.menubar[hidden]{display:none}
+.menu button:disabled{opacity:.4; cursor:default; background:transparent}
+.kb{display:grid; grid-template-columns:1fr auto auto; gap:4px 8px; align-items:center; font-size:12.5px}
+.kb .grp{grid-column:1 / -1; margin-top:8px; font-size:10.5px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
+.kb .bind{min-width:110px; justify-content:flex-start; font-variant-numeric:tabular-nums}
+.kb .bind.wait{outline:2px solid var(--accent)}
+.kb .bind.custom{color:var(--accent)}
 /* small pop-up menus (New doc presets; later the App menu bar) */
 .menu{position:fixed; z-index:7; min-width:200px; background:var(--chrome); border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow); padding:4px; display:flex; flex-direction:column}
 .menu button{display:flex; justify-content:space-between; gap:16px; align-items:center; height:30px; padding:0 10px; border:0; border-radius:3px; background:transparent; color:var(--ink); font:500 12.5px var(--font-ui); text-align:left; cursor:pointer}
@@ -285,6 +297,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 <div class="notes" id="notes" aria-label="Notes"></div>
 
 <div class="ui" id="ui">
+  <div class="group menubar" id="menubar" role="menubar" aria-label="Menu" hidden><span class="brand">Sinopia</span></div>
   <div class="bar" role="toolbar" aria-label="Tools" id="bar">
     <div class="group">
       <div class="bgrip" id="barGrip" title="Drag to move the toolbar. Double-click to put it back"></div>
@@ -479,11 +492,29 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 
 <div class="dialog keysheet" id="keysDlg" hidden>
   <div class="card" role="dialog" aria-label="Keyboard shortcuts">
-    <div class="row"><h2>Shortcuts</h2><span class="row" style="gap:4px"><button class="btn" id="layoutReset" title="Put the toolbar and panels back where they started">Reset panel positions</button><button class="btn" id="keysClose">Close</button></span></div>
+    <div class="row"><h2>Shortcuts</h2><span class="row" style="gap:4px"><button class="btn" id="layoutReset" title="Put the toolbar and panels back where they started">Reset panel positions</button><button class="btn" id="appToggle" title="Show the App edition's File / Edit / Image menu bar">App menus</button><button class="btn" id="keysClose">Close</button></span></div>
     <input type="search" id="keysQ" placeholder="Search: fill, zoom, layer…" aria-label="Search shortcuts">
     <div id="keysList"></div>
   </div>
 </div>
+
+<div class="dialog keysheet" id="kbDlg" hidden>
+  <div class="card" role="dialog" aria-label="Keyboard shortcut editor">
+    <div class="row"><h2>Keyboard shortcuts</h2><span class="row" style="gap:4px"><button class="btn" id="kbReset">Reset all</button><button class="btn" id="kbClose">Done</button></span></div>
+    <p class="note">Click a shortcut, then press the new keys. Backspace clears it, Esc cancels. Held keys (Shift line, Space pan, Alt pick, R rotate, Ctrl resize) stay as they are.</p>
+    <input type="search" id="kbQ" placeholder="Search commands" aria-label="Search commands">
+    <div class="kb" id="kbList"></div>
+  </div>
+</div>
+
+<div class="dialog" id="askDlg" hidden>
+  <div class="card" role="alertdialog" aria-labelledby="askMsg" style="width:min(420px,100%)">
+    <p id="askMsg" style="margin:0;font-size:13.5px;line-height:1.5"></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn" id="askNo">Cancel</button><button class="btn primary" id="askYes">OK</button></div>
+  </div>
+</div>
+<input type="file" id="openFile" accept=".sinopia,application/octet-stream" hidden>
+<input type="file" id="placeFile" accept="image/*" hidden>
 
 <div class="dialog sheet" id="docDlg" hidden>
   <div class="card" role="dialog" aria-label="Document size">
@@ -1835,7 +1866,7 @@ function copySel(cut) {
   const h = cut ? { kind: 'tiles', layer: cur, map: new Map() } : null;
   const f = lift(cur, sel || invertSel(null), h);
   if (!f.size) { if (h) restoreTiles(cur, h.map); toast('Nothing to copy on ' + cur.name); return; }
-  clip = { tiles: new Map([...f].map(([k, c]) => [k, cut ? cloneCanvas(c) : c])), sel };
+  clip = { tiles: new Map([...f].map(([k, c]) => [k, cut ? cloneCanvas(c) : c])), sel }; ownClipFresh = true;
   if (h) { pushUndo(h); markSave(cur, h.map.keys()); dirtyScene(); }
   toast(cut ? 'Cut. Ctrl+V pastes it on a new layer.' : 'Copied. Ctrl+V pastes it on a new layer.');
 }
@@ -2022,7 +2053,7 @@ function switchWS(t) {
   Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: normV(view), sel });
   ws = t;
   layers = t.layers; cur = t.cur; groups = t.groups; sel = t.sel;
-  undoStack.push(...t.undo); redoStack.push(...t.redo); view.r = 0; Object.assign(view, t.view); rotLayout(true);
+  undoStack.push(...t.undo); redoStack.push(...t.redo); view.r = 0; view.flip = false; Object.assign(view, t.view); rotLayout(true);
   hl = null; if (noteMode) setNoteMode(false);
   notesEl.hidden = !!t.doc; $('paper').style.background = paperColor(); if (CP.on === 'paper') closeCP();
   $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc'; $('newDocMenu').hidden = !!t.doc;
@@ -2236,7 +2267,7 @@ function xfHit(x, y) {
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside; }
   return inside ? 'in' : 'out';
 }
-/* liquify brush: grid points within the brush move by a smooth falloff (1 - tÂ²)Â² */
+/* liquify brush: grid points within the brush move by a smooth falloff (1 - t²)² */
 function liqStep(a, b, alt) {
   const X = xf, g = X.liq, o0 = X.orig, R = Math.max(2, S.size / 2), dx = b.x - a.x, dy = b.y - a.y, k = clamp(S.opacity, 0.05, 1);
   const tw = (alt ? -1 : 1) * 0.06 * k, bl = (alt ? -1 : 1) * 0.045 * k;
@@ -2348,7 +2379,7 @@ function syncXfUI() {
   const lq = !!(xf && xf.liq);
   $('liqModes').hidden = !lq; $('xfWarp').hidden = $('xfFlipH').hidden = $('xfFlipV').hidden = lq; $('tLiq').classList.toggle('on', lq); $('tXf').classList.toggle('on', !!xf && !lq);
   if (lq) setLiqMode(xf.mode);
-  $('hint').textContent = xf && xf.liq ? 'Liquify: brush to push, twirl or bloat (Alt reverses) Â· [ ] or the px box sizes the brush, Opacity sets the strength Â· Enter applies Â· Esc cancels' : xf ? (xf.pts.length === 16 ? 'Warp: drag the points and handles · drag inside to move, outside to rotate · Enter applies · Esc cancels' : XF_HINT) : selTool ? SEL_HINT : HINT;
+  $('hint').textContent = xf && xf.liq ? 'Liquify: brush to push, twirl or bloat (Alt reverses) · [ ] or the px box sizes the brush, Opacity sets the strength · Enter applies · Esc cancels' : xf ? (xf.pts.length === 16 ? 'Warp: drag the points and handles · drag inside to move, outside to rotate · Enter applies · Esc cancels' : XF_HINT) : selTool ? SEL_HINT : HINT;
 }
 
 /* ---------- modifiers ----------
@@ -2500,7 +2531,7 @@ function dragGuide(A, e) {
   if (A.h.k === 'c') { guide.cx = w.x - A.ox; guide.cy = w.y - A.oy; }
   else if (A.h.k === 'a') {
     const dx = w.x - guide.cx, dy = w.y - guide.cy;
-    guide.rot = Math.atan2(dy, dx); if (e.shiftKey) guide.rot = Math.round(guide.rot / (Math.PI / 12)) * (Math.PI / 12);   // Shift: 15Â° steps
+    guide.rot = Math.atan2(dy, dx); if (e.shiftKey) guide.rot = Math.round(guide.rot / (Math.PI / 12)) * (Math.PI / 12);   // Shift: 15° steps
     guide.rx = Math.max(4, Math.hypot(dx, dy) - out);
   } else {
     const [, v] = guideLocal(w.x, w.y);
@@ -2630,14 +2661,15 @@ function snapRot(r, shift) {
 function unrot(x, y) {
   if (!rotD) return [x, y];
   const r = view.r || 0, c = Math.cos(-r), s = Math.sin(-r), dx = x - innerWidth / 2, dy = y - innerHeight / 2;
-  return [W / 2 + dx * c - dy * s, H / 2 + dx * s + dy * c];
+  const ux = dx * c - dy * s;
+  return [W / 2 + (view.flip ? -ux : ux), H / 2 + dx * s + dy * c];   // flip view mirrors the unrotated frame
 }
 const normV = v => ({ ...v, x: v.x - (W - innerWidth) / 2, y: v.y - (H - innerHeight) / 2 });   // the active view as if not rotated
 function rotLayout(fromNormal) {
-  const D = view.r || keepRot ? Math.ceil(Math.hypot(innerWidth, innerHeight)) + 2 : 0;
+  const D = view.r || view.flip || keepRot ? Math.ceil(Math.hypot(innerWidth, innerHeight)) + 2 : 0;
   for (const el of [cv, ov, notesEl]) {
     const st = el.style;
-    if (D) { st.width = st.height = D + 'px'; st.left = (innerWidth - D) / 2 + 'px'; st.top = (innerHeight - D) / 2 + 'px'; st.right = st.bottom = 'auto'; st.transform = 'rotate(' + (view.r || 0) + 'rad)'; }
+    if (D) { st.width = st.height = D + 'px'; st.left = (innerWidth - D) / 2 + 'px'; st.top = (innerHeight - D) / 2 + 'px'; st.right = st.bottom = 'auto'; st.transform = 'rotate(' + (view.r || 0) + 'rad)' + (view.flip ? ' scaleX(-1)' : ''); }
     else st.width = st.height = st.left = st.top = st.right = st.bottom = st.transform = '';
   }
   if (D !== rotD || fromNormal) {
@@ -2645,7 +2677,7 @@ function rotLayout(fromNormal) {
     if (fromNormal) { view.x += (W - innerWidth) / 2; view.y += (H - innerHeight) / 2; } else { view.x += (W - oldW) / 2; view.y += (H - oldH) / 2; }   // keep the drawing where it was
   }
   const deg = Math.round((view.r || 0) * 180 / Math.PI);
-  $('rotOut').hidden = !view.r; $('rotOut').textContent = deg + '°';
+  $('rotOut').hidden = !view.r && !view.flip; $('rotOut').textContent = deg + '°' + (view.flip ? ' ⇋' : '');
   dirtyScene();
 }
 function patchEv(e) {
@@ -3342,6 +3374,15 @@ addEventListener('keydown', e => {
     else if (xf.liq && (k === '[' || k === ']')) { S.size = clamp(k === '[' ? S.size / 1.15 : S.size * 1.15, 1, 3000); syncSize(); dirtyOverlay(); saveSettings(); }
     return;
   }
+  if (customKey(e)) return;
+  if (mod && !e.altKey && k === 's') { e.preventDefault(); saveProject(e.shiftKey); return; }
+  if (mod && !e.altKey && !e.shiftKey && k === 'o') { e.preventDefault(); openProject(); return; }
+  if (mod && e.shiftKey && !e.altKey && k === 'e') { e.preventDefault(); doExport(); return; }
+  if (mod && e.shiftKey && !e.altKey && k === 'p') { e.preventDefault(); $('placeFile').click(); return; }
+  if (mod && !e.altKey && (k === '=' || k === '+')) { e.preventDefault(); zoomAt(W / 2, H / 2, view.z * 1.25); return; }
+  if (mod && !e.altKey && k === '-') { e.preventDefault(); zoomAt(W / 2, H / 2, view.z / 1.25); return; }
+  if (mod && !e.altKey && !e.shiftKey && k === '0') { e.preventDefault(); fitView(); return; }
+  if (!mod && !e.altKey && e.shiftKey && k === 'h') { view.flip = !view.flip; rotLayout(); saveSettings(); toast(view.flip ? 'View flipped (the drawing itself isn’t changed)' : 'View back to normal'); return; }
   if (mod && !e.shiftKey && !e.altKey && k === 't') { e.preventDefault(); startTransform(); return; }
   if (mod && e.shiftKey && !e.altKey && k === 'x') { e.preventDefault(); startTransform(true); return; }
   if (mod && !e.shiftKey && !e.altKey && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); jumpGroup(+e.code.slice(5)); return; }
@@ -3353,7 +3394,7 @@ addEventListener('keydown', e => {
     if (k === 'i' && e.shiftKey) { e.preventDefault(); setSel(invertSel(sel)); return; }
     if (k === 'a' && !e.shiftKey) { e.preventDefault(); setSel(invertSel(null)); toast('Everything selected'); return; }
     if ((k === 'c' || k === 'x') && !e.shiftKey) { e.preventDefault(); copySel(k === 'x'); return; }
-    if (k === 'v' && !e.shiftKey) { e.preventDefault(); pasteClip(); return; }
+    if (k === 'v' && !e.shiftKey) { clearTimeout(pasteWait); pasteWait = setTimeout(() => pasteSmart(), 120); return; }   // the paste event usually arrives first and cancels this
   }
   if (k === 'backspace' && (e.altKey || e.shiftKey) && !mod) { e.preventDefault(); fillSel(); return; }   // Photoshop: Alt+Backspace fills with the foreground color
   if (mod || e.altKey) return;
@@ -3389,7 +3430,7 @@ addEventListener('keyup', e => {
 addEventListener('blur', () => { spaceHeld = false; altHeld = false; rHeld = false; notesEl.classList.remove('pass'); setCursorMode(null); dirtyOverlay(); });
 addEventListener('resize', () => { if (rotD) { rotD = -1; rotLayout(); } else resize(); });
 addEventListener('dragover', e => e.preventDefault());
-addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files.length) importFiles(e.dataTransfer.files); });
+addEventListener('drop', e => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (!fs || !fs.length) return; if (/\.sinopia$/i.test(fs[0].name)) { ask('Open this project? It replaces what’s on the canvas.', 'Open').then(y => y && loadProject(fs[0])); return; } if (e.shiftKey || isApp()) placeFile(fs[0]); else importFiles(fs); });
 
 /* ---------- UI wiring ---------- */
 const LOGMAX = Math.log(1500);
@@ -3586,7 +3627,7 @@ $('brushBtn').onclick = () => showPanel('brush', $('brushPanel').hidden, true);
 $('layersBtn').onclick = () => showPanel('layers', $('layerPanel').hidden, true);
 $('helpBtn').onclick = () => toggleKeys();
 $('zoomOut').onclick = () => zoomAt(W / 2, H / 2, 1 / dpr);
-$('rotOut').onclick = () => setRot(0);
+$('rotOut').onclick = () => { view.flip = false; setRot(0); };
 
 /* layers panel */
 const EYE = '<svg viewBox="0 0 18 18"><path d="M1.5 9S4.2 4 9 4s7.5 5 7.5 5-2.7 5-7.5 5S1.5 9 1.5 9z"/><circle cx="9" cy="9" r="2.2"/></svg>';
@@ -3942,6 +3983,8 @@ const KEYS = [
     [K('Space') + ' + drag', 'Pan (or middle mouse, or two fingers)'],
     [K('Ctrl') + ' + ' + K('Space') + ' + drag', 'Zoom (right or up zooms in). Wheel and pinch work too'],
     [K('0'), 'Reset zoom to 100%'],
+    [K('Ctrl') + ' + ' + K('0'), 'Fit the drawing on screen. Ctrl + = / Ctrl + − zoom in and out'],
+    [K('Shift') + ' + ' + K('H'), 'Flip the view (check proportions; the drawing isn’t changed)'],
     ['Hold ' + K('R') + ' + drag', 'Rotate the canvas around the middle of the screen (Shift: 15° steps; it snaps straight near 0°). R + click straightens it'],
     ['Two-finger twist', 'Rotate the canvas on a touch screen (pinch zooms as before)'],
     [K('Tab'), 'Hide the panels'],
@@ -3967,11 +4010,17 @@ const KEYS = [
     [K('X'), 'Delete the active layer'],
     [K('Ctrl') + ' + click', 'In the layers panel: flash that layer’s drawing'],
   ]],
+  ['File', [
+    [K('Ctrl') + ' + ' + K('S'), 'Save the project (.sinopia: every layer, group, document and note). Ctrl+Shift+S saves as'],
+    [K('Ctrl') + ' + ' + K('O'), 'Open a project'],
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('P'), 'Place an image on a new layer (then size it with the transform). Ctrl+V pastes images from other apps'],
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('E'), 'Export PNG'],
+  ]],
   ['Other', [
     [K('Ctrl') + ' + ' + K('Z'), 'Undo'],
     [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('Z'), 'Redo (or Ctrl+Y)'],
     [K('T'), 'Place a note'],
-    [K('?'), 'This list'],
+    [K('?'), 'This list. Edit → Keyboard shortcuts (App menus) lets you change them'],
   ]],
   ['iPad and touch', [
     ['Two-finger tap', 'Undo'],
@@ -4037,6 +4086,293 @@ $('copyImg').onclick = () => {
   } catch (e) { toast('Copy isn’t allowed here. Right-click the image and choose Copy Image.'); }
 };
 
+/* ---------- App edition ----------
+   One codebase: the menu bar shows when Sinopia runs as an installed app (display-mode standalone/fullscreen), with
+   ?app in the URL, or when turned on in the shortcut sheet. Nothing here runs while drawing. */
+const APP_AUTO = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || QS.has('app');
+const isApp = () => S.app != null ? S.app : APP_AUTO;
+function ask(msg, yes = 'OK') {   // a themed confirm
+  return new Promise(res => {
+    $('askMsg').textContent = msg; $('askYes').textContent = yes; $('askDlg').hidden = false; $('askYes').focus();
+    const done = v => { $('askDlg').hidden = true; $('askYes').onclick = $('askNo').onclick = null; res(v); };
+    $('askYes').onclick = () => done(true); $('askNo').onclick = () => done(false);
+    $('askDlg').onkeydown = e => { e.stopPropagation(); if (e.key === 'Escape') done(false); if (e.key === 'Enter') done(true); };
+  });
+}
+const idle = () => !act && !stroke && !xf;
+/* the command list: menus, the shortcut editor and custom keys all come from here. key = the built-in shortcut
+   (handled by the main keydown code unless the user rebinds it). */
+const CMDS = [
+  ['File', 'newdoc', 'New document from selection / screen', '', () => idle() && (ws.doc ? toast('Switch to the Canvas tab to make a new document') : newDoc())],
+  ['File', 'newpreset', 'New document at a preset size…', '', () => ws.doc ? toast('Switch to the Canvas tab to make a new document') : newDocMenu(), 'canvas'],
+  '-File',
+  ['File', 'open', 'Open project…', 'Ctrl+O', () => openProject()],
+  ['File', 'save', 'Save project', 'Ctrl+S', () => saveProject(false)],
+  ['File', 'saveas', 'Save project as…', 'Ctrl+Shift+S', () => saveProject(true)],
+  '-File',
+  ['File', 'place', 'Place image…', 'Ctrl+Shift+P', () => $('placeFile').click()],
+  ['File', 'export', 'Export PNG…', 'Ctrl+Shift+E', () => doExport()],
+  ['File', 'closedoc', 'Close document', '', () => ws.doc && closeDoc(ws), 'doc'],
+  ['Edit', 'undo', 'Undo', 'Ctrl+Z', () => undo()],
+  ['Edit', 'redo', 'Redo', 'Ctrl+Shift+Z', () => redo()],
+  '-Edit',
+  ['Edit', 'cut', 'Cut', 'Ctrl+X', () => copySel(true)],
+  ['Edit', 'copy', 'Copy', 'Ctrl+C', () => copySel(false)],
+  ['Edit', 'paste', 'Paste', 'Ctrl+V', () => pasteSmart()],
+  ['Edit', 'clear', 'Clear selected pixels', 'Delete', () => clearSelected()],
+  ['Edit', 'fillsel', 'Fill selection', 'Alt+Backspace', () => fillSel()],
+  '-Edit',
+  ['Edit', 'transform', 'Free transform', 'Ctrl+T', () => startTransform()],
+  ['Edit', 'liquify', 'Liquify', 'Ctrl+Shift+X', () => startTransform(true)],
+  '-Edit',
+  ['Edit', 'keys', 'Keyboard shortcuts…', '', () => openKb()],
+  ['Image', 'docsize', 'Document size…', '', () => docSizeDialog(), 'doc'],
+  ['Image', 'clearlayer', 'Clear layer', '', () => idle() && clearLayer()],
+  ['Layer', 'newlayer', 'New layer', 'Ctrl+Shift+N', () => addLayer()],
+  ['Layer', 'duplayer', 'Duplicate layer', '', () => dupLayer()],
+  ['Layer', 'dellayer', 'Delete layer', 'X', () => delLayer()],
+  ['Layer', 'merge', 'Merge down', '', () => mergeDown()],
+  '-Layer',
+  ['Layer', 'newgroup', 'New group', '', () => newGroup()],
+  ['Layer', 'array', 'Add Array modifier', '', () => addArray()],
+  ['Layer', 'applymods', 'Apply modifiers', '', () => applyMods()],
+  ['Select', 'all', 'Select all', 'Ctrl+A', () => setSel(invertSel(null))],
+  ['Select', 'none', 'Deselect', 'Ctrl+D', () => setSel(null)],
+  ['Select', 'invert', 'Invert selection', 'Ctrl+Shift+I', () => setSel(invertSel(sel))],
+  '-Select',
+  ['Select', 'rect', 'Rectangle select', 'S', () => setSelTool('rect')],
+  ['Select', 'ellipse', 'Ellipse select', '', () => setSelTool('ellipse')],
+  ['Select', 'lasso', 'Lasso', 'L', () => setSelTool('lasso')],
+  ['Select', 'wand', 'Magic wand', 'W', () => setSelTool('wand')],
+  ['View', 'zoomin', 'Zoom in', 'Ctrl+=', () => zoomAt(W / 2, H / 2, view.z * 1.25)],
+  ['View', 'zoomout', 'Zoom out', 'Ctrl+-', () => zoomAt(W / 2, H / 2, view.z / 1.25)],
+  ['View', 'zoom100', 'Actual size (100%)', '0', () => zoomAt(W / 2, H / 2, 1 / dpr)],
+  ['View', 'fit', 'Fit the drawing on screen', 'Ctrl+0', () => fitView()],
+  '-View',
+  ['View', 'flip', 'Flip view horizontally', 'Shift+H', () => { view.flip = !view.flip; rotLayout(); saveSettings(); toast(view.flip ? 'View flipped (the drawing itself isn’t changed)' : 'View back to normal'); }],
+  ['View', 'unrotate', 'Straighten the canvas', '', () => { view.flip = false; setRot(0); }],
+  ['View', 'guide', 'Ellipse guide', 'O', () => setGuide(!guide.on)],
+  '-View',
+  ['View', 'brushpanel', 'Brush panel', '', () => showPanel('brush', $('brushPanel').hidden, true)],
+  ['View', 'layerpanel', 'Layers panel', '', () => showPanel('layers', $('layerPanel').hidden, true)],
+  ['View', 'hideui', 'Hide panels', 'Tab', () => $('ui').classList.toggle('hidden')],
+  ['View', 'layout', 'Reset panel positions', '', () => $('layoutReset').click()],
+  ['Help', 'shortcuts', 'All shortcuts', '?', () => toggleKeys(true)],
+  ['Help', 'appoff', 'Hide the App menus', '', () => setApp(false)],
+].map(c => typeof c === 'string' ? { sep: c.slice(1) } : { menu: c[0], id: c[1], label: c[2], key: c[3], run: c[4], only: c[5] });
+const keyOf = c => S.keys && S.keys[c.id] != null ? S.keys[c.id] : c.key;
+function comboOf(e) {
+  let k = e.key; if (!k || ['Shift', 'Control', 'Alt', 'Meta'].includes(k)) return '';
+  if (k === ' ') k = 'Space'; else if (k.length === 1) k = k.toUpperCase(); else if (k === 'Esc') k = 'Escape';
+  if (k === '+') k = '=';
+  return (e.ctrlKey || e.metaKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey && k.length > 1 || e.shiftKey && /[A-Z0-9]/.test(k) ? 'Shift+' : '') + k;
+}
+/* custom bindings win; a rebound command's old built-in key does nothing */
+function customKey(e) {
+  if (!S.keys || !Object.keys(S.keys).length) return false;
+  const combo = comboOf(e); if (!combo) return false;
+  for (const c of CMDS) if (c.id && S.keys[c.id] != null && S.keys[c.id] === combo) { e.preventDefault(); c.run(); return true; }
+  for (const c of CMDS) if (c.id && S.keys[c.id] != null && c.key === combo) { e.preventDefault(); return true; }
+  return false;
+}
+
+/* menu bar */
+function buildMenubar() {
+  const bar = $('menubar'); bar.querySelectorAll('.mb').forEach(b => b.remove());
+  for (const name of ['File', 'Edit', 'Image', 'Layer', 'Select', 'View', 'Help']) {
+    const b = document.createElement('button'); b.className = 'mb'; b.textContent = name; b.setAttribute('aria-haspopup', 'menu');
+    const open = () => {
+      const items = [];
+      for (const c of CMDS) {
+        if (c.sep === name) { if (items.length && items[items.length - 1] !== '-') items.push('-'); continue; }
+        if (c.menu !== name) continue;
+        if (c.only === 'doc' && !ws.doc || c.only === 'canvas' && ws.doc) continue;
+        items.push({ label: c.label, sub: keyOf(c), fn: c.run });
+      }
+      if (items[items.length - 1] === '-') items.pop();
+      for (const x of bar.querySelectorAll('.mb')) x.classList.toggle('on', x === b);
+      showMenu(b, items); menuOwner = b;
+    };
+    b.onclick = () => menuEl && menuOwner === b ? closeMenu() : open();
+    b.onpointerenter = () => { if (menuEl && menuOwner && menuOwner !== b && bar.contains(menuOwner)) open(); };   // slide across like a real menu bar
+    bar.appendChild(b);
+  }
+}
+let menuOwner = null;
+const _closeMenu = closeMenu;
+closeMenu = function () { _closeMenu(); menuOwner = null; $('menubar').querySelectorAll('.mb').forEach(x => x.classList.remove('on')); };
+function setApp(on) { S.app = on; saveSettings(); $('menubar').hidden = !on; $('appToggle').classList.toggle('on', on); if (on) toast('App menus on. Help → Hide the App menus turns them off'); }
+$('appToggle').onclick = () => setApp(!isApp());
+
+/* fit everything visible */
+function fitView() {
+  const b = ws.doc ? { minX: 0, minY: 0, maxX: ws.doc.w, maxY: ws.doc.h } : contentBounds(layers.filter(shown));
+  if (!b) { toast('Nothing to fit yet'); return; }
+  const z = clamp(Math.min(W * 0.84 / (b.maxX - b.minX || 1), H * 0.8 / (b.maxY - b.minY || 1)), 0.02 / dpr, 8 / dpr);
+  animateView(z, (b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
+}
+
+/* shortcut editor */
+let kbWait = null;
+function openKb() { toggleKeys(false); $('kbDlg').hidden = false; $('kbQ').value = ''; renderKb(); }
+function renderKb() {
+  const q = $('kbQ').value.trim().toLowerCase(), box = $('kbList'); box.innerHTML = ''; let last = '';
+  for (const c of CMDS) {
+    if (!c.id || q && !(c.label + ' ' + c.menu + ' ' + keyOf(c)).toLowerCase().includes(q)) continue;
+    if (c.menu !== last) { const g = document.createElement('div'); g.className = 'grp'; g.textContent = c.menu; box.appendChild(g); last = c.menu; }
+    const n = document.createElement('span'); n.textContent = c.label;
+    const b = document.createElement('button'); b.className = 'btn sm bind' + (S.keys && S.keys[c.id] != null ? ' custom' : ''); b.textContent = keyOf(c) || '—';
+    b.onclick = () => { kbWait = c.id; renderKb(); };
+    if (kbWait === c.id) { b.classList.add('wait'); b.textContent = 'Press keys…'; setTimeout(() => b.focus()); }
+    const r = document.createElement('button'); r.className = 'btn sm'; r.textContent = 'Default'; r.title = 'Back to ' + (c.key || 'no shortcut'); r.disabled = !(S.keys && S.keys[c.id] != null);
+    r.onclick = () => { delete S.keys[c.id]; saveSettings(); renderKb(); };
+    box.append(n, b, r);
+  }
+}
+$('kbDlg').addEventListener('keydown', e => {
+  if (!kbWait) { if (e.key === 'Escape') { e.stopPropagation(); $('kbDlg').hidden = true; } return; }
+  if (e.target === $('kbQ')) return;
+  e.preventDefault(); e.stopPropagation();
+  if (e.key === 'Escape') { kbWait = null; renderKb(); return; }
+  const combo = e.key === 'Backspace' && !e.ctrlKey && !e.altKey ? '' : comboOf(e); if (combo === null || combo === undefined) return;
+  if (combo === '' && e.key !== 'Backspace') return;   // a modifier on its own: keep waiting
+  S.keys = S.keys || {};
+  const clash = combo && CMDS.find(c => c.id && c.id !== kbWait && keyOf(c) === combo);
+  if (clash) { S.keys[clash.id] = ''; toast(combo + ' moved from “' + clash.label + '”'); }
+  S.keys[kbWait] = combo; kbWait = null; saveSettings(); renderKb(); buildMenubar();
+}, true);
+$('kbQ').addEventListener('input', renderKb);
+$('kbClose').onclick = () => { kbWait = null; $('kbDlg').hidden = true; buildMenubar(); };
+$('kbReset').onclick = () => { S.keys = {}; saveSettings(); renderKb(); buildMenubar(); toast('Shortcuts are back to the defaults'); };
+
+/* ---- project files (.sinopia) ----
+   "SINOPIA1", a uint32 header length, a JSON header, then the tiles as PNGs back to back. The header holds the canvas
+   (layers, groups, paper, notes, view) and every open document; each tile entry points at its PNG by offset. */
+let fileHandle = null, fileName = 'drawing.sinopia';
+const wsData = W0 => W0 === ws ? { layers, groups, cur, view: normV(view), paper: W0.doc ? W0.paper : S.paper } : { layers: W0.layers, groups: W0.groups, cur: W0.cur, view: W0.view, paper: W0.doc ? W0.paper : S.paper };
+async function buildProject() {
+  settle();
+  const blobs = [], tiles = []; let off = 0;
+  const pack = async (wi, L) => { for (const [k, t] of L.tiles) { if (t.blank) continue; const b = await new Promise(r => t.c.toBlob(r, 'image/png')); if (!b) continue; tiles.push([wi, L.id, k, off, b.size]); off += b.size; blobs.push(b); } };
+  const spaces = [canvasWS, ...docs], out = [];
+  for (let i = 0; i < spaces.length; i++) {
+    const d = wsData(spaces[i]);
+    out.push({ name: spaces[i].name, doc: spaces[i].doc, paper: d.paper, view: d.view, active: d.cur && d.cur.id,
+      groups: d.groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
+      layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods })) });
+    for (const L of d.layers) await pack(i, L);
+  }
+  const head = new TextEncoder().encode(JSON.stringify({ v: 1, app: 'Sinopia', saved: new Date().toISOString(), spaces: out, tiles,
+    notes: notes.filter(n => n.text.trim()).map(n => ({ x: n.x, y: n.y, text: n.text })), guide: S.guide || null, sym }));
+  const pre = new Uint8Array(12); pre.set(new TextEncoder().encode('SINOPIA1')); new DataView(pre.buffer).setUint32(8, head.length, true);
+  return new Blob([pre, head, ...blobs], { type: 'application/octet-stream' });
+}
+async function saveProject(asNew) {
+  if (!idle()) return;
+  toast('Saving…');
+  const blob = await buildProject();
+  try {
+    if (window.showSaveFilePicker && standalone) {
+      if (!fileHandle || asNew) fileHandle = await showSaveFilePicker({ suggestedName: fileName, types: [{ description: 'Sinopia project', accept: { 'application/octet-stream': ['.sinopia'] } }] });
+      const w = await fileHandle.createWritable(); await w.write(blob); await w.close();
+      fileName = fileHandle.name; toast('Saved ' + fileName + ' (' + (blob.size / 1048576).toFixed(1) + ' MB)'); return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') { toast('Not saved'); return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Downloaded ' + fileName + '. Open it again with File → Open project');
+}
+async function openProject() {
+  if (!idle()) return;
+  if (!(await ask('Open a project? It replaces what’s on the canvas and closes open documents. Save first if you want to keep this drawing.', 'Choose file…'))) return;
+  if (window.showOpenFilePicker && standalone) {
+    try { const [h] = await showOpenFilePicker({ types: [{ description: 'Sinopia project', accept: { 'application/octet-stream': ['.sinopia'] } }] }); fileHandle = h; await loadProject(await h.getFile()); } catch (e) { if (e && e.name !== 'AbortError') toast('Couldn’t open that file'); }
+    return;
+  }
+  $('openFile').value = ''; $('openFile').click();
+}
+$('openFile').onchange = e => { const f = e.target.files[0]; if (f) { fileHandle = null; loadProject(f); } };
+async function loadProject(file) {
+  const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf);
+  if (new TextDecoder().decode(u8.slice(0, 8)) !== 'SINOPIA1') { toast('That isn’t a Sinopia project file'); return; }
+  const n = new DataView(buf).getUint32(8, true), P = JSON.parse(new TextDecoder().decode(u8.slice(12, 12 + n))), base = 12 + n;
+  if (ws !== canvasWS) switchWS(canvasWS);
+  settle(); setSel(null, true);
+  for (const D of [...docs]) { for (const L of D.layers) allLayers.delete(L.id); }
+  docs = [];
+  for (const L of layers) { for (const k of L.tiles.keys()) saveSet.add(L.id + ':' + k); allLayers.delete(L.id); }   // the autosave drops the old tiles
+  const made = [];
+  P.spaces.forEach((sp, i) => {
+    const idMap = new Map(), gMap = new Map();
+    const gs = (sp.groups || []).map(G => { const id = nextGid++; gMap.set(G.id, id); return { id, name: G.name, visible: G.visible !== false, open: G.open !== false, key: i ? null : G.key || null, active: null }; });
+    const ls = sp.layers.map(m => { const L = { id: nextId++, name: m.name, visible: m.visible !== false, opacity: m.opacity == null ? 1 : m.opacity, tiles: new Map(), g: gMap.get(m.g) || null, blend: m.blend || 'normal', mods: Array.isArray(m.mods) ? m.mods : [] }; if (sp.doc) L.doc = true; idMap.set(m.id, L); allLayers.set(L.id, L); return L; });
+    for (const G of gs) { const o = (sp.groups || []).find(x => gMap.get(x.id) === G.id); G.active = o && idMap.get(o.active) ? idMap.get(o.active).id : null; }
+    made.push({ sp, ls, gs, idMap });
+  });
+  let count = 0;
+  for (const [wi, id, k, off, len] of P.tiles) {
+    const M = made[wi], L = M && M.idMap.get(id); if (!L) continue;
+    try { const bm = await createImageBitmap(new Blob([u8.subarray(base + off, base + off + len)], { type: 'image/png' })); const c = mk(TILE, TILE); c.getContext('2d').drawImage(bm, 0, 0); L.tiles.set(k, mkTile(c)); count++; } catch (e) {}
+  }
+  const C = made[0];
+  layers = C.ls.length ? C.ls : [newLayer('Layer 1')]; groups = C.gs; cur = C.idMap.get(C.sp.active) || layers[layers.length - 1];
+  tidyGroups(); undoStack.length = redoStack.length = 0;
+  S.paper = C.sp.paper || S.paper; $('paper').style.background = S.paper;
+  if (C.sp.view) { view.r = 0; view.flip = false; Object.assign(view, C.sp.view); rotLayout(true); updateZoomLabel(); }
+  if (P.guide) { Object.assign(guide, P.guide); saveGuide(); $('tGuide').classList.toggle('on', guide.on); }
+  for (const L of layers) markSave(L, L.tiles.keys());
+  if (!saveSet.size) markSave(layers[0], []);
+  saveLayers(); saveSettings();
+  for (const nn of [...notes]) { nn.el.remove(); } notes = [];
+  for (const m of P.notes || []) { const nn = { id: ++noteSeq, x: m.x, y: m.y, text: m.text }; notes.push(nn); mountNote(nn); }
+  saveNotes(); noteView = '';
+  for (const M of made.slice(1)) {
+    const D = { name: M.sp.name, doc: M.sp.doc, paper: M.sp.paper, layers: M.ls, groups: M.gs, undo: [], redo: [], sel: null, view: M.sp.view, cur: M.idMap.get(M.sp.active) || M.ls[M.ls.length - 1] };
+    if (!D.layers.length) { const N = { id: nextId++, name: 'Layer 1', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [], doc: true }; allLayers.set(N.id, N); D.layers.push(N); D.cur = N; }
+    docs.push(D); docSeq++;
+  }
+  fileName = file.name || fileName;
+  hideWelcome(); syncHistory(); renderLayers(); renderTabs(); dirtyScene();
+  toast('Opened ' + fileName + ': ' + count + ' tiles' + (docs.length ? ', ' + docs.length + (docs.length > 1 ? ' documents' : ' document') : ''));
+}
+
+/* ---- place and paste images ----
+   An image goes onto a new layer at 1:1, centered on the screen (or the page), and free transform starts so you can
+   size it straight away, as Photoshop's Place does. Ctrl+V pastes an image from another app; Sinopia's own copy wins
+   when it's the newer one (nothing was copied in another window since). */
+function placeImage(img, name) {
+  if (!idle()) return;
+  settle();
+  const w = img.width, h = img.height, c = ws.doc ? { x: ws.doc.w / 2, y: ws.doc.h / 2 } : toWorld(W / 2, H / 2);
+  const x0 = Math.round(c.x - w / 2), y0 = Math.round(c.y - h / 2);
+  layerOp(() => {
+    const L = newLayer(name || 'Image'); L.g = cur.g; layers.splice(layers.indexOf(cur) + 1, 0, L); cur = L;
+    for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y0 + h - 1) / TILE); ty++) for (let tx = Math.floor(x0 / TILE); tx <= Math.floor((x0 + w - 1) / TILE); tx++) {
+      const t = mkTile(); t.c.getContext('2d').drawImage(img, x0 - tx * TILE, y0 - ty * TILE); t.blank = false; L.tiles.set(tkey(tx, ty), t);
+    }
+    markSave(L, L.tiles.keys());
+  });
+  setSel(null, true); hideWelcome();
+  startTransform();
+  toast(w + ' × ' + h + ' px image placed on a new layer. Drag the corners to size it, Enter to finish');
+}
+function placeFile(f) {
+  if (!f || !f.type.startsWith('image/')) { toast('That isn’t an image'); return; }
+  createImageBitmap(f).then(bm => placeImage(bm, (f.name || 'Pasted image').replace(/\.[^.]+$/, '')), () => toast('Couldn’t read that image'));
+}
+$('placeFile').onchange = e => { const f = e.target.files[0]; if (f) placeFile(f); };
+let ownClipFresh = false, pasteWait = 0;
+addEventListener('blur', () => { ownClipFresh = false; });   // something may have been copied in another app
+function pasteSmart() { if (clip && ownClipFresh) pasteClip(); else if (navigator.clipboard && navigator.clipboard.read) {
+  navigator.clipboard.read().then(async items => { for (const it of items) for (const t of it.types) if (t.startsWith('image/')) { placeFile(new File([await it.getType(t)], 'Pasted image', { type: t })); return; } pasteClip(); }, () => pasteClip());
+} else pasteClip(); }
+document.addEventListener('paste', e => {
+  const t = e.target; if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) return;
+  clearTimeout(pasteWait); e.preventDefault();
+  const f = [...(e.clipboardData && e.clipboardData.files || [])].find(f => f.type.startsWith('image/'));
+  if (f && !(clip && ownClipFresh)) placeFile(f); else pasteClip();
+});
+
 /* ---------- boot ---------- */
 R = makeGL() || make2D(); GL = R.gl;
 startWorker();
@@ -4044,7 +4380,7 @@ resize();
 loadNotes();
 if (!hadView) { view.z = 1 / dpr; view.x = W / 2; view.y = H / 2; }
 if (!isFinite(view.r)) view.r = 0;
-if (view.r) rotLayout(true);
+if (view.r || view.flip) rotLayout(true);
 updateZoomLabel();
 builtinBrushes();
 initLayers(); renderLayers();
@@ -4060,6 +4396,7 @@ S.brush = clamp(S.brush, 0, brushes.length - 1);
 renderTips();
 loadAlphas().then(() => { S.brush = clamp(S.brush, 0, brushes.length - 1); renderTips(); });
 loadTiles().then(n => { if (n) hideWelcome(); });
+buildMenubar(); $('menubar').hidden = !isApp(); $('appToggle').classList.toggle('on', isApp());
 // offline + installable (Add to Home Screen on iPad). Only over https, so local testing never serves a stale cached copy.
 if ('serviceWorker' in navigator && location.protocol === 'https:' && standalone) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
