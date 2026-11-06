@@ -244,6 +244,27 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .cpop h3{margin:0; font-size:10px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
 .pxbox{display:flex; align-items:center; gap:3px; padding:0 4px; font-size:11px; color:var(--muted)}
 .pxbox .num{width:50px}
+/* movable panels: drag the dotted grip; double-click it to put the panel back */
+.pgrip{flex:none; height:10px; margin:-8px -6px -6px; cursor:move; touch-action:none; border-radius:3px;
+  background:radial-gradient(circle, var(--muted) .9px, transparent 1.3px) center/5px 5px repeat-x; opacity:.55}
+.pgrip:hover{opacity:1; background-color:var(--chrome-2)}
+.bgrip{width:12px; align-self:stretch; cursor:move; touch-action:none; border-radius:2px; margin-right:2px;
+  background:radial-gradient(circle, var(--muted) .9px, transparent 1.3px) center/5px 5px repeat-y; opacity:.55}
+.bgrip:hover{opacity:1; background-color:var(--chrome-2)}
+.moved{position:fixed !important; margin:0 !important; z-index:3}
+/* small pop-up menus (New doc presets; later the App menu bar) */
+.menu{position:fixed; z-index:7; min-width:200px; background:var(--chrome); border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow); padding:4px; display:flex; flex-direction:column}
+.menu button{display:flex; justify-content:space-between; gap:16px; align-items:center; height:30px; padding:0 10px; border:0; border-radius:3px; background:transparent; color:var(--ink); font:500 12.5px var(--font-ui); text-align:left; cursor:pointer}
+.menu button:hover, .menu button:focus-visible{background:var(--accent-soft); outline:0}
+.menu button .sub{color:var(--muted); font-weight:400; font-variant-numeric:tabular-nums}
+.menu button.on::before{content:"✓"; margin-right:-8px}
+.menu hr{border:0; border-top:1px solid var(--line); margin:4px 2px}
+/* hotkey sheet */
+.keysheet .card{width:min(560px, 100%); max-height:min(720px, 100%)}
+.keysheet input[type=search]{height:32px; border:1px solid var(--line); border-radius:3px; background:var(--chrome-2); color:var(--ink); font:500 13px var(--font-ui); padding:0 10px}
+.keysheet h3{margin:8px 0 2px; font-size:10.5px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
+.keysheet .keys{gap:6px 14px}
+.keysheet .empty{color:var(--muted); font-size:12.5px}
 /* touch dock: stand-ins for Shift and Alt when there's no keyboard (iPad) */
 .dock{position:fixed; left:max(10px, env(safe-area-inset-left, 0px)); top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:2px; padding:3px;
   background:var(--chrome); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); pointer-events:auto}
@@ -264,23 +285,38 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 <div class="notes" id="notes" aria-label="Notes"></div>
 
 <div class="ui" id="ui">
-  <div class="bar" role="toolbar" aria-label="Tools">
+  <div class="bar" role="toolbar" aria-label="Tools" id="bar">
     <div class="group">
+      <div class="bgrip" id="barGrip" title="Drag to move the toolbar. Double-click to put it back"></div>
       <button class="btn on" id="tBrush" title="Brush (B)" aria-label="Brush"><svg viewBox="0 0 18 18"><path d="M3 15c2.2 0 3.4-1 3.6-3.2L13.5 4.9l-.4-.4L6.2 11.4C4 11.6 3 12.8 3 15z"/><path d="M11.6 3l3.4 3.4"/></svg></button>
       <button class="btn" id="tErase" title="Eraser (E)" aria-label="Eraser"><svg viewBox="0 0 18 18"><path d="M7 15h8"/><path d="M3.5 11.5l7-7 4 4-6.5 6.5H6.5z"/><path d="M7 8l4 4"/></svg></button>
+      <button class="btn" id="tFill" title="Fill (G): fills the area of similar color you click, with the brush color" aria-label="Fill"><svg viewBox="0 0 18 18"><path d="M8 2.5l6 6-5.5 5.5a1.5 1.5 0 01-2.1 0L2.5 10.1a1.5 1.5 0 010-2.1z"/><path d="M3 8.5h10.5"/><path d="M15.5 11.5s1.2 1.6 1.2 2.5a1.2 1.2 0 01-2.4 0c0-.9 1.2-2.5 1.2-2.5z" fill="currentColor"/></svg></button>
+      <button class="btn" id="tGuide" title="Ellipse guide (O): strokes that start on the ellipse follow it. Drag its handles to move, size, squash and turn it" aria-label="Ellipse guide" aria-pressed="false"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="4" transform="rotate(-25 9 9)"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></button>
       <button class="btn" id="tNote" title="Note (T): click the canvas to place one" aria-label="Note"><svg viewBox="0 0 18 18"><path d="M3.5 3.5h11v7l-4 4h-7z"/><path d="M10.5 14.5v-4h4"/><path d="M6 7h6M6 9.5h3"/></svg></button>
       <span class="sep"></span>
       <button class="btn" id="tRect" title="Rectangle select (S; press S again for ellipse)" aria-label="Rectangle select"><svg viewBox="0 0 18 18"><rect x="3" y="3.5" width="12" height="11" stroke-dasharray="2.4 2"/></svg></button>
       <button class="btn" id="tEllipse" title="Ellipse select (S twice)" aria-label="Ellipse select"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="5.5" stroke-dasharray="2.4 2"/></svg></button>
       <button class="btn" id="tLasso" title="Lasso (L)" aria-label="Lasso"><svg viewBox="0 0 18 18"><path d="M5.2 12.4C2.6 11 2.6 7.2 5.4 5.2s8-2.1 9.6.6-1 6.4-4.9 6.9c-1.9.2-3.5-.1-4.9-.3z" stroke-dasharray="2.4 2"/><path d="M5.2 12.4c-.6 1.4.2 2.6 1.8 3.1"/></svg></button>
       <button class="btn" id="tWand" title="Magic wand (W): selects similar color on the active layer" aria-label="Magic wand"><svg viewBox="0 0 18 18"><path d="M3 15l8.5-8.5"/><path d="M13 2.5v2M13 8.5v2M9.5 6.5h1.5M15 6.5h1.5M10.6 4.1l.9.9M15.4 8.9l-.9-.9M15.4 4.1l-.9.9"/></svg></button>
+      <button class="btn" id="tLiq" title="Liquify (Ctrl+Shift+X): push, twirl and bloat the selection (or the layer) with a brush" aria-label="Liquify"><svg viewBox="0 0 18 18"><path d="M2.5 6c3-2.5 5 2.5 8 0s4-1 5 0M2.5 12c3-2.5 5 2.5 8 0s4-1 5 0"/></svg></button>
       <button class="btn" id="tXf" title="Free transform (Ctrl+T): scale, rotate, skew, distort, warp the selection or the layer" aria-label="Free transform"><svg viewBox="0 0 18 18"><path d="M4.5 4.5h9v9h-9z"/><path d="M3 3h3v3H3zM12 3h3v3h-3zM12 12h3v3h-3zM3 12h3v3H3z" fill="currentColor" stroke="none"/></svg></button>
       <span id="xfBar" class="row" hidden style="gap:4px;padding:0 4px">
+        <span id="liqModes" class="row" hidden style="gap:2px">
+          <button class="btn" data-liq="push" title="Push: drag to smear the pixels along">Push</button>
+          <button class="btn" data-liq="twirl" title="Twirl: hold to spin the pixels clockwise (Alt: counterclockwise)">Twirl</button>
+          <button class="btn" data-liq="bloat" title="Bloat: hold to swell (Alt: pinch)">Bloat</button>
+          <button class="btn" data-liq="restore" title="Restore: brush back toward the original">Restore</button>
+        </span>
         <button class="btn" id="xfWarp" title="Warp: bend the image with a 4×4 mesh">Warp</button>
         <button class="btn" id="xfFlipH" title="Flip horizontal">Flip H</button>
         <button class="btn" id="xfFlipV" title="Flip vertical">Flip V</button>
         <button class="btn" id="xfCancel" title="Cancel (Esc)">Cancel</button>
         <button class="btn on" id="xfOk" title="Apply (Enter)">Apply</button>
+      </span>
+      <span id="fillOpts" class="row" hidden style="gap:4px;padding:0 4px">
+        <input class="num" type="number" id="fillTol" min="0" max="255" aria-label="Fill tolerance" title="Tolerance: how different a color can be and still be filled (0–255)">
+        <button class="btn" id="fillAll" title="Look at all visible layers to find the area (line art on another layer). Off: only the active layer">All layers</button>
+        <label class="pxbox" title="Grow the fill under anti-aliased line edges, in px"><input class="num" type="number" id="fillGrow" min="0" max="8" step="1" aria-label="Fill grow">grow</label>
       </span>
       <span id="selOpts" class="row" hidden style="gap:4px;padding:0 4px">
         <span id="wandOpts" class="row" style="gap:4px">
@@ -288,6 +324,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
           <button class="btn" id="contig" title="Only select connected pixels">Contiguous</button>
         </span>
         <button class="btn" id="selDoc" title="Copy the selected area into a new document with blend modes">Open as document</button>
+        <button class="btn" id="selFill" title="Fill the selection with the brush color (Alt+Backspace)">Fill</button>
         <button class="btn" id="selInv" title="Invert selection (Ctrl+Shift+I)">Invert</button>
         <button class="btn" id="selNone" title="Deselect (Ctrl+D)">Deselect</button>
       </span>
@@ -320,6 +357,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <button class="btn" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg viewBox="0 0 18 18"><path d="M12 4l3 3-3 3"/><path d="M15 7H7.5a4 4 0 000 8H10"/></svg></button>
       <span class="sep"></span>
       <button class="btn" id="newDoc" title="New document from the selection, or from what's on screen">New doc</button>
+      <button class="btn sm" id="newDocMenu" title="New document at a preset size" aria-label="New document presets" aria-haspopup="menu" style="margin-left:-4px;min-width:20px;padding:0 3px"><svg viewBox="0 0 18 18"><path d="M5 7l4 4 4-4"/></svg></button>
       <button class="btn" id="exportBtn" title="Export PNG">Export</button>
       <button class="btn" id="clearBtn" title="Clear the active layer">Clear layer</button>
       <span class="sep"></span>
@@ -330,6 +368,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   </div>
 
   <div class="dock" id="dock" hidden aria-label="Touch modifiers">
+    <div class="pgrip" style="margin:-1px 0 1px" title="Drag to move. Double-click to put it back"></div>
     <button class="btn" id="dLine" title="Line: hold while drawing for a straight line (like Shift). Tap to keep it on" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M3 15L15 3"/><circle cx="3" cy="15" r="1.6"/><circle cx="15" cy="3" r="1.6"/></svg>Line</button>
     <button class="btn" id="dPick" title="Pick: the next touch picks a color (like Alt)" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M11 3.5l3.5 3.5-1.6 1.6-3.5-3.5z"/><path d="M10.2 6.2L4 12.4V14h1.6l6.2-6.2"/></svg>Pick</button>
     <button class="btn" id="dUndo" title="Undo (or tap with two fingers)"><svg viewBox="0 0 18 18"><path d="M6 4L3 7l3 3"/><path d="M3 7h7.5a4 4 0 010 8H8"/></svg>Undo</button>
@@ -340,6 +379,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 
   <div class="panels">
   <aside class="panel" id="brushPanel" aria-label="Brush settings" hidden>
+    <div class="pgrip" title="Drag to move this panel. Double-click to put it back"></div>
     <div class="section">
       <h2 id="tipHead">Brush tip</h2>
       <div class="tips" id="tips"></div>
@@ -367,6 +407,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
     </div>
   </aside>
   <aside class="panel" id="layerPanel" aria-label="Layers" hidden>
+    <div class="pgrip" title="Drag to move this panel. Double-click to put it back"></div>
     <div class="section">
       <div class="head">
         <h2>Layers</h2>
@@ -417,6 +458,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 
 <div class="status">
   <button class="pill" id="zoomOut" title="Reset zoom to 100%">100%</button>
+  <button class="pill" id="rotOut" title="Canvas rotation: click to straighten" hidden>0°</button>
   <span class="pill hint" id="hint">Hold Shift while drawing for straight lines · V opens colors · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
   <span class="pill toast" id="toast" hidden></span>
 </div>
@@ -425,25 +467,21 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   <h1>Sinopia</h1>
   <p>An infinite sketch surface. Draw anywhere and the paper grows with you. Your drawing saves in this browser as you go.</p>
   <div class="keys">
-    <span>Hold <kbd>Shift</kbd></span><span>Drag a straight line out from where you pressed. It snaps to 10° steps and onto the faint 0°, 45° and 90° guides. Release Shift to go back to freehand</span>
-    <span><kbd>Ctrl</kbd> + drag</span><span>Resize the brush (same speed at any zoom)</span>
+    <span>Hold <kbd>Shift</kbd></span><span>Straight line, snapped to 10° and the 45° guides</span>
+    <span><kbd>Ctrl</kbd> + drag</span><span>Resize the brush</span>
     <span><kbd>Space</kbd> + drag</span><span>Pan (or middle mouse, or two fingers)</span>
-    <span><kbd>Ctrl</kbd> + <kbd>Space</kbd> + drag</span><span>Zoom (right or up zooms in). Wheel and pinch work too</span>
-    <span>Hold <kbd>Alt</kbd></span><span>Preview the color under the cursor. Click or drag to pick it</span>
-    <span><kbd>[</kbd> <kbd>]</kbd></span><span>Smaller / larger brush. Or type a size in the px box</span>
-    <span><kbd>V</kbd></span><span>Color menu (at the pen, or under the color button)</span>
-    <span>iPad</span><span>Two-finger tap undoes, three-finger tap redoes. The Line and Pick buttons on the left stand in for Shift and Alt</span>
-    <span><kbd>B</kbd> <kbd>E</kbd> <kbd>M</kbd></span><span>Brush, eraser, cycle mirror</span>
-    <span><kbd>S</kbd> <kbd>L</kbd> <kbd>W</kbd></span><span>Select: rectangle (S again for ellipse), lasso, magic wand. Shift adds, Alt subtracts. Brush and eraser stay inside the selection</span>
-    <span><kbd>Ctrl</kbd> + drag</span><span>With a select tool: move the selected pixels. <kbd>Delete</kbd> clears them, <kbd>Ctrl</kbd>+<kbd>D</kbd> deselects</span>
-    <span>New doc</span><span>Copies your selection (or what’s on screen) into a new tab: a fixed-size page with layer blend modes. Inside a document the same button is Doc size, to change the page size. The canvas stays as it was. Documents aren’t saved yet</span>
-    <span><kbd>Ctrl</kbd> + <kbd>T</kbd></span><span>Free transform the selection (or layer): drag corners to scale, outside to rotate, Ctrl+corner to distort. Warp bends it with a mesh. Enter applies, Esc cancels</span>
-    <span>Modifiers</span><span>In the layers panel, + Array repeats a layer in a line or a ring (Radial). Use the sliders, or drag the pivot and offset handles on the canvas. Copies follow your drawing live, and Apply bakes them in</span>
-    <span><kbd>T</kbd></span><span>Note: click the canvas to place a text note. Drag its top strip to move it</span>
-    <span><kbd>X</kbd></span><span>Delete the active layer (undo brings it back)</span>
-    <span><kbd>Ctrl</kbd> + <kbd>Z</kbd></span><span>Undo (add <kbd>Shift</kbd> to redo)</span>
-    <span><kbd>Ctrl</kbd> + <kbd>1</kbd>–<kbd>9</kbd></span><span>Jump to a group and frame its drawing</span>
-    <span><kbd>Tab</kbd> <kbd>0</kbd></span><span>Hide the panels, reset zoom</span>
+    <span>Hold <kbd>Alt</kbd></span><span>Pick a color. <kbd>V</kbd> opens the color menu</span>
+    <span><kbd>B</kbd> <kbd>E</kbd> <kbd>G</kbd></span><span>Brush, eraser, fill</span>
+    <span>iPad</span><span>Two-finger tap undoes, three-finger tap redoes. Line and Pick on the left stand in for Shift and Alt</span>
+    <span><kbd>?</kbd></span><span><b>Every shortcut</b>, searchable</span>
+  </div>
+</div>
+
+<div class="dialog keysheet" id="keysDlg" hidden>
+  <div class="card" role="dialog" aria-label="Keyboard shortcuts">
+    <div class="row"><h2>Shortcuts</h2><span class="row" style="gap:4px"><button class="btn" id="layoutReset" title="Put the toolbar and panels back where they started">Reset panel positions</button><button class="btn" id="keysClose">Close</button></span></div>
+    <input type="search" id="keysQ" placeholder="Search: fill, zoom, layer…" aria-label="Search shortcuts">
+    <div id="keysList"></div>
   </div>
 </div>
 
@@ -702,7 +740,7 @@ if (saved) {
   if (saved.view && saved.v2) { Object.assign(view, saved.view); hadView = true; }
   S.erase = false;
 }let settingsTimer = 0;
-const writeSettings = () => { settingsTimer = 0; LS.set('sinopia.settings', { v2: 1, S, sym, view: ws.doc ? canvasWS.view : view }); };
+const writeSettings = () => { settingsTimer = 0; LS.set('sinopia.settings', { v2: 1, S, sym, view: ws.doc ? canvasWS.view : normV(view) }); };
 function saveSettings() { clearTimeout(settingsTimer); settingsTimer = setTimeout(writeSettings, 400); }
 function flushSettings() { if (settingsTimer) { clearTimeout(settingsTimer); writeSettings(); } }   // on close / app switch, so the last color change isn't lost
 if (!Array.isArray(S.recent)) S.recent = [];
@@ -990,10 +1028,12 @@ function beginStroke(wx, wy, p, erase, local) {
   const T = strokeTarget(cur, erase, rgb, hist);
   const opts = { size: P.size, opacity: P.opacity, pSize: P.pSize, pOpac: P.pOpac, spacing: P.spacing, rot: P.rot,
                  mats, cx: sym.cx, cy: sym.cy, tip: b };
+  const snap = !local && guideNear(wx, wy) ? true : false;
+  if (snap) [wx, wy] = guideSnap(wx, wy);
   const w = !local && useWorker(P, b, mats.length);
   stroke = { T, erase, opts, hist, smooth: P.smooth, rgb, layer: cur, w, sid: ++strokeSeq,
     s: w ? { q: [], add(x, y, p) { this.q.push(x, y, p); }, finish() {} } : new Stroke(T, opts),
-    sx: wx, sy: wy, raw: { x: wx, y: wy, p } };
+    sx: wx, sy: wy, raw: { x: wx, y: wy, p }, snap };
   if (w) wbegin(b);
   stroke.s.add(wx, wy, p);
   if (w) wflush(false);
@@ -1080,6 +1120,7 @@ function commitLine() {
   schedule();
 }
 function strokeTo(wx, wy, p) {
+  if (stroke.snap) [wx, wy] = guideSnap(wx, wy);   // a stroke that started on the ellipse guide stays on it
   stroke.cursor = { x: wx, y: wy, p };
   stroke.raw = { x: wx, y: wy, p };
   const k = 1 - stroke.smooth;
@@ -1460,13 +1501,26 @@ function shiftSel(s, dx, dy) {   // whole-pixel offsets
 /* magic wand on the active layer: colors within the tolerance (premultiplied RGBA), connected or anywhere.
    Empty paper is transparent, so it's handled a whole tile at a time; reaching the empty ring around the drawing
    means the endless outside is selected too. */
-function wandSel(wx, wy) {
+function wandSel(wx, wy, o) {
   settle();
-  const L = cur, tol = clamp(S.tol | 0, 0, 255), X = Math.floor(wx), Y = Math.floor(wy), T = TILE;
+  o = o || { tol: S.tol, contig: S.contig, all: false };
+  const tol = clamp(o.tol | 0, 0, 255), X = Math.floor(wx), Y = Math.floor(wy), T = TILE;
+  const vis = o.all ? layers.filter(L => shown(L) && L.tiles.size) : [cur];   // all layers: the composite, as you see it
+  const L = { tiles: o.all ? new Map(vis.flatMap(V => [...V.tiles])) : cur.tiles };   // only the keys are used for the composite
   const px = new Map();
+  let cc = null;
   const data = k => {
     if (px.has(k)) return px.get(k);
-    const t = L.tiles.get(k), d = t && !t.blank ? t.c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, T, T).data : null;
+    let d = null;
+    if (!o.all) { const t = cur.tiles.get(k); d = t && !t.blank ? t.c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, T, T).data : null; }
+    else {
+      const ts = vis.map(V => [V, V.tiles.get(k)]).filter(([, t]) => t && !t.blank);
+      if (ts.length) {
+        cc = cc || mk(T, T); const g = cc.getContext('2d', { willReadFrequently: true }); g.clearRect(0, 0, T, T);
+        for (const [V, t] of ts) { g.globalAlpha = V.opacity; g.drawImage(t.c, 0, 0); }
+        g.globalAlpha = 1; d = g.getImageData(0, 0, T, T).data;
+      }
+    }
     px.set(k, d); return d;
   };
   let stx = Math.floor(X / T), sty = Math.floor(Y / T);
@@ -1474,7 +1528,7 @@ function wandSel(wx, wy) {
   const a0 = sd ? sd[sj + 3] : 0, r0 = sd ? sd[sj] * a0 / 255 : 0, g0 = sd ? sd[sj + 1] * a0 / 255 : 0, b0 = sd ? sd[sj + 2] * a0 / 255 : 0;
   const match = (d, j) => { const a = d[j + 3]; return Math.abs(a - a0) <= tol && Math.abs(d[j] * a / 255 - r0) <= tol && Math.abs(d[j + 1] * a / 255 - g0) <= tol && Math.abs(d[j + 2] * a / 255 - b0) <= tol; };
   const clearOk = a0 <= tol && r0 <= tol && g0 <= tol && b0 <= tol;   // empty paper counts as a match
-  if (!S.contig) {
+  if (!o.contig) {
     const m = new Map(), out = clearOk ? 255 : 0;
     for (const k of L.tiles.keys()) {
       const d = data(k);
@@ -1666,6 +1720,80 @@ function restoreTiles(L, map) {
     if (!b) L.tiles.delete(k); else if (t) { t.c = b; t.v++; } else L.tiles.set(k, mkTile(b));
   }
 }
+/* Fill (G) and Fill selection (Alt+Backspace). The fill area is a contiguous wand selection (on all visible layers,
+   by default, so line art on another layer works), grown a pixel or two under anti-aliased edges, clipped to any
+   selection, and painted with the brush color and opacity. An open area stops at the screen (or the page). */
+function growMask(s, r) {
+  const T = TILE;
+  for (let it = 0; it < r && s; it++) {
+    const m = new Map(), out = s.out, keys = new Set(s.m.keys());
+    for (const k of s.m.keys()) { const [tx, ty] = keyXY(k); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) keys.add(tkey(tx + dx, ty + dy)); }
+    for (const k of keys) {
+      const v = selGet(s, k), [tx, ty] = keyXY(k);
+      const N = [selGet(s, tkey(tx - 1, ty)), selGet(s, tkey(tx + 1, ty)), selGet(s, tkey(tx, ty - 1)), selGet(s, tkey(tx, ty + 1))];
+      if (v === 255 || (typeof v === 'number' && N.every(n => n === v))) { putNorm(m, k, v, out); continue; }
+      const at = (x, y) => {
+        let a = v;
+        if (x < 0) { a = N[0]; x = T - 1; } else if (x >= T) { a = N[1]; x = 0; } else if (y < 0) { a = N[2]; y = T - 1; } else if (y >= T) { a = N[3]; y = 0; }
+        return typeof a === 'number' ? a : a[y * T + x];
+      };
+      const o = new Uint8Array(T * T);
+      for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+        const i = y * T + x, inner = typeof v !== 'number' && x > 0 && y > 0 && x < T - 1 && y < T - 1;
+        o[i] = inner ? Math.max(v[i], v[i - 1], v[i + 1], v[i - T], v[i + T]) : Math.max(at(x, y), at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1));
+      }
+      putNorm(m, k, o, out);
+    }
+    s = mkSel(m, out);
+  }
+  return s;
+}
+function fillBound() {   // the page in a document; the screen on the canvas
+  if (ws.doc) return rectSel(0, 0, ws.doc.w, ws.doc.h);
+  const a = toWorld(0, 0), c = toWorld(W, H);
+  return rectSel(Math.floor(Math.min(a.x, c.x)), Math.floor(Math.min(a.y, c.y)), Math.ceil(Math.max(a.x, c.x)), Math.ceil(Math.max(a.y, c.y)));
+}
+function fillMask(L, s, hex, alpha) {
+  if (!s) return false;
+  const T = TILE, h = { kind: 'tiles', layer: L, map: new Map() }, [r, g, b] = hexToRgb(hex), tmp = mk(T, T), tg = tmp.getContext('2d');
+  for (const [k, v] of s.m) {
+    if (!v) continue;
+    let t = L.tiles.get(k);
+    if (!h.map.has(k)) h.map.set(k, t ? cloneCanvas(t.c) : null);
+    if (!t) { t = mkTile(); L.tiles.set(k, t); }
+    const c = t.c.getContext('2d');
+    if (typeof v === 'number') { c.save(); c.globalAlpha = alpha * v / 255; c.fillStyle = hex; c.fillRect(0, 0, T, T); c.restore(); }
+    else {
+      const im = tg.createImageData(T, T), d = im.data;
+      for (let i = 0, j = 0; i < v.length; i++, j += 4) { d[j] = r; d[j + 1] = g; d[j + 2] = b; d[j + 3] = v[i] * alpha; }
+      tg.putImageData(im, 0, 0); c.drawImage(tmp, 0, 0);
+    }
+    t.v++; t.blank = false;
+  }
+  if (!h.map.size) return false;
+  pushUndo(h); markSave(L, h.map.keys()); dirtyScene();
+  return true;
+}
+function fillAt(wx, wy) {
+  if (act || stroke) return;
+  hideWelcome();
+  if (!cur.visible) toast('This layer is hidden');
+  let m = wandSel(wx, wy, { tol: S.fillTol, contig: true, all: S.fillAll });
+  if (!m) { toast('Nothing to fill there'); return; }
+  m = growMask(m, clamp(S.fillGrow | 0, 0, 8));
+  if (sel) m = combine(m, sel, 'int');
+  const open = m && m.out && !ws.doc;
+  m = m && combine(m, fillBound(), 'int');
+  if (!fillMask(cur, m, S.color, S.opacity)) { toast('Nothing to fill there'); return; }
+  if (open) toast('That area is open, so the fill stops at the edges of the screen');
+}
+function fillSel() {
+  if (act || stroke) return;
+  if (!sel) { toast('Nothing selected. Use S, L or W to select first, or G to fill an area.'); return; }
+  settle();
+  const open = sel.out && !ws.doc;
+  if (fillMask(cur, combine(sel, fillBound(), 'int'), S.color, S.opacity) && open) toast('The selection is endless, so the fill stops at the edges of the screen');
+}
 function clearSelected() {
   if (!sel) { toast('Nothing selected. Use S, L or W to select first.'); return; }
   if (act || stroke) return;
@@ -1723,14 +1851,15 @@ function pasteClip() {
   toast('Pasted in place on a new layer. Ctrl+drag with a select tool moves it.');
 }
 const HINT = $('hint').textContent;
+const FILL_HINT = 'Click to fill with the brush color · All layers finds the area from line art on any layer · Alt picks a color · B back to brush';
 const SEL_HINT = 'Shift adds · Alt subtracts · Shift+Alt intersects · Ctrl-drag moves the pixels · Delete clears · Ctrl+D deselects · B back to brush';
 function syncSelUI() {
-  for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand']]) $(id).classList.toggle('on', selTool === t);
+  for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand'], ['tFill', 'fill']]) $(id).classList.toggle('on', selTool === t);
   $('tErase').classList.toggle('on', S.erase && !selTool); $('tBrush').classList.toggle('on', !S.erase && !selTool);
-  $('selOpts').hidden = !selTool && !sel; $('wandOpts').hidden = selTool !== 'wand';
+  $('selOpts').hidden = !(selTool && selTool !== 'fill') && !sel; $('wandOpts').hidden = selTool !== 'wand'; $('fillOpts').hidden = selTool !== 'fill';
   $('selInv').hidden = $('selNone').hidden = !sel; $('selDoc').hidden = !sel || !!ws.doc;
   ov.classList.toggle('sel', !!selTool);
-  $('hint').textContent = xf ? XF_HINT : selTool ? SEL_HINT : HINT;
+  $('hint').textContent = xf ? XF_HINT : selTool === 'fill' ? FILL_HINT : selTool ? SEL_HINT : HINT;
 }
 function setSelTool(t) {
   if (t && noteMode) setNoteMode(false);
@@ -1767,12 +1896,12 @@ function copyRegion(L, N, x0, y0, w, h) {
     if (c) N.tiles.set(tkey(dtx, dty), mkTile(c));
   }
 }
-function openDoc(A) {   // A: {x, y, w, h} in canvas world px, from the size dialog
+function openDoc(A) {   // A: {x, y, w, h} in canvas world px; A.blank makes an empty page instead of a copy
   if (act || stroke || ws.doc) return;
   settle();
   const { w, h } = A, b = { x0: A.x, y0: A.y };
   const D = { name: 'Untitled ' + (++docSeq), doc: { w, h }, paper: S.paper, layers: [], groups: [], undo: [], redo: [], sel: null };
-  for (const L of layers) {
+  for (const L of A.blank ? [] : layers) {
     if (!shown(L) || !L.tiles.size) continue;
     const N = newLayer(L.name); N.doc = true; N.opacity = L.opacity;
     const bk = bakeCopies(L);
@@ -1789,6 +1918,42 @@ function openDoc(A) {   // A: {x, y, w, h} in canvas world px, from the size dia
 /* New doc makes the document straight away: the selection's bounds, or what's on screen. Size it afterwards. */
 const DOC_MAX = 16384;
 let docArea = null;
+const DOC_PRESETS = [['HD', 1920, 1080], ['4K UHD', 3840, 2160], ['Square', 2048, 2048], ['Portrait 4:5', 1080, 1350], ['A4 300 dpi', 2480, 3508], ['iPad Pro', 2732, 2048]];
+function presetDoc(w, h) {   // a preset-size page centered on the selection (or the screen), copied or blank
+  if (act || stroke || ws.doc) return;
+  settle();
+  const b = sel && selBounds(sel), a = toWorld(0, 0), c = toWorld(W, H);
+  const cx = b ? (b.x0 + b.x1) / 2 : (a.x + c.x) / 2, cy = b ? (b.y0 + b.y1) / 2 : (a.y + c.y) / 2;
+  openDoc({ x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w, h, blank: !!S.docBlank });
+}
+/* pop-up menu: items are {label, sub, on, fn} or '-' */
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function showMenu(anchor, items) {
+  closeMenu();
+  const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu');
+  for (const it of items) {
+    if (it === '-') { m.appendChild(document.createElement('hr')); continue; }
+    const b = document.createElement('button'); b.setAttribute('role', 'menuitem'); if (it.on) b.classList.add('on');
+    b.innerHTML = '<span></span><span class="sub"></span>'; b.firstChild.textContent = it.label; b.lastChild.textContent = it.sub || '';
+    b.onclick = () => { closeMenu(); it.fn(); };
+    m.appendChild(b);
+  }
+  document.body.appendChild(m); menuEl = m;
+  const r = anchor.getBoundingClientRect();
+  m.style.left = clamp(r.left, 8, innerWidth - m.offsetWidth - 8) + 'px'; m.style.top = clamp(r.bottom + 6, 8, innerHeight - m.offsetHeight - 8) + 'px';
+  m.querySelector('button').focus();
+}
+document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }, true);
+document.addEventListener('keydown', e => { if (menuEl && e.key === 'Escape') { e.stopPropagation(); closeMenu(); } }, true);
+function newDocMenu() {
+  if (ws.doc) { docSizeDialog(); return; }
+  showMenu($('newDocMenu'), [
+    { label: sel ? 'From the selection' : 'From what’s on screen', fn: newDoc }, '-',
+    ...DOC_PRESETS.map(([n, w, h]) => ({ label: n, sub: w + ' × ' + h, fn: () => presetDoc(w, h) })), '-',
+    { label: 'Blank page (don’t copy the canvas)', on: !!S.docBlank, fn: () => { S.docBlank = !S.docBlank; saveSettings(); toast(S.docBlank ? 'Preset documents start blank' : 'Preset documents copy the canvas under them'); } }
+  ]);
+}
 function newDoc() {
   if (act || stroke) return;
   if (ws.doc) { docSizeDialog(); return; }
@@ -1854,13 +2019,13 @@ function switchWS(t) {
   if (t === ws || act || stroke) return;
   if (xf) xfEnd(true);
   settle(); if (anim) { cancelAnimationFrame(anim); anim = 0; }
-  Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: { ...view }, sel });
+  Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: normV(view), sel });
   ws = t;
   layers = t.layers; cur = t.cur; groups = t.groups; sel = t.sel;
-  undoStack.push(...t.undo); redoStack.push(...t.redo); Object.assign(view, t.view);
+  undoStack.push(...t.undo); redoStack.push(...t.redo); view.r = 0; Object.assign(view, t.view); rotLayout(true);
   hl = null; if (noteMode) setNoteMode(false);
   notesEl.hidden = !!t.doc; $('paper').style.background = paperColor(); if (CP.on === 'paper') closeCP();
-  $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc';
+  $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc'; $('newDocMenu').hidden = !!t.doc;
   $('newDoc').title = t.doc ? 'Change the page size (Canvas Size)' : 'New document from the selection, or from what\'s on screen';
   selChanged(); syncHistory(); renderLayers(); renderTabs(); updateZoomLabel(); dirtyScene();
 }
@@ -1914,11 +2079,15 @@ function meshGL() {
   const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
   gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 16, 8);
-  const idx = [], n = XF_N + 1;
-  for (let j = 0; j < XF_N; j++) for (let i = 0; i < XF_N; i++) { const a = j * n + i; idx.push(a, a + 1, a + n, a + 1, a + n + 1, a + n); }
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
   gl.disable(gl.BLEND); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
-  return MG = { c, gl, count: idx.length, buf: new Float32Array(n * n * 4), max: gl.getParameter(gl.MAX_TEXTURE_SIZE) };
+  return MG = { c, gl, grids: new Map(), max: gl.getParameter(gl.MAX_TEXTURE_SIZE) };
+}
+function meshFor(N) {   // index buffer + vertex scratch for an NÃ—N cell grid (transform uses 32, liquify more)
+  let m = MG.grids.get(N); if (m) return m;
+  const gl = MG.gl, idx = new Uint16Array(N * N * 6), n = N + 1;
+  let o = 0; for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = j * n + i; idx.set([a, a + 1, a + n, a + 1, a + n + 1, a + n], o); o += 6; }
+  const ibo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  MG.grids.set(N, m = { ibo, count: idx.length, buf: new Float32Array(n * n * 4) }); return m;
 }
 function meshTex(img) {
   const gl = MG.gl, t = gl.createTexture();
@@ -1929,13 +2098,14 @@ function meshTex(img) {
   return t;
 }
 /* draw the grid (world x, y, u, v) into MG.c, which is w × h px showing world (wx0, wy0) at k px per world px */
-function meshDraw(tex, grid, wx0, wy0, k, w, h) {
-  const gl = MG.gl, b = MG.buf;
+function meshDraw(tex, grid, wx0, wy0, k, w, h, N = XF_N) {
+  const gl = MG.gl, M = meshFor(N), b = M.buf;
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, M.ibo);
   if (MG.c.width !== w || MG.c.height !== h) { MG.c.width = w; MG.c.height = h; }
   gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
   for (let i = 0; i < grid.length; i += 4) { b[i] = (grid[i] - wx0) * k / w * 2 - 1; b[i + 1] = 1 - (grid[i + 1] - wy0) * k / h * 2; b[i + 2] = grid[i + 2]; b[i + 3] = grid[i + 3]; }
   gl.bufferData(gl.ARRAY_BUFFER, b, gl.STREAM_DRAW);
-  gl.bindTexture(gl.TEXTURE_2D, tex); gl.drawElements(gl.TRIANGLES, MG.count, gl.UNSIGNED_SHORT, 0);
+  gl.bindTexture(gl.TEXTURE_2D, tex); gl.drawElements(gl.TRIANGLES, M.count, gl.UNSIGNED_SHORT, 0);
 }
 function homog(P) {   // unit square -> quad P (TL, TR, BR, BL)
   const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = P;
@@ -1955,6 +2125,7 @@ function bezier(P) {   // 4×4 control points, row by row
 }
 const xfMap = X => X.pts.length === 16 ? bezier(X.pts) : homog(X.pts);
 function xfGrid(X) {
+  if (X.liq) return X.liq;   // liquify: the brushed grid itself
   const f = xfMap(X), n = XF_N + 1, g = new Float64Array(n * n * 4);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const u = i / XF_N, v = j / XF_N, [x, y] = f(u, v), o = (j * n + i) * 4; g[o] = x; g[o + 1] = y; g[o + 2] = u; g[o + 3] = v; }
   return g;
@@ -1970,7 +2141,7 @@ function maskCanvas(sl, x0, y0, w, h) {   // the selection as a white image with
   }
   g.putImageData(im, 0, 0); return c;
 }
-function startTransform() {
+function startTransform(liq) {
   if (act || stroke || xf) return;
   if (!meshGL()) { toast('Transform needs WebGL 2, which this browser doesn’t have'); return; }
   settle();
@@ -1991,7 +2162,12 @@ function startTransform() {
   const src = mk(w, h), g = src.getContext('2d');
   for (const [k, c] of float) { const [tx, ty] = keyXY(k); g.drawImage(c, tx * TILE - r.x0, ty * TILE - r.y0); }
   xf = { L, hist, r, tex: meshTex(src), mtex: sel ? meshTex(maskCanvas(sel, r.x0, r.y0, w, h)) : null,
-         pts: [[r.x0, r.y0], [r.x1, r.y0], [r.x1, r.y1], [r.x0, r.y1]], key: '' };
+         pts: [[r.x0, r.y0], [r.x1, r.y0], [r.x1, r.y1], [r.x0, r.y1]], key: '', gen: 0, N: XF_N };
+  if (liq) {   // a fine grid (cells about 10 px, at most 160 Ã— 160) whose points the liquify brush moves
+    const N = clamp(Math.ceil(Math.max(w, h) / 10), 24, 160), n = N + 1, g = new Float64Array(n * n * 4);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const o = (j * n + i) * 4; g[o] = r.x0 + i / N * w; g[o + 1] = r.y0 + j / N * h; g[o + 2] = i / N; g[o + 3] = j / N; }
+    Object.assign(xf, { liq: g, orig: g.slice(), N, mode: S.liqMode || 'push' });
+  }
   hideWelcome(); syncXfUI(); dirtyScene();
 }
 const corners = X => X.pts.length === 16 ? [X.pts[0], X.pts[3], X.pts[15], X.pts[12]] : X.pts;
@@ -2022,7 +2198,7 @@ function xfEnd(apply) {
     const dest = k => { let v = ms.get(k); if (!v) ms.set(k, v = new Uint8Array(TILE * TILE)); return v; };
     for (let cy = y0; cy < y1; cy += CH) for (let cx = x0; cx < x1; cx += CH) {
       const cw = Math.min(CH, x1 - cx), chh = Math.min(CH, y1 - cy);
-      meshDraw(X.tex, grid, cx, cy, 1, cw, chh);
+      meshDraw(X.tex, grid, cx, cy, 1, cw, chh, X.N);
       for (let ty = Math.floor(cy / TILE); ty <= Math.floor((cy + chh - 1) / TILE); ty++) for (let tx = Math.floor(cx / TILE); tx <= Math.floor((cx + cw - 1) / TILE); tx++) {
         const k = tkey(tx, ty); let t = L.tiles.get(k);
         if (!h.map.has(k)) h.map.set(k, t ? cloneCanvas(t.c) : null);
@@ -2030,7 +2206,7 @@ function xfEnd(apply) {
         t.c.getContext('2d').drawImage(MG.c, cx - tx * TILE, cy - ty * TILE); t.v++; t.blank = false;
       }
       if (ms) {   // the selection goes through the same mesh
-        meshDraw(X.mtex, grid, cx, cy, 1, cw, chh);
+        meshDraw(X.mtex, grid, cx, cy, 1, cw, chh, X.N);
         const px = new Uint8Array(cw * chh * 4); gl.readPixels(0, 0, cw, chh, gl.RGBA, gl.UNSIGNED_BYTE, px);
         for (let y = 0; y < chh; y++) {
           const Y = cy + y, ty = Math.floor(Y / TILE), row = (chh - 1 - y) * cw;
@@ -2060,12 +2236,39 @@ function xfHit(x, y) {
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside; }
   return inside ? 'in' : 'out';
 }
+/* liquify brush: grid points within the brush move by a smooth falloff (1 - tÂ²)Â² */
+function liqStep(a, b, alt) {
+  const X = xf, g = X.liq, o0 = X.orig, R = Math.max(2, S.size / 2), dx = b.x - a.x, dy = b.y - a.y, k = clamp(S.opacity, 0.05, 1);
+  const tw = (alt ? -1 : 1) * 0.06 * k, bl = (alt ? -1 : 1) * 0.045 * k;
+  for (let i = 0; i < g.length; i += 4) {
+    const px = g[i] - b.x, py = g[i + 1] - b.y, d2 = px * px + py * py;
+    if (d2 >= R * R) continue;
+    const t = 1 - d2 / (R * R), f = t * t;
+    if (X.mode === 'push') { g[i] += dx * f * k; g[i + 1] += dy * f * k; }
+    else if (X.mode === 'twirl') { const c = Math.cos(tw * f), s = Math.sin(tw * f); g[i] = b.x + px * c - py * s; g[i + 1] = b.y + px * s + py * c; }
+    else if (X.mode === 'bloat') { g[i] += px * bl * f; g[i + 1] += py * bl * f; }
+    else { g[i] += (o0[i] - g[i]) * 0.2 * f; g[i + 1] += (o0[i + 1] - g[i + 1]) * 0.2 * f; }
+  }
+  X.gen++; dirtyOverlay();
+}
+let liqTimer = 0;
+const liqR = () => S.size / 2;   // (drawXf has its own local S)
+function setLiqMode(m) { S.liqMode = m; if (xf && xf.liq) xf.mode = m; document.querySelectorAll('[data-liq]').forEach(b => b.classList.toggle('on', b.dataset.liq === m)); saveSettings(); }
+document.querySelectorAll('[data-liq]').forEach(b => b.onclick = () => setLiqMode(b.dataset.liq));
 function xfDown(e, x, y) {
+  if (xf.liq) {   // twirl, bloat and restore keep working while the pen is held still
+    const w = toWorld(x, y);
+    act = { type: 'xf', id: e.pointerId, liq: true, last: w, alt: e.altKey };
+    liqStep(w, w, e.altKey);
+    clearInterval(liqTimer); liqTimer = setInterval(() => { if (act && act.liq && xf && xf.mode !== 'push') liqStep(act.last, act.last, act.alt); else clearInterval(liqTimer); }, 30);
+    return;
+  }
   const h = xfHit(x, y), w = toWorld(x, y), mod = e.ctrlKey || e.metaKey;
   act = { type: 'xf', id: e.pointerId, h, w0: w, pts0: xf.pts.map(p => p.slice()), c: xfCenter(xf), phi: xfAngle(xf), mod };
   dirtyOverlay();
 }
 function xfMove(e) {
+  if (act.liq) { const w = toWorld(e.clientX, e.clientY); act.alt = e.altKey; liqStep(act.last, w, e.altKey); act.last = w; return; }
   const A = act, X = xf, w = toWorld(e.clientX, e.clientY), dx = w.x - A.w0.x, dy = w.y - A.w0.y, P = A.pts0;
   if (A.h === 'in') X.pts = aff([1, 0, 0, 1, dx, dy], P);
   else if (A.h === 'out') {
@@ -2096,6 +2299,7 @@ function xfMove(e) {
   dirtyOverlay();
 }
 function xfCursor(x, y) {
+  if (xf.liq) { ov.style.cursor = 'none'; return; }
   const h = xfHit(x, y);
   ov.style.cursor = h === 'in' ? 'move' : h === 'out' ? 'alias' : 'crosshair';
 }
@@ -2105,9 +2309,15 @@ function drawXf() {
   for (let i = 0; i < grid.length; i += 4) { const sx = grid[i] * k + ox, sy = grid[i + 1] * k + oy; x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy); }
   x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(ov.width, Math.ceil(x1)); y1 = Math.min(ov.height, Math.ceil(y1));
   if (x1 > x0 && y1 > y0) {
-    const key = JSON.stringify(X.pts) + [view.x, view.y, view.z, x0, y0, x1, y1].join();
-    if (key !== X.key) { X.key = key; meshDraw(X.tex, grid, (x0 - ox) / k, (y0 - oy) / k, k, x1 - x0, y1 - y0); }
+    const key = JSON.stringify(X.pts) + [X.gen, view.x, view.y, view.z, x0, y0, x1, y1].join();
+    if (key !== X.key) { X.key = key; meshDraw(X.tex, grid, (x0 - ox) / k, (y0 - oy) / k, k, x1 - x0, y1 - y0, X.N); }
     octx.save(); octx.setTransform(1, 0, 0, 1, 0, 0); octx.globalAlpha = X.L.opacity; octx.drawImage(MG.c, x0, y0); octx.restore();
+  }
+  if (X.liq) {   // liquify: the original box, dashed, and the brush ring
+    octx.save(); octx.setLineDash([4, 4]); octx.strokeStyle = 'rgba(45,108,176,.8)'; octx.lineWidth = 1;
+    octx.strokeRect(X.r.x0 * view.z + view.x, X.r.y0 * view.z + view.y, (X.r.x1 - X.r.x0) * view.z, (X.r.y1 - X.r.y0) * view.z); octx.restore();
+    if (hover && !spaceHeld) ring(hover.x, hover.y, liqR() * view.z, 1);
+    return;
   }
   const S = p => [p[0] * view.z + view.x, p[1] * view.z + view.y], f = xfMap(X);
   octx.save(); octx.lineWidth = 1;
@@ -2135,7 +2345,10 @@ function drawXf() {
 const XF_HINT = 'Drag a corner to scale (Shift: free, Alt: from center) · drag outside to rotate (Shift: 15°) · Ctrl+corner distorts · Ctrl+edge skews · Enter applies · Esc cancels';
 function syncXfUI() {
   $('xfBar').hidden = !xf; $('xfWarp').classList.toggle('on', !!xf && xf.pts.length === 16);
-  $('hint').textContent = xf ? (xf.pts.length === 16 ? 'Warp: drag the points and handles · drag inside to move, outside to rotate · Enter applies · Esc cancels' : XF_HINT) : selTool ? SEL_HINT : HINT;
+  const lq = !!(xf && xf.liq);
+  $('liqModes').hidden = !lq; $('xfWarp').hidden = $('xfFlipH').hidden = $('xfFlipV').hidden = lq; $('tLiq').classList.toggle('on', lq); $('tXf').classList.toggle('on', !!xf && !lq);
+  if (lq) setLiqMode(xf.mode);
+  $('hint').textContent = xf && xf.liq ? 'Liquify: brush to push, twirl or bloat (Alt reverses) Â· [ ] or the px box sizes the brush, Opacity sets the strength Â· Enter applies Â· Esc cancels' : xf ? (xf.pts.length === 16 ? 'Warp: drag the points and handles · drag inside to move, outside to rotate · Enter applies · Esc cancels' : XF_HINT) : selTool ? SEL_HINT : HINT;
 }
 
 /* ---------- modifiers ----------
@@ -2258,6 +2471,74 @@ function drawModHandles() {
   octx.restore();
 }
 
+/* Ellipse guide (O), as in Leonardo: an ellipse you place and shape with handles. A stroke that starts within
+   GUIDE_GRAB screen px of it is projected onto it (radially, in the ellipse's own frame) for the whole stroke, so circles
+   and ellipses in perspective come out clean with your own pressure. Strokes that start elsewhere are free. */
+const GUIDE_GRAB = 22, GUIDE_OUT = 26;   // grab distance; handles sit this far outside the ellipse so they don't get in the way
+const guide = Object.assign({ on: false, cx: 0, cy: 0, rx: 200, ry: 200, rot: 0, set: false }, S.guide || {}, { on: !!(S.guide && S.guide.on) });
+function saveGuide() { S.guide = { on: guide.on, cx: guide.cx, cy: guide.cy, rx: guide.rx, ry: guide.ry, rot: guide.rot, set: guide.set }; saveSettings(); }
+function guideLocal(wx, wy) { const dx = wx - guide.cx, dy = wy - guide.cy, c = Math.cos(-guide.rot), s = Math.sin(-guide.rot); return [(dx * c - dy * s) / guide.rx, (dx * s + dy * c) / guide.ry]; }
+function guideWorld(u, v) { const x = u * guide.rx, y = v * guide.ry, c = Math.cos(guide.rot), s = Math.sin(guide.rot); return [guide.cx + x * c - y * s, guide.cy + x * s + y * c]; }
+function guideSnap(wx, wy) { const [u, v] = guideLocal(wx, wy), r = Math.hypot(u, v) || 1; return guideWorld(u / r, v / r); }
+function guideNear(wx, wy) {
+  if (!guide.on) return false;
+  const [px, py] = guideSnap(wx, wy);
+  return Math.hypot(px - wx, py - wy) * view.z <= GUIDE_GRAB;
+}
+function guideHandles() {
+  const out = GUIDE_OUT / view.z;
+  return [{ k: 'c', p: [guide.cx, guide.cy] }, { k: 'a', p: guideWorld(1 + out / guide.rx, 0) }, { k: 'b', p: guideWorld(0, -1 - out / guide.ry) }];
+}
+function guideHit(x, y) {
+  if (!guide.on) return null;
+  let best = null, bd = 12;
+  for (const h of guideHandles()) { const d = Math.hypot(h.p[0] * view.z + view.x - x, h.p[1] * view.z + view.y - y); if (d < bd) { bd = d; best = h; } }
+  return best;
+}
+function dragGuide(A, e) {
+  const w = toWorld(e.clientX, e.clientY), out = GUIDE_OUT / view.z;
+  if (A.h.k === 'c') { guide.cx = w.x - A.ox; guide.cy = w.y - A.oy; }
+  else if (A.h.k === 'a') {
+    const dx = w.x - guide.cx, dy = w.y - guide.cy;
+    guide.rot = Math.atan2(dy, dx); if (e.shiftKey) guide.rot = Math.round(guide.rot / (Math.PI / 12)) * (Math.PI / 12);   // Shift: 15Â° steps
+    guide.rx = Math.max(4, Math.hypot(dx, dy) - out);
+  } else {
+    const [, v] = guideLocal(w.x, w.y);
+    guide.ry = Math.max(4, Math.abs(v) * guide.ry - out);
+    if (e.shiftKey) guide.ry = guide.rx;   // Shift: back to a circle
+  }
+  dirtyOverlay();
+}
+function drawGuide() {
+  const [pr, pg, pb] = hexToRgb(paperColor()), light = (0.299 * pr + 0.587 * pg + 0.114 * pb) / 255 > 0.62;
+  const sx = guide.cx * view.z + view.x, sy = guide.cy * view.z + view.y;
+  octx.save();
+  octx.strokeStyle = light ? 'rgba(27,37,50,0.35)' : 'rgba(255,255,255,0.5)'; octx.lineWidth = 1;
+  octx.beginPath(); octx.ellipse(sx, sy, guide.rx * view.z, guide.ry * view.z, guide.rot, 0, Math.PI * 2); octx.stroke();
+  octx.setLineDash([3, 4]); octx.beginPath();
+  for (const h of guideHandles().slice(1)) { octx.moveTo(sx, sy); octx.lineTo(h.p[0] * view.z + view.x, h.p[1] * view.z + view.y); }
+  octx.stroke(); octx.setLineDash([]);
+  for (const h of guideHandles()) {
+    const x = h.p[0] * view.z + view.x, y = h.p[1] * view.z + view.y;
+    octx.fillStyle = '#fff'; octx.strokeStyle = '#2d6cb0'; octx.lineWidth = 1.5; octx.beginPath();
+    if (h.k === 'c') { octx.arc(x, y, 4, 0, Math.PI * 2); } else if (h.k === 'a') octx.rect(x - 4.5, y - 4.5, 9, 9); else octx.arc(x, y, 5, 0, Math.PI * 2);
+    octx.fill(); octx.stroke();
+  }
+  octx.restore();
+}
+function setGuide(on) {
+  guide.on = on;
+  if (on) {   // first use, or the guide is off screen: put a circle in the middle of the view
+    const sx = guide.cx * view.z + view.x, sy = guide.cy * view.z + view.y;
+    if (!guide.set || sx < 0 || sy < 0 || sx > W || sy > H) { const c = toWorld(W / 2, H / 2); guide.cx = c.x; guide.cy = c.y; guide.rx = guide.ry = Math.min(W, H) * 0.25 / view.z; guide.rot = 0; guide.set = true; }
+    toast('Ellipse guide on: strokes that start on it follow it. Drag the handles to shape it');
+  }
+  $('tGuide').classList.toggle('on', on); $('tGuide').setAttribute('aria-pressed', on);
+  saveGuide(); dirtyOverlay();
+}
+$('tGuide').onclick = () => setGuide(!guide.on);
+$('tGuide').classList.toggle('on', guide.on);
+
 /* ---------- persistence (IndexedDB) ---------- */
 let db = null; const saveSet = new Set(); let saveTimer = 0, saving = false;
 function idbOpen() {
@@ -2334,6 +2615,50 @@ function resize() {
   for (const c of [cv, ov]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
   updateZoomLabel(); dirtyScene();
 }
+/* ---------- canvas rotation ----------
+   The stage, overlay and notes are rotated with CSS about the screen center; everything inside them keeps working in
+   the unrotated frame. Pointer and wheel events aimed at them get their clientX/Y mapped back into that frame
+   (patchEv), with the real screen position kept as rawX/rawY. While rotated, the canvases are squares the size of the
+   screen's diagonal, so the corners stay covered. Views are stored "normalized" (as if not rotated). */
+let rotD = 0, keepRot = false;
+const angWrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+function snapRot(r, shift) {
+  r = angWrap(r);
+  if (shift) return Math.round(r / (Math.PI / 12)) * (Math.PI / 12);   // Shift: 15° steps
+  return Math.abs(r) < 3 * Math.PI / 180 ? 0 : r;   // straight is sticky
+}
+function unrot(x, y) {
+  if (!rotD) return [x, y];
+  const r = view.r || 0, c = Math.cos(-r), s = Math.sin(-r), dx = x - innerWidth / 2, dy = y - innerHeight / 2;
+  return [W / 2 + dx * c - dy * s, H / 2 + dx * s + dy * c];
+}
+const normV = v => ({ ...v, x: v.x - (W - innerWidth) / 2, y: v.y - (H - innerHeight) / 2 });   // the active view as if not rotated
+function rotLayout(fromNormal) {
+  const D = view.r || keepRot ? Math.ceil(Math.hypot(innerWidth, innerHeight)) + 2 : 0;
+  for (const el of [cv, ov, notesEl]) {
+    const st = el.style;
+    if (D) { st.width = st.height = D + 'px'; st.left = (innerWidth - D) / 2 + 'px'; st.top = (innerHeight - D) / 2 + 'px'; st.right = st.bottom = 'auto'; st.transform = 'rotate(' + (view.r || 0) + 'rad)'; }
+    else st.width = st.height = st.left = st.top = st.right = st.bottom = st.transform = '';
+  }
+  if (D !== rotD || fromNormal) {
+    const oldW = W, oldH = H; rotD = D; resize();
+    if (fromNormal) { view.x += (W - innerWidth) / 2; view.y += (H - innerHeight) / 2; } else { view.x += (W - oldW) / 2; view.y += (H - oldH) / 2; }   // keep the drawing where it was
+  }
+  const deg = Math.round((view.r || 0) * 180 / Math.PI);
+  $('rotOut').hidden = !view.r; $('rotOut').textContent = deg + '°';
+  dirtyScene();
+}
+function patchEv(e) {
+  if (!rotD || e._u) return e;
+  const [x, y] = unrot(e.clientX, e.clientY);
+  Object.defineProperties(e, { rawX: { value: e.clientX }, rawY: { value: e.clientY }, clientX: { value: x }, clientY: { value: y }, _u: { value: true } });
+  if (e.getCoalescedEvents) { const g = e.getCoalescedEvents.bind(e); e.getCoalescedEvents = () => g().map(patchEv); }
+  return e;
+}
+for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'wheel']) document.addEventListener(t, e => { if (e.target === ov || notesEl.contains(e.target)) patchEv(e); }, true);
+const rawAng = e => Math.atan2((e.rawY ?? e.clientY) - innerHeight / 2, (e.rawX ?? e.clientX) - innerWidth / 2);
+function setRot(r) { view.r = r; rotLayout(); saveSettings(); }
+
 /* ---------- rendering backends ----------
    WebGL 2 composites on the GPU: every tile is a texture sized to how large it's drawn (with mipmaps), and a live
    stroke is blended over its tiles in the shader. Canvas 2D is the fallback, redrawing only dirty rects. */
@@ -2652,6 +2977,7 @@ function drawOverlay() {
   if (stroke && stroke.line) drawLineGuide(stroke.line);
   if (xf) drawXf();
   if (hl) drawHighlight();
+  if (guide.on && !xf) drawGuide();
   if (modHandlesOn()) drawModHandles();
   if (docArea) drawDocArea();
   if (act && act.type === 'resize') { ring(act.ax, act.ay, S.size / 2 * view.z, 1); return; }
@@ -2754,21 +3080,26 @@ function ring(x, y, r, alpha) {
 }
 
 /* ---------- input ---------- */
-let act = null, penSeen = false, spaceHeld = false, altHeld = false, gest = null;
+let act = null, penSeen = false, spaceHeld = false, altHeld = false, gest = null, rHeld = false;
 const virt = { line: false, pick: false };   // the touch dock's Line / Pick buttons, standing in for Shift / Alt
 const touches = new Map();
 const pressureOf = e => e.pointerType === 'mouse' || e.pointerType === 'touch' ? 1 : (e.pressure > 0 ? e.pressure : 0.04);
 function updateZoomLabel() { $('zoomOut').textContent = Math.round(view.z * dpr * 100) + '%'; }
 function setView(z, wx, wy, sx, sy) { view.z = clamp(z, 0.02 / dpr, 32 / dpr); view.x = sx - wx * view.z; view.y = sy - wy * view.z; updateZoomLabel(); dirtyScene(); }
 function zoomAt(sx, sy, z) { const w = toWorld(sx, sy); setView(z, w.x, w.y, sx, sy); saveSettings(); }
+/* pinch zooms; a twist past 8° also turns the canvas (it snaps straight near 0°) */
 function startPinch() {
   const [a, b] = [...touches.values()];
   const c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  act = { type: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: view.z, w: toWorld(c.x, c.y) };
+  act = { type: 'pinch', d0: Math.hypot(a.rx - b.rx, a.ry - b.ry) || 1, z0: view.z, w: toWorld(c.x, c.y), a0: Math.atan2(b.ry - a.ry, b.rx - a.rx), r0: view.r || 0, twist: false };
 }
 function movePinch() {
   const [a, b] = [...touches.values()];
-  setView(act.z0 * Math.hypot(a.x - b.x, a.y - b.y) / act.d0, act.w.x, act.w.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+  const ang = Math.atan2(b.ry - a.ry, b.rx - a.rx);
+  if (!act.twist && Math.abs(angWrap(ang - act.a0)) > 0.14) { act.twist = true; act.a0 = ang; act.r0 = view.r || 0; keepRot = true; }
+  if (act.twist) { view.r = snapRot(act.r0 + angWrap(ang - act.a0), false); rotLayout(); }
+  const [mx, my] = unrot((a.rx + b.rx) / 2, (a.ry + b.ry) / 2);
+  setView(act.z0 * Math.hypot(a.rx - b.rx, a.ry - b.ry) / act.d0, act.w.x, act.w.y, mx, my);
 }
 function setCursorMode(e) {
   ov.classList.toggle('grab', spaceHeld && !(e && (e.ctrlKey || e.metaKey)));
@@ -2794,7 +3125,7 @@ ov.addEventListener('pointerdown', e => {
   const x = e.clientX, y = e.clientY;
   if (e.pointerType === 'touch') {
     if (act && act.pen) return;   // a resting hand never interrupts the pen
-    touches.set(e.pointerId, { x, y });
+    touches.set(e.pointerId, { x, y, rx: e.rawX ?? x, ry: e.rawY ?? y });
     if (touches.size === 1) gest = { t0: performance.now(), max: 1, moved: false, at: new Map() };   // two/three-finger taps: undo/redo
     if (gest) { gest.max = Math.max(gest.max, touches.size); gest.at.set(e.pointerId, { x, y }); }
     if (touches.size === 2) {
@@ -2805,14 +3136,17 @@ ov.addEventListener('pointerdown', e => {
     if (penSeen) { act = { type: 'pan', id: e.pointerId, lx: x, ly: y }; return; }
   }
   if (act) return;
+  if (rHeld) { act = { type: 'rot', id: e.pointerId, a0: rawAng(e), r0: view.r || 0, moved: false }; keepRot = true; rotLayout(); return; }
   if (spaceHeld && (e.ctrlKey || e.metaKey)) { act = { type: 'zoom', id: e.pointerId, ax: x, ay: y, z0: view.z, w: toWorld(x, y) }; return; }
   if (e.button === 1 || spaceHeld) { act = { type: 'pan', id: e.pointerId, lx: x, ly: y }; ov.classList.add('grabbing'); return; }
   if (e.button === 2) return;
   if (xf) { xfDown(e, x, y); return; }
   if (noteMode && !e.altKey && !e.ctrlKey && !e.metaKey) { addNote(x, y); return; }
-  if (selTool) { selDown(e, x, y); return; }
+  if (selTool === 'fill' && !e.altKey && !virt.pick && !e.ctrlKey && !e.metaKey) { const w = toWorld(x, y); fillAt(w.x, w.y); return; }
+  if (selTool && selTool !== 'fill') { selDown(e, x, y); return; }
   if (e.altKey || virt.pick) { act = { type: 'pick', id: e.pointerId, prev: S.color }; altHeld = e.altKey; hover = { x, y, type: e.pointerType }; pickAt(x, y); return; }
   if (e.ctrlKey || e.metaKey) { act = { type: 'resize', id: e.pointerId, ax: x, ay: y, s0: S.size }; dirtyOverlay(); return; }
+  if (!xf) { const h = guideHit(x, y); if (h) { const w = toWorld(x, y); act = { type: 'guideh', id: e.pointerId, h, ox: w.x - guide.cx, oy: w.y - guide.cy }; return; } }
   if (modHandlesOn()) { const h = modHit(x, y); if (h) { act = { type: 'modh', id: e.pointerId, h }; return; } }
   if (sym.mode !== 'off' && Math.hypot(x - (sym.cx * view.z + view.x), y - (sym.cy * view.z + view.y)) < 14) { act = { type: 'axis', id: e.pointerId }; return; }
   const erase = S.erase || e.button === 5 || (e.buttons & 32) !== 0;
@@ -2830,7 +3164,7 @@ function startDraw(x, y, p, erase, shift) {
 ov.addEventListener('pointermove', e => {
   hover = { x: e.clientX, y: e.clientY, type: e.pointerType };
   if (e.pointerType === 'touch' && touches.has(e.pointerId)) {
-    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY, rx: e.rawX ?? e.clientX, ry: e.rawY ?? e.clientY });
     const g = gest && gest.at.get(e.pointerId); if (g && Math.hypot(e.clientX - g.x, e.clientY - g.y) > 14) gest.moved = true;
   }
   if (!act) { altHeld = e.altKey; if (xf) xfCursor(e.clientX, e.clientY); dirtyOverlay(); return; }
@@ -2842,6 +3176,8 @@ ov.addEventListener('pointermove', e => {
     // same speed at every zoom: 1 screen px of drag = 2 px of diameter, as at 100%
     case 'resize': S.size = clamp(act.s0 + 2 * (e.clientX - act.ax) * dpr, 1, 3000); syncSize(); dirtyOverlay(); break;
     case 'modh': dragModHandle(act, e); break;
+    case 'rot': { const d = angWrap(rawAng(e) - act.a0); if (Math.abs(d) > 0.01) act.moved = true; view.r = snapRot(act.r0 + d, e.shiftKey); rotLayout(); break; }
+    case 'guideh': dragGuide(act, e); break;
     case 'axis': { const w = toWorld(e.clientX, e.clientY); sym.cx = w.x; sym.cy = w.y; dirtyOverlay(); break; }
     case 'pick': pickAt(e.clientX, e.clientY); break;
     case 'sel': {
@@ -2878,7 +3214,7 @@ function pointerEnd(e) {
       const g = gest; gest = null;
       if (!g.moved && performance.now() - g.t0 < 400 && (g.max === 2 || g.max === 3)) setTimeout(() => { if (g.max === 2) undo(); else redo(); toast(g.max === 2 ? 'Undo' : 'Redo'); });
     }
-    if (act && act.type === 'pinch') { if (touches.size < 2) { act = null; saveSettings(); } return; }
+    if (act && act.type === 'pinch') { if (touches.size < 2) { const tw = act.twist; act = null; if (tw) { keepRot = false; rotLayout(); } saveSettings(); } return; }
   }
   if (!act || e.pointerId !== act.id) return;
   if (act.type === 'draw') {
@@ -2889,6 +3225,8 @@ function pointerEnd(e) {
   else if (act.type === 'selmove') setSel(act.dx || act.dy ? shiftSel(sel, act.dx, act.dy) : null);   // a click inside deselects
   else if (act.type === 'move') { const A = act; act = null; endMove(A); }
   else if (act.type === 'modh') { saveLayers(); renderMods(); }
+  else if (act.type === 'guideh') saveGuide();
+  else if (act.type === 'rot') { keepRot = false; if (!act.moved) { view.r = 0; toast('Rotation reset'); } rotLayout(); }
   else if (act.type === 'pick') { if (virt.pick) setVirt('pick', false); if (S.color !== act.prev) addRecent(S.color); }
   act = null; ov.classList.remove('grabbing'); saveSettings(); dirtyOverlay();
 }
@@ -2992,6 +3330,7 @@ addEventListener('keydown', e => {
   const t = e.target, tag = t.tagName;
   if ((tag === 'INPUT' && (t.type === 'number' || t.type === 'text')) || tag === 'SELECT' || tag === 'TEXTAREA') return;
   if (e.key === 'Shift') { if (!e.repeat) setLineMode(true); return; }
+  if (k0(e) === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) { rHeld = true; ov.classList.add('grab'); return; }
   if (e.code === 'Space') { e.preventDefault(); spaceHeld = true; notesEl.classList.add('pass'); setCursorMode(e); dirtyOverlay(); return; }
   if (e.key === 'Control' || e.key === 'Meta') { setCursorMode(e); return; }
   if (e.key === 'Alt') { e.preventDefault(); altHeld = true; dirtyOverlay(); return; }   // preventDefault keeps the browser menu bar from taking focus
@@ -3000,9 +3339,11 @@ addEventListener('keydown', e => {
     if (k === 'enter') { e.preventDefault(); xfEnd(true); }
     else if (k === 'escape' || (mod && k === 'z')) { e.preventDefault(); xfEnd(false); }
     else if (mod && k === 't') e.preventDefault();
+    else if (xf.liq && (k === '[' || k === ']')) { S.size = clamp(k === '[' ? S.size / 1.15 : S.size * 1.15, 1, 3000); syncSize(); dirtyOverlay(); saveSettings(); }
     return;
   }
   if (mod && !e.shiftKey && !e.altKey && k === 't') { e.preventDefault(); startTransform(); return; }
+  if (mod && e.shiftKey && !e.altKey && k === 'x') { e.preventDefault(); startTransform(true); return; }
   if (mod && !e.shiftKey && !e.altKey && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); jumpGroup(+e.code.slice(5)); return; }
   if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && k === 'y') { e.preventDefault(); redo(); return; }
@@ -3014,8 +3355,11 @@ addEventListener('keydown', e => {
     if ((k === 'c' || k === 'x') && !e.shiftKey) { e.preventDefault(); copySel(k === 'x'); return; }
     if (k === 'v' && !e.shiftKey) { e.preventDefault(); pasteClip(); return; }
   }
+  if (k === 'backspace' && (e.altKey || e.shiftKey) && !mod) { e.preventDefault(); fillSel(); return; }   // Photoshop: Alt+Backspace fills with the foreground color
   if (mod || e.altKey) return;
-  if (k === 'b') { setSelTool(null); setErase(false); }
+  if (k === 'g') setSelTool(selTool === 'fill' ? null : 'fill');
+  else if (k === 'o') setGuide(!guide.on);
+  else if (k === 'b') { setSelTool(null); setErase(false); }
   else if (k === 'e') { const on = selTool ? true : !S.erase; setSelTool(null); setErase(on); }
   else if (k === 's') setSelTool(selTool === 'rect' ? 'ellipse' : 'rect');
   else if (k === 'l') setSelTool('lasso');
@@ -3030,18 +3374,20 @@ addEventListener('keydown', e => {
   else if (k === 'm') { const order = ['off', 'v', 'h', 'both', 'radial']; setSym(order[(order.indexOf(sym.mode) + 1) % order.length]); }
   else if (k === 'tab') { e.preventDefault(); $('ui').classList.toggle('hidden'); }
   else if (k === '0') zoomAt(W / 2, H / 2, 1 / dpr);
-  else if (k === '?' || k === '/') toggleWelcome();
+  else if (k === '?' || k === '/') toggleKeys();
   else if (k === 'v') toggleBrushColor();
   else if (k === 'escape' && cpOpen()) closeCP();
 });
+const k0 = e => (e.key || '').toLowerCase();
 addEventListener('keyup', e => {
+  if (k0(e) === 'r') { rHeld = false; if (!spaceHeld) ov.classList.remove('grab'); return; }
   if (e.key === 'Shift') { setLineMode(virt.line); return; }
   if (e.key === 'Alt') { e.preventDefault(); altHeld = false; dirtyOverlay(); return; }
   if (e.code === 'Space') { e.preventDefault(); spaceHeld = false; notesEl.classList.remove('pass'); setCursorMode(e); dirtyOverlay(); }
   else if (e.key === 'Control' || e.key === 'Meta') setCursorMode(e);
 });
-addEventListener('blur', () => { spaceHeld = false; altHeld = false; notesEl.classList.remove('pass'); setCursorMode(null); dirtyOverlay(); });
-addEventListener('resize', resize);
+addEventListener('blur', () => { spaceHeld = false; altHeld = false; rHeld = false; notesEl.classList.remove('pass'); setCursorMode(null); dirtyOverlay(); });
+addEventListener('resize', () => { if (rotD) { rotD = -1; rotLayout(); } else resize(); });
 addEventListener('dragover', e => e.preventDefault());
 addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files.length) importFiles(e.dataTransfer.files); });
 
@@ -3075,6 +3421,13 @@ $('tBrush').onclick = () => { setSelTool(null); setErase(false); };
 $('tErase').onclick = () => { setSelTool(null); setErase(true); };
 for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand']]) $(id).onclick = () => setSelTool(selTool === t ? null : t);
 $('selInv').onclick = () => setSel(invertSel(sel));
+$('selFill').onclick = fillSel;
+$('tFill').onclick = () => setSelTool(selTool === 'fill' ? null : 'fill');
+if (S.fillTol == null) S.fillTol = 24; if (S.fillAll == null) S.fillAll = true; if (S.fillGrow == null) S.fillGrow = 1;
+$('fillTol').value = S.fillTol; $('fillGrow').value = S.fillGrow; $('fillAll').classList.toggle('on', S.fillAll);
+$('fillTol').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 255) { S.fillTol = v; saveSettings(); } });
+$('fillGrow').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 8) { S.fillGrow = v; saveSettings(); } });
+$('fillAll').onclick = () => { S.fillAll = !S.fillAll; $('fillAll').classList.toggle('on', S.fillAll); saveSettings(); };
 $('selNone').onclick = () => setSel(null);
 $('tol').value = S.tol;
 $('tol').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 255) { S.tol = v; saveSettings(); } });
@@ -3231,8 +3584,9 @@ function showPanel(which, open, remember) {
 }
 $('brushBtn').onclick = () => showPanel('brush', $('brushPanel').hidden, true);
 $('layersBtn').onclick = () => showPanel('layers', $('layerPanel').hidden, true);
-$('helpBtn').onclick = toggleWelcome;
+$('helpBtn').onclick = () => toggleKeys();
 $('zoomOut').onclick = () => zoomAt(W / 2, H / 2, 1 / dpr);
+$('rotOut').onclick = () => setRot(0);
 
 /* layers panel */
 const EYE = '<svg viewBox="0 0 18 18"><path d="M1.5 9S4.2 4 9 4s7.5 5 7.5 5-2.7 5-7.5 5S1.5 9 1.5 9z"/><circle cx="9" cy="9" r="2.2"/></svg>';
@@ -3380,6 +3734,7 @@ $('blend').onchange = e => { cur.blend = e.target.value; e.target.blur(); render
 $('tXf').onclick = () => xf ? xfEnd(true) : startTransform();
 $('xfWarp').onclick = xfWarp; $('xfFlipH').onclick = () => xfFlip(true); $('xfFlipV').onclick = () => xfFlip(false);
 $('xfCancel').onclick = () => xfEnd(false); $('xfOk').onclick = () => xfEnd(true);
+$('tLiq').onclick = () => xf ? (xf.liq ? xfEnd(true) : null) : startTransform(true);
 $('modAdd').onclick = addArray; $('modApply').onclick = applyMods;
 function renderMods() {
   const box = $('mods'); box.innerHTML = '';
@@ -3424,11 +3779,11 @@ function renderMods() {
     el.append(head, modes, rows, piv, note); box.appendChild(el);
   });
 }
-$('selDoc').onclick = newDoc; $('newDoc').onclick = newDoc;
+$('selDoc').onclick = newDoc; $('newDoc').onclick = newDoc; $('newDocMenu').onclick = newDocMenu;
 $('docW').addEventListener('input', () => setDocSize(+$('docW').value, docArea.h));
 $('docH').addEventListener('input', () => setDocSize(docArea.w, +$('docH').value));
 $('docSwap').onclick = () => { setDocSize(docArea.h, docArea.w); $('docW').value = docArea.w; $('docH').value = docArea.h; };
-for (const [label, w, h] of [['HD', 1920, 1080], ['4K', 3840, 2160], ['Square', 2048, 2048], ['A4 300 dpi', 2480, 3508]]) {
+for (const [label, w, h] of DOC_PRESETS) {
   const b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.title = w + ' × ' + h + ' px';
   b.onclick = () => { setDocSize(w, h); $('docW').value = w; $('docH').value = h; };
   $('docPresets').appendChild(b);
@@ -3539,6 +3894,113 @@ let toastTimer = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 2400); }
 function hideWelcome() { $('welcome').classList.add('gone'); }
 function toggleWelcome() { $('welcome').classList.toggle('gone'); }
+/* movable toolbar, panels and dock. Positions are saved in S.layout; a panel that was moved floats (position: fixed). */
+const MOVABLE = [];
+function makeMovable(el, grip, key) {
+  S.layout = S.layout || {};
+  const apply = () => {
+    const p = S.layout[key];
+    if (!p) { el.classList.remove('moved'); el.style.left = el.style.top = el.style.transform = ''; return; }
+    el.classList.add('moved');
+    el.style.left = clamp(p.x, 4 - el.offsetWidth + 60, innerWidth - 60) + 'px'; el.style.top = clamp(p.y, 0, innerHeight - 24) + 'px'; el.style.transform = 'none';
+  };
+  grip.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    const r = el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, id = e.pointerId; let moved = false;
+    const mv = ev => {
+      if (ev.pointerId !== id || (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 4)) return;
+      moved = true; S.layout[key] = { x: Math.round(r.left + ev.clientX - sx), y: Math.round(r.top + ev.clientY - sy) }; apply();
+    };
+    const up = ev => { if (ev.pointerId !== id) return; removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); if (moved) saveSettings(); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  });
+  grip.addEventListener('dblclick', () => { delete S.layout[key]; apply(); saveSettings(); });
+  MOVABLE.push(apply); apply();
+}
+addEventListener('resize', () => MOVABLE.forEach(f => f()));
+makeMovable($('bar'), $('barGrip'), 'bar');
+makeMovable($('brushPanel'), $('brushPanel').querySelector('.pgrip'), 'brush');
+makeMovable($('layerPanel'), $('layerPanel').querySelector('.pgrip'), 'layers');
+makeMovable($('dock'), $('dock').querySelector('.pgrip'), 'dock');
+$('layoutReset').onclick = () => { S.layout = {}; MOVABLE.forEach(f => f()); saveSettings(); toast('Toolbar and panels are back in place'); };
+
+/* the shortcut list: one source for the ? sheet (keep README and CLAUDE.md in step with it) */
+const K = (...a) => a.map(x => '<kbd>' + x + '</kbd>').join(' + ');
+const KEYS = [
+  ['Draw', [
+    ['Hold ' + K('Shift'), 'Straight line (a ruler): snaps to 10° and the 45° guides, one steady weight. Works with the eraser'],
+    [K('Ctrl') + ' + drag', 'Resize the brush (same speed at any zoom)'],
+    [K('[') + ' ' + K(']'), 'Smaller / larger brush (or type it in the px box)'],
+    [K('B') + ' ' + K('E'), 'Brush / eraser'],
+    [K('G'), 'Fill: click an area to fill it with the brush color'],
+    ['Hold ' + K('Alt'), 'Pick a color: preview, then click or drag'],
+    [K('V'), 'Color menu'],
+    [K('M'), 'Cycle mirror: off, left/right, top/bottom, both, radial'],
+    [K('O'), 'Ellipse guide: strokes that start on it follow it. Drag the square to size and turn it, the round handle to squash it (Shift: circle), the center to move it'],
+  ]],
+  ['View', [
+    [K('Space') + ' + drag', 'Pan (or middle mouse, or two fingers)'],
+    [K('Ctrl') + ' + ' + K('Space') + ' + drag', 'Zoom (right or up zooms in). Wheel and pinch work too'],
+    [K('0'), 'Reset zoom to 100%'],
+    ['Hold ' + K('R') + ' + drag', 'Rotate the canvas around the middle of the screen (Shift: 15° steps; it snaps straight near 0°). R + click straightens it'],
+    ['Two-finger twist', 'Rotate the canvas on a touch screen (pinch zooms as before)'],
+    [K('Tab'), 'Hide the panels'],
+    ['Drag the dotted grip', 'Move the toolbar, a panel or the touch dock anywhere. Double-click the grip to put it back'],
+    [K('Ctrl') + ' + ' + K('1') + '–' + K('9'), 'Jump to a group and frame its drawing'],
+  ]],
+  ['Select', [
+    [K('S'), 'Rectangle select (press again for ellipse)'],
+    [K('L') + ' ' + K('W'), 'Lasso / magic wand'],
+    [K('Shift') + ' / ' + K('Alt'), 'While selecting: add / subtract (both: intersect)'],
+    [K('Ctrl') + ' + drag', 'With a select tool: move the selected pixels'],
+    [K('Delete'), 'Clear the selected pixels'],
+    [K('Alt') + ' + ' + K('Backspace'), 'Fill the selection with the brush color'],
+    [K('Ctrl') + ' + ' + K('D'), 'Deselect (or Esc)'],
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('I'), 'Invert the selection'],
+    [K('Ctrl') + ' + ' + K('A'), 'Select all'],
+    [K('Ctrl') + ' + ' + K('C') + ' / ' + K('X') + ' / ' + K('V'), 'Copy / cut / paste in place on a new layer'],
+    [K('Ctrl') + ' + ' + K('T'), 'Free transform (Ctrl+corner distorts, Warp bends). Enter applies, Esc cancels'],
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('X'), 'Liquify the selection (or layer): Push, Twirl, Bloat, Restore. Alt reverses twirl and bloat. Enter applies, Esc cancels'],
+  ]],
+  ['Layers', [
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('N'), 'New layer'],
+    [K('X'), 'Delete the active layer'],
+    [K('Ctrl') + ' + click', 'In the layers panel: flash that layer’s drawing'],
+  ]],
+  ['Other', [
+    [K('Ctrl') + ' + ' + K('Z'), 'Undo'],
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('Z'), 'Redo (or Ctrl+Y)'],
+    [K('T'), 'Place a note'],
+    [K('?'), 'This list'],
+  ]],
+  ['iPad and touch', [
+    ['Two-finger tap', 'Undo'],
+    ['Three-finger tap', 'Redo'],
+    ['Line (left dock)', 'Hold while drawing for a straight line, or tap to keep it on'],
+    ['Pick (left dock)', 'The next touch picks a color'],
+  ]],
+];
+function renderKeys() {
+  const q = $('keysQ').value.trim().toLowerCase(), box = $('keysList'); box.innerHTML = '';
+  let n = 0;
+  for (const [group, rows] of KEYS) {
+    const hit = rows.filter(([k, d]) => !q || (group + ' ' + k.replace(/<[^>]+>/g, '') + ' ' + d).toLowerCase().includes(q));
+    if (!hit.length) continue;
+    const h = document.createElement('h3'); h.textContent = group; box.appendChild(h);
+    const g = document.createElement('div'); g.className = 'keys';
+    for (const [k, d] of hit) { const a = document.createElement('span'); a.innerHTML = k; const b = document.createElement('span'); b.textContent = d; g.append(a, b); n++; }
+    box.appendChild(g);
+  }
+  if (!n) box.innerHTML = '<p class="empty">No shortcut matches that.</p>';
+}
+function toggleKeys(open = $('keysDlg').hidden) {
+  $('keysDlg').hidden = !open;
+  if (open) { hideWelcome(); $('keysQ').value = ''; renderKeys(); setTimeout(() => $('keysQ').focus()); }
+}
+$('keysQ').addEventListener('input', renderKeys);
+$('keysQ').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') toggleKeys(false); });
+$('keysClose').onclick = () => toggleKeys(false);
+$('keysDlg').addEventListener('pointerdown', e => { if (e.target === $('keysDlg')) toggleKeys(false); });
 
 /* ---------- export ---------- */
 let exportBlob = null, exportUrl = null;
@@ -3581,6 +4043,8 @@ startWorker();
 resize();
 loadNotes();
 if (!hadView) { view.z = 1 / dpr; view.x = W / 2; view.y = H / 2; }
+if (!isFinite(view.r)) view.r = 0;
+if (view.r) rotLayout(true);
 updateZoomLabel();
 builtinBrushes();
 initLayers(); renderLayers();

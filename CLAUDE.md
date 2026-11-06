@@ -88,6 +88,35 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - `#pressBtn`: a click toggles pen pressure for the current tool (remembering which of size and opacity were on, in `S.pPrev`). A long-press or right-click opens the brush panel at Dynamics.
 - `#sizePx`: brush diameter in px beside the ? button, and you can type in it.
 
+**Fill** (G; added 2026-11-06). `fillAt` takes a contiguous `wandSel` and then grows it under anti-aliased edges (`growMask`, 4-neighbour dilation, `S.fillGrow` px, default 1). The selection is intersected in, and `fillBound()` clips it to the page, or to the screen on the canvas, because an open area would be endless. `fillMask` paints the brush color at brush opacity; it's one tiles undo step.
+- The wand takes options (`{tol, contig, all}`). `all` samples the composite of all visible layers, drawn per tile into a scratch canvas (`S.fillAll`, default on), so line art on another layer bounds the fill.
+- Fill selection: Alt+Backspace, Shift+Backspace, or the Fill button.
+
+**Ellipse guide** (O; `guide`, saved in `S.guide`; added 2026-11-06, Ben asked for "a circle guide tool like in Leonardo").
+- A stroke that starts within `GUIDE_GRAB` (22 screen px) of the ellipse has `stroke.snap` set, and every input point is projected radially onto the ellipse (`guideSnap`, in the ellipse's own frame) before smoothing. Strokes that start elsewhere are free.
+- Handles sit `GUIDE_OUT` px outside the curve, so they don't block drawing on it:
+  - center: move
+  - square: size and turn (Shift: 15° steps)
+  - round: squash (Shift: back to a circle)
+
+**Canvas rotation** (hold R and drag, two-finger twist, `#rotOut` pill to reset; added 2026-11-06).
+- **CSS rotation, not renderer math:** `#stage`, `#ov` and `#notes` are rotated about the screen center (`rotLayout`). While rotated, they're squares the size of the screen's diagonal (`rotD`). `keepRot` holds that layout through a drag, so crossing 0° doesn't reallocate the canvases.
+- A capture listener (`patchEv`) rewrites clientX/Y on pointer and wheel events aimed at those elements into the unrotated frame, keeping `rawX`/`rawY`. So every tool, handle and renderer is untouched.
+- Views are stored *normalized*, as if not rotated (`normV`), in settings and in `switchWS`. `rotLayout(true)` re-applies the layout offset.
+- `snapRot` makes 0° sticky within 3°; Shift gives 15° steps. A twist only starts turning the canvas past 8°.
+- The Alt picker's preview box turns with the canvas.
+
+**Liquify** (Ctrl+Shift+X or the toolbar button; added 2026-11-06). It's a mode of free transform: `startTransform(true)` sets `xf.liq`, a fine grid of up to 160×160 cells, about 10 px each.
+- The brush (`liqStep`, falloff (1−t²)², size = brush size, strength = brush opacity) moves grid points with Push, Twirl, Bloat or Restore; Alt reverses twirl and bloat.
+- Twirl, bloat and restore keep going while the pen is held still (a 30 ms timer).
+- Preview, commit, selection follow and undo are the transform's. `meshFor(N)` keeps an index buffer per grid size, and `xf.gen` invalidates the preview cache.
+- In liquify, [ and ] resize the brush.
+
+**Panels and menus (2026-11-06).**
+- `makeMovable`: the toolbar (`#barGrip`), the brush and layers panels and the touch dock (`.pgrip`) drag anywhere. Positions go in `S.layout`, and a moved element gets `.moved` (fixed). Double-clicking a grip resets it, and so does Reset panel positions in the shortcut sheet.
+- `showMenu(anchor, items)` is a small pop-up menu, used by the New doc ▾ presets (`DOC_PRESETS`, shared with the Doc size dialog; `presetDoc` centers on the selection or screen; `S.docBlank` makes blank pages), and meant for the App edition's menu bar.
+- **Shortcut sheet** (`?`, `#keysDlg`): searchable, built from `KEYS`. **That array is now the source for the in-app shortcut list**, and the welcome card only lists the basics.
+
 **Paper color.** The default paper (background) is neutral gray `#808080` (Ben's request). Saved papers still on an old default (`#f7f9fb`, `#fbfaf6`) move to it; a paper color he picked himself is kept. The brush color persists between sessions as before.
 
 **Resize readout.** Ctrl+drag shows only the ring. The px label and the toast were removed at Ben's request.
@@ -154,6 +183,12 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Flash a layer's drawing | Ctrl + click a layer or group row: accent-tinted silhouette plus dashed bounds, fading over 1.6 s (`highlight`). It doesn't change the active layer. |
 | Size | [ / ], or type it in the px box beside ? |
 | Color menu | V (at the cursor), or click the color swatch |
+| Fill | G (Tolerance, All layers and Grow show in the toolbar). Alt+Backspace or Shift+Backspace fills the selection |
+| Ellipse guide | O. Strokes that start on it follow it; drag the center, the square (size and turn) and the round handle (squash; Shift for a circle) |
+| Rotate canvas | Hold R + drag (Shift: 15°; it snaps straight near 0°), R + click straightens, two-finger twist on touch, click the ° pill to reset |
+| Liquify | Ctrl+Shift+X: Push / Twirl / Bloat / Restore, Alt reverses, brush size and opacity set size and strength, Enter applies |
+| Move panels | Drag the dotted grip on the toolbar, a panel or the dock. Double-click to reset |
+| Shortcut sheet | ? (searchable) |
 | iPad | Two-finger tap = undo, three-finger tap = redo. Dock on the left: Line (hold, or tap to latch) = Shift, Pick = Alt, Undo, Redo |
 | Mirror cycle | M (off, vertical, horizontal, both, radial; Kaleido option; drag the center handle) |
 | Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |

@@ -14,7 +14,7 @@ Ben's list from 2026-11-06, grouped into phases. One codebase serves two edition
 
 Both editions are the same code. The App's extra features load only when the app is installed or the `?app` flag is set, so the web version stays light and the drawing path never changes.
 
-## Phase 1: iPad and quick wins (in progress)
+## Phase 1: iPad and quick wins (done)
 
 - [x] iPad / Apple Pencil:
   - installable PWA (manifest, offline service worker, icon)
@@ -27,15 +27,15 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] Color menu matches the app's theme (no OS color dialog); the color and recent colors are kept on exit
 - [x] Shift line: steady weight along the whole line; works with the eraser
 
-## Phase 2: drawing tools
+## Phase 2: drawing tools (done)
 
-- [ ] **Rotate canvas** (R + drag, or two-finger twist on iPad). Easy in the WebGL vertex shader.
-- [ ] **Fill bucket** (G) and **Fill selection** (Shift+Backspace, as in Photoshop)
-- [ ] **Circle / ellipse guide** like Leonardo: place a guide ellipse, and strokes near it snap onto it
-- [ ] **Liquify inside a selection**: push, twirl, pinch and bloat brushes on the lifted pixels, reusing the transform's mesh renderer
-- [ ] **Document size presets** straight from New doc (1920×1080, 4K, square, A4, iPad screen)
-- [ ] **Hotkey menu**: a searchable cheat sheet on `?`
-- [ ] **Movable panels**: drag the toolbar groups and panels anywhere, and the layout is remembered
+- [x] **Rotate canvas** (hold R and drag, or a two-finger twist on iPad)
+- [x] **Fill bucket** (G) and **Fill selection** (Shift+Backspace, as in Photoshop)
+- [x] **Circle / ellipse guide** like Leonardo: place a guide ellipse, and strokes near it snap onto it
+- [x] **Liquify inside a selection**: push, twirl, pinch and bloat brushes on the lifted pixels, reusing the transform's mesh renderer
+- [x] **Document size presets** straight from New doc (1920×1080, 4K, square, A4, iPad screen)
+- [x] **Hotkey menu**: a searchable cheat sheet on `?`
+- [x] **Movable panels**: drag the toolbar groups and panels anywhere, and the layout is remembered
 
 ## Phase 3: App edition, workspace
 

@@ -12,7 +12,12 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Selections, Photoshop-style.** Rectangle and ellipse (S), lasso (L) and magic wand (W, with tolerance and contiguous options). Shift adds, Alt subtracts, Shift+Alt intersects. The brush and eraser only paint inside the selection. Delete clears it, Ctrl+drag moves the selected pixels, Ctrl+C / X / V copy, cut and paste in place on a new layer. Ctrl+Shift+I inverts and Ctrl+D deselects.
 - **Free transform (Ctrl+T), Photoshop-style.** Scale from corners (Shift for free proportions, Alt from the center), rotate by dragging outside (Shift for 15° steps), Ctrl+drag a corner to distort or add perspective, Ctrl+drag an edge to skew, flip, or switch to **Warp** to bend the image with a 4×4 mesh. Works on the selection, or the whole layer. Enter applies, Esc cancels, and it's one undo step.
 - **Modifier stack, Blender-style.** In the layers panel, **+ Array** repeats the layer. **Linear** sets the count, X/Y offset, rotation and scale per copy; **Radial** spreads the copies evenly around a pivot. Everything is on sliders, and you can drag the pivot ring and the offset arrow right on the canvas. Stack two arrays for a grid. The copies are live: they follow whatever you paint. **Apply** bakes them into pixels. Export, merge and documents use the result.
-- **Documents with blend modes.** Press **New doc** (or **Open as document** with a selection) and that area of the canvas, or what’s on screen with no selection, is copied into its own tab. Change the page size afterwards with **Doc size**, which keeps the drawing centered. Each document is a fixed-size page, Photoshop-style, where each layer can use Normal, Multiply, Screen, Overlay, Darken, Lighten, Add or Soft light. Open several at once and switch with the tabs. The canvas is never changed. Documents aren’t saved yet, so export anything you want to keep.
+- **Documents with blend modes.** Press **New doc** (its ▾ menu has presets: HD, 4K, square, 4:5, A4, iPad) (or **Open as document** with a selection) and that area of the canvas, or what’s on screen with no selection, is copied into its own tab. Change the page size afterwards with **Doc size**, which keeps the drawing centered. Each document is a fixed-size page, Photoshop-style, where each layer can use Normal, Multiply, Screen, Overlay, Darken, Lighten, Add or Soft light. Open several at once and switch with the tabs. The canvas is never changed. Documents aren’t saved yet, so export anything you want to keep.
+- **Fill (G).** Click an area to fill it with the brush color. By default it looks at all visible layers, so line art on its own layer works, and it grows a pixel under soft edges. Alt+Backspace fills a selection.
+- **Ellipse guide (O)**, like Leonardo's. Strokes that start on the ellipse follow it exactly, with your own pressure. Drag its handles to move it, size it, squash it into perspective and turn it.
+- **Rotate the canvas.** Hold R and drag, or twist two fingers on a touch screen. It snaps straight near 0°, and the ° readout beside the zoom resets it.
+- **Liquify (Ctrl+Shift+X).** Push, twirl, bloat and restore the selection (or the layer) with a brush, then Enter to apply.
+- **Your layout.** Drag the dotted grip to move the toolbar, the panels or the touch dock anywhere. Press ? for a searchable list of every shortcut.
 - **Notes.** Press T (or the note button) and click to pin a text note to the canvas. Notes are see-through, with a dark ink that multiplies into the drawing. Notes pan and zoom with the drawing; drag the top strip to move one. They aren't included in PNG export.
 - **Find a layer's drawing.** Ctrl+click a layer or group in the layers panel to flash its contents on the canvas.
 - **Color picker preview.** Hold Alt to see the color under the cursor next to your current one, then click or drag to pick it.
@@ -51,6 +56,11 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 | Smaller / larger brush | [ / ] (or type a size in the px box) |
 | Color menu | V |
 | Undo / redo on iPad | Two-finger tap / three-finger tap |
+| Fill / fill selection | G / Alt + Backspace |
+| Ellipse guide | O |
+| Rotate canvas | Hold R + drag (R + click straightens) |
+| Liquify | Ctrl + Shift + X |
+| All shortcuts | ? |
 | Cycle mirror mode | M |
 | Undo / redo | Ctrl + Z / Ctrl + Shift + Z |
 | New layer | Ctrl + Shift + N |
