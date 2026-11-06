@@ -20,8 +20,10 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Custom alpha brushes.** Import any PNG or JPG as a brush tip (white paints, black is empty, or use the PNG's transparency). Drop images straight onto the canvas.
 - **Clean anti-aliasing.** Round tips are drawn as continuous strokes using exact distance to the stroke path, and image tips use max blending, so edges stay smooth at every angle and size.
 - **Independent brush and eraser.** Each keeps its own tip, size, opacity, spacing, smoothing, pressure and rotation settings.
-- **Straight lines.** Hold Shift (or Shift+click) and drag a line out from that point. It follows your pen, snapping to 10° steps and onto the faint guide lines at 0°, 45°, 90° and 135°, and it's drawn with your real brush and pen pressure. Release Shift to go back to freehand from the end of the line.
-- **Pen pressure** for size and/or opacity, plus stroke smoothing.
+- **Straight lines.** Hold Shift (or Shift+click) and drag a line out from that point. It follows your pen, snapping to 10° steps and onto the faint guide lines at 0°, 45°, 90° and 135°, and it's drawn with your real brush at one steady weight. It works with the eraser too. Release Shift to go back to freehand from the end of the line.
+- **Pen pressure** for size and/or opacity, plus stroke smoothing. The pressure button in the toolbar turns it on and off; long-press or right-click it for the settings.
+- **Color menu.** Press V (or click the color swatch) for a color square, hue bar, hex box, swatches and your recent colors. Your color and recent colors are kept between sessions.
+- **iPad and Apple Pencil.** Open the site in Safari, tap Share → Add to Home Screen, and it runs full screen and offline like an app. Pencil pressure works. Two-finger tap undoes, three-finger tap redoes, and a resting hand never interrupts the Pencil. The dock on the left gives you **Line** (hold, or tap to keep on: straight lines like Shift) and **Pick** (eyedropper, like Alt) without a keyboard.
 - **Autosave** in your browser, and PNG export trimmed to your drawing.
 
 ## Shortcuts
@@ -46,7 +48,9 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 | Place a note | T, then click |
 | Delete layer | X |
 | Flash a layer's drawing | Ctrl + click it in the layers panel |
-| Smaller / larger brush | [ / ] |
+| Smaller / larger brush | [ / ] (or type a size in the px box) |
+| Color menu | V |
+| Undo / redo on iPad | Two-finger tap / three-finger tap |
 | Cycle mirror mode | M |
 | Undo / redo | Ctrl + Z / Ctrl + Shift + Z |
 | New layer | Ctrl + Shift + N |
@@ -56,7 +60,8 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 ## Notes
 
 - Drawings are saved in your browser's local storage on that device. Clearing site data erases them, so export anything you want to keep.
-- Everything is in a single `index.html` file with no build step.
+- Everything is in a single `index.html` file with no build step. `manifest.webmanifest`, `sw.js` and `icons/` only make it installable.
+- See [ROADMAP.md](ROADMAP.md) for what's planned (the web and App editions).
 
 ## License
 

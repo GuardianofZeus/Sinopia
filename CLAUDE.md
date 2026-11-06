@@ -8,7 +8,8 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 - **Stroke smoothness and latency.** Ben's top praise was how smooth drawing feels. Never put framework or DOM work on the drawing hot path. No React for the canvas.
 - **Clean anti-aliasing at every angle and size.** Verify with `tools/stroke-sim.js` after any change to the engine.
-- **Single file, no build step**, unless Ben explicitly asks to change that.
+- **Single file, no build step**, unless Ben explicitly asks to change that. The app itself is all in `index.html`. `manifest.webmanifest`, `sw.js` and `icons/` only make it installable (iPad Home Screen, desktop install); it runs without them.
+- **Two editions, one codebase** (Ben, 2026-11-06): a light web version and a full downloadable "App" version. iPad comes first, as a PWA (Apple only allows native iPad builds on a Mac). See `ROADMAP.md` for the phases. App-only features must not touch the drawing hot path.
 
 ## Architecture (all in `index.html`)
 
@@ -67,6 +68,26 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - Notes aren't in undo or in the PNG export.
 - While Space is held, notes ignore the pointer so panning works over them. Wheel events over a note go to the same `onWheel` as the canvas.
 
+**iPad / touch** (added 2026-11-06).
+- PWA: the manifest, Apple meta tags and `sw.js` (cache-first, refreshed in the background). The service worker registers only over https, so local testing never serves a stale copy. `IOS` detects iPadOS, which reports itself as a Mac, and halves the WebGL texture budget to 160 MB.
+- `touch-action: manipulation` on controls and `gesturestart` prevented, so there's no page zoom. There's no callout or text selection.
+- **Gestures**: `gest` tracks a touch sequence; a two-finger tap (no movement over 14 px, under 400 ms) undoes, and a three-finger tap redoes. While a pen stroke is down (`act.pen`), touches are ignored entirely, so a resting palm can't cancel it (before, a second touch cancelled the stroke to start a pinch).
+- **Touch dock** (`#dock`, shown on coarse pointers or iOS; Tab hides it with the rest of the UI):
+  - Line stands in for Shift via `virt.line`. Holding it works like holding Shift; a quick tap latches it on or off.
+  - Pick stands in for Alt via `virt.pick`, for one pick.
+  - Undo and Redo.
+- Settings are flushed on `pagehide` / `visibilitychange` (`flushSettings`, `flushSave`), since iPad may kill a backgrounded app.
+
+**Color menu** (`#cpop`, `openCP` / `closeCP`, added 2026-11-06). It replaces the OS color dialog so it matches the theme.
+- An HSV square, a hue bar, a hex box, before/now swatches, presets (`PRESETS`) and recent colors (`S.recent`, 12, saved).
+- Used for the brush (V, or the color button; V opens it at the cursor when over the canvas) and for the paper.
+- A recent color is added when the menu closes after a change, and after an Alt pick.
+- A pointerdown on the canvas while it's open only closes it.
+
+**Toolbar extras (2026-11-06).**
+- `#pressBtn`: a click toggles pen pressure for the current tool (remembering which of size and opacity were on, in `S.pPrev`). A long-press or right-click opens the brush panel at Dynamics.
+- `#sizePx`: brush diameter in px beside the ? button, and you can type in it.
+
 **Paper color.** The default paper (background) is neutral gray `#808080` (Ben's request). Saved papers still on an old default (`#f7f9fb`, `#fbfaf6`) move to it; a paper color he picked himself is kept. The brush color persists between sessions as before.
 
 **Resize readout.** Ctrl+drag shows only the ring. The px label and the toast were removed at Ben's request.
@@ -118,7 +139,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 | Action | Input |
 |---|---|
-| Straight line | Hold Shift while drawing, or Shift+press. It's a rubber band from the anchor (the stroke's current point) to the pen, always snapped to 10° steps (`LINE_STEP`) and also onto the 45° diagonals, because the guides show 45° and a 10° grid can't reach it (that mismatch was a reported bug), with pressure going from the anchor's to the pen's. Four faint guides (0/45/90/135°) are drawn through the anchor, white on gray or dark paper and graphite on light paper. Main-thread strokes preview with the real brush: `previewLine` restores the last preview's area from a buffer snapshot and re-rasterizes. Worker strokes preview as an overlay line. Releasing Shift or the pen commits through the real `Stroke` (`commitLine`), and freehand resumes from the line's end. Ben's spec (2026-10-31). |
+| Straight line | Hold Shift while drawing, or Shift+press. It's a rubber band from the anchor (the stroke's current point) to the pen, always snapped to 10° steps (`LINE_STEP`) and also onto the 45° diagonals, because the guides show 45° and a 10° grid can't reach it (that mismatch was a reported bug), . Four faint guides (0/45/90/135°) are drawn through the anchor, white on gray or dark paper and graphite on light paper. Main-thread strokes preview with the real brush: `previewLine` restores the last preview's area from a buffer snapshot and re-rasterizes. Worker strokes preview as an overlay line. Releasing Shift or the pen commits through the real `Stroke` (`commitLine`), and freehand resumes from the line's end. Ben's spec (2026-10-31). | **Steady weight (2026-11-06, Ben's request):** the whole line uses one pressure, the highest smoothed (EMA 0.25) pen pressure seen so far (`L.pw`), reached 1 px from the anchor. So it doesn't taper at either end. With the eraser, worker-stroke previews draw in the paper color, not the brush color.
 | Resize brush | Ctrl + drag. Same speed at every zoom: 1 screen px = 2 px of diameter, which is what 100% zoom gave before. Ben asked for this; he does *not* want brush size to follow zoom. |
 | Pan | Space + drag, middle mouse, two fingers (or one finger once a pen has been seen) |
 | Zoom | Ctrl + Space + drag (right/up = in), wheel, pinch |
@@ -131,7 +152,9 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Note | T (or toolbar button) then click: places a text note. Esc cancels. |
 | Delete layer | X |
 | Flash a layer's drawing | Ctrl + click a layer or group row: accent-tinted silhouette plus dashed bounds, fading over 1.6 s (`highlight`). It doesn't change the active layer. |
-| Size | [ / ] |
+| Size | [ / ], or type it in the px box beside ? |
+| Color menu | V (at the cursor), or click the color swatch |
+| iPad | Two-finger tap = undo, three-finger tap = redo. Dock on the left: Line (hold, or tap to latch) = Shift, Pick = Alt, Undo, Redo |
 | Mirror cycle | M (off, vertical, horizontal, both, radial; Kaleido option; drag the center handle) |
 | Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |
 | New layer | Ctrl+Shift+N |

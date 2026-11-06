@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#18202a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sinopia">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <meta name="description" content="Sinopia: an infinite-canvas sketching app with layers, mirror and radial symmetry, and custom alpha brushes.">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Sinopia</title>
@@ -45,7 +53,9 @@ body{
   padding-left:max(16px, env(safe-area-inset-left, 0px));
   padding-right:max(16px, env(safe-area-inset-right, 0px));
   -webkit-user-select:none; user-select:none;
+  -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;
 }
+button, input, select, label, .layer, .grp{touch-action:manipulation}   /* no double-tap zoom on iPad */
 #stage,#ov{position:fixed; inset:0; width:100%; height:100%; display:block}
 #ov{touch-action:none; cursor:none}
 #ov.sel{cursor:crosshair} #ov.sel.mv{cursor:move}
@@ -222,6 +232,27 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .field .num{width:66px}
 .card .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:transparent}
 
+/* color menu: replaces the OS color dialog so it matches the theme */
+.cswatch{width:30px; height:30px; border:1px solid var(--line); border-radius:3px; padding:0; cursor:pointer; box-shadow:inset 0 0 0 2px var(--chrome)}
+.cpop{position:fixed; z-index:6; width:220px; background:var(--chrome); border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow); padding:10px; display:flex; flex-direction:column; gap:8px}
+.cpop canvas{display:block; width:200px; border-radius:3px; touch-action:none; cursor:crosshair}
+#cpSV{height:150px} #cpHue{height:14px}
+.cpop .cmp{display:flex; height:26px; width:58px; border:1px solid var(--line); border-radius:3px; overflow:hidden}
+.cpop .cmp i{flex:1}
+.cpop .hex{width:84px; text-transform:uppercase}
+.cpop .sws{display:flex; flex-wrap:wrap; gap:4px; min-height:20px}
+.cpop h3{margin:0; font-size:10px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
+.pxbox{display:flex; align-items:center; gap:3px; padding:0 4px; font-size:11px; color:var(--muted)}
+.pxbox .num{width:50px}
+/* touch dock: stand-ins for Shift and Alt when there's no keyboard (iPad) */
+.dock{position:fixed; left:max(10px, env(safe-area-inset-left, 0px)); top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:2px; padding:3px;
+  background:var(--chrome); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); pointer-events:auto}
+.dock .btn{height:44px; min-width:44px; flex-direction:column; gap:2px; font-size:9.5px; font-weight:600; letter-spacing:.04em; padding:0 4px}
+.dock[hidden]{display:none}
+@media (pointer:coarse){
+  .btn{height:38px; min-width:38px} .btn.sm{height:30px; min-width:30px} .slider{height:38px}
+  .sw{width:24px; height:24px} .layer{height:38px} .cswatch{width:36px; height:36px}
+}
 @media (max-width:700px){ .hint{display:none} .slider input[type=range]{width:78px} }
 @media (prefers-reduced-motion:reduce){ .welcome{transition:none} }
 </style>
@@ -261,6 +292,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
         <button class="btn" id="selNone" title="Deselect (Ctrl+D)">Deselect</button>
       </span>
       <span class="sep"></span>
+      <button class="btn" id="pressBtn" title="Pen pressure: click to turn it on or off. Right-click or long-press for the brush settings" aria-label="Pen pressure" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M2.5 14.2C6 13.6 8.2 9.6 10.6 7S14 3.7 15.6 3.4c-.9 1.6-2.8 4.2-4.8 6.7S6.3 15 2.5 14.2z" fill="currentColor" stroke="none"/></svg></button>
       <button class="btn" id="brushBtn" title="Brush settings" aria-label="Brush settings" aria-expanded="false"><svg viewBox="0 0 18 18"><path d="M3 5h12M3 9h12M3 13h12"/><circle cx="6" cy="5" r="1.6"/><circle cx="12" cy="9" r="1.6"/><circle cx="8" cy="13" r="1.6"/></svg></button>
     </div>
     <div class="group">
@@ -268,7 +300,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <label class="slider">Opacity <input type="range" id="flow" min="1" max="100" step="1"><output id="flowOut">100%</output></label>
     </div>
     <div class="group">
-      <input type="color" id="color" aria-label="Brush color" title="Brush color (Alt-click canvas to pick)">
+      <button class="cswatch" id="color" aria-label="Brush color" title="Brush color (V). Hold Alt on the canvas to pick one"></button>
       <div class="swatches" id="swatches"></div>
     </div>
     <div class="group" role="radiogroup" aria-label="Mirror">
@@ -292,8 +324,16 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
       <button class="btn" id="clearBtn" title="Clear the active layer">Clear layer</button>
       <span class="sep"></span>
       <button class="btn" id="layersBtn" title="Layers" aria-label="Layers" aria-expanded="false"><svg viewBox="0 0 18 18"><path d="M9 2.5L16 6 9 9.5 2 6z"/><path d="M2 9l7 3.5L16 9"/><path d="M2 12l7 3.5 7-3.5"/></svg></button>
+      <label class="pxbox" title="Brush size in pixels: type a size"><input class="num" type="number" id="sizePx" min="1" max="3000" step="1" aria-label="Brush size in pixels">px</label>
       <button class="btn" id="helpBtn" title="Shortcuts (?)" aria-label="Shortcuts">?</button>
     </div>
+  </div>
+
+  <div class="dock" id="dock" hidden aria-label="Touch modifiers">
+    <button class="btn" id="dLine" title="Line: hold while drawing for a straight line (like Shift). Tap to keep it on" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M3 15L15 3"/><circle cx="3" cy="15" r="1.6"/><circle cx="15" cy="3" r="1.6"/></svg>Line</button>
+    <button class="btn" id="dPick" title="Pick: the next touch picks a color (like Alt)" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M11 3.5l3.5 3.5-1.6 1.6-3.5-3.5z"/><path d="M10.2 6.2L4 12.4V14h1.6l6.2-6.2"/></svg>Pick</button>
+    <button class="btn" id="dUndo" title="Undo (or tap with two fingers)"><svg viewBox="0 0 18 18"><path d="M6 4L3 7l3 3"/><path d="M3 7h7.5a4 4 0 010 8H8"/></svg>Undo</button>
+    <button class="btn" id="dRedo" title="Redo (or tap with three fingers)"><svg viewBox="0 0 18 18"><path d="M12 4l3 3-3 3"/><path d="M15 7H7.5a4 4 0 000 8H10"/></svg>Redo</button>
   </div>
 
   <div class="group tabs" id="tabs" role="tablist" aria-label="Documents" hidden></div>
@@ -358,15 +398,26 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
     </div>
     <div class="section">
       <h2>Paper</h2>
-      <div class="row"><input type="color" id="paper" aria-label="Paper color"><span class="note">Background under all layers, also used when exporting</span></div>
+      <div class="row"><button class="cswatch" id="paper" aria-label="Paper color" title="Paper color"></button><span class="note">Background under all layers, also used when exporting</span></div>
     </div>
   </aside>
   </div>
 </div>
 
+<div class="cpop" id="cpop" hidden role="dialog" aria-label="Color">
+  <canvas id="cpSV" aria-label="Saturation and brightness"></canvas>
+  <canvas id="cpHue" aria-label="Hue"></canvas>
+  <div class="row" style="justify-content:space-between">
+    <span class="cmp" title="Before / now"><i id="cpOld"></i><i id="cpNew"></i></span>
+    <input class="num hex" id="cpHex" type="text" maxlength="7" spellcheck="false" aria-label="Hex color">
+  </div>
+  <h3>Swatches</h3><div class="sws" id="cpSw"></div>
+  <h3>Recent</h3><div class="sws" id="cpRecent"></div>
+</div>
+
 <div class="status">
   <button class="pill" id="zoomOut" title="Reset zoom to 100%">100%</button>
-  <span class="pill hint" id="hint">Hold Shift while drawing for straight lines · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
+  <span class="pill hint" id="hint">Hold Shift while drawing for straight lines · V opens colors · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
   <span class="pill toast" id="toast" hidden></span>
 </div>
 
@@ -379,7 +430,9 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
     <span><kbd>Space</kbd> + drag</span><span>Pan (or middle mouse, or two fingers)</span>
     <span><kbd>Ctrl</kbd> + <kbd>Space</kbd> + drag</span><span>Zoom (right or up zooms in). Wheel and pinch work too</span>
     <span>Hold <kbd>Alt</kbd></span><span>Preview the color under the cursor. Click or drag to pick it</span>
-    <span><kbd>[</kbd> <kbd>]</kbd></span><span>Smaller / larger brush</span>
+    <span><kbd>[</kbd> <kbd>]</kbd></span><span>Smaller / larger brush. Or type a size in the px box</span>
+    <span><kbd>V</kbd></span><span>Color menu (at the pen, or under the color button)</span>
+    <span>iPad</span><span>Two-finger tap undoes, three-finger tap redoes. The Line and Pick buttons on the left stand in for Shift and Alt</span>
     <span><kbd>B</kbd> <kbd>E</kbd> <kbd>M</kbd></span><span>Brush, eraser, cycle mirror</span>
     <span><kbd>S</kbd> <kbd>L</kbd> <kbd>W</kbd></span><span>Select: rectangle (S again for ellipse), lasso, magic wand. Shift adds, Alt subtracts. Brush and eraser stay inside the selection</span>
     <span><kbd>Ctrl</kbd> + drag</span><span>With a select tool: move the selected pixels. <kbd>Delete</kbd> clears them, <kbd>Ctrl</kbd>+<kbd>D</kbd> deselects</span>
@@ -635,6 +688,7 @@ function blendCh(m, b, s) {   // one channel, 0-1; same math as FS_BLEND
   }
 }
 
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPadOS reports itself as a Mac
 const LS = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
@@ -648,7 +702,10 @@ if (saved) {
   if (saved.view && saved.v2) { Object.assign(view, saved.view); hadView = true; }
   S.erase = false;
 }let settingsTimer = 0;
-function saveSettings() { clearTimeout(settingsTimer); settingsTimer = setTimeout(() => LS.set('sinopia.settings', { v2: 1, S, sym, view: ws.doc ? canvasWS.view : view }), 400); }
+const writeSettings = () => { settingsTimer = 0; LS.set('sinopia.settings', { v2: 1, S, sym, view: ws.doc ? canvasWS.view : view }); };
+function saveSettings() { clearTimeout(settingsTimer); settingsTimer = setTimeout(writeSettings, 400); }
+function flushSettings() { if (settingsTimer) { clearTimeout(settingsTimer); writeSettings(); } }   // on close / app switch, so the last color change isn't lost
+if (!Array.isArray(S.recent)) S.recent = [];
 
 /* ---------- layers ---------- */
 function newLayer(name) {
@@ -953,13 +1010,15 @@ function setLineMode(on) {
   if (!stroke || stroke.ending || !!stroke.line === on) return;
   if (on) {
     if (!stroke.w) stroke.s.finish();   // draw any pending sample so the stroke really ends at the anchor
-    stroke.line = { ax: stroke.sx, ay: stroke.sy, p0: stroke.raw.p, end: null, box: null, snap: new Map(), known: new Set(stroke.T.entries.values()) };
+    stroke.line = { ax: stroke.sx, ay: stroke.sy, p0: stroke.raw.p, pe: null, pw: 0, end: null, box: null, snap: new Map(), known: new Set(stroke.T.entries.values()) };
   } else commitLine();
   dirtyOverlay();
 }
 function lineMove(wx, wy, p) {
   const L = stroke.line, dx = wx - L.ax, dy = wy - L.ay;
   stroke.cursor = { x: wx, y: wy, p };
+  // one weight for the whole line: the firmest smoothed pressure so far, so it doesn't thin out toward either end
+  L.pe = L.pe == null ? p : L.pe + (p - L.pe) * 0.25; L.pw = Math.max(L.pw, L.pe); p = L.pw;
   if (Math.hypot(dx, dy) * view.z < 2) { L.end = null; stroke.raw = { x: L.ax, y: L.ay, p }; }
   else {
     // snap to 10° steps, and also onto the 45° diagonals the guides show (45° isn't a 10° step)
@@ -973,8 +1032,9 @@ function lineMove(wx, wy, p) {
 }
 /* the line as short pieces, so each capsule only scans pixels near the line instead of the line's whole bounding box */
 function linePoints(L) {
-  const len = Math.hypot(L.end.x - L.ax, L.end.y - L.ay), n = Math.max(1, Math.ceil(len / Math.max(4, stroke.opts.size * 0.75))), out = [];
-  for (let i = 1; i <= n; i++) { const t = i / n; out.push([L.ax + (L.end.x - L.ax) * t, L.ay + (L.end.y - L.ay) * t, L.p0 + (L.end.p - L.p0) * t]); }
+  const len = Math.hypot(L.end.x - L.ax, L.end.y - L.ay), n = Math.max(1, Math.ceil(len / Math.max(4, stroke.opts.size * 0.75))), out = [], p = L.end.p;
+  if (len > 2) out.push([L.ax + (L.end.x - L.ax) / len, L.ay + (L.end.y - L.ay) / len, p]);   // reach the line's weight within 1 px of the anchor
+  for (let i = 1; i <= n; i++) { const t = i / n; out.push([L.ax + (L.end.x - L.ax) * t, L.ay + (L.end.y - L.ay) * t, p]); }
   return out;
 }
 /* restore the buffer area the last preview covered (entries made during the line go back to empty) */
@@ -1799,7 +1859,7 @@ function switchWS(t) {
   layers = t.layers; cur = t.cur; groups = t.groups; sel = t.sel;
   undoStack.push(...t.undo); redoStack.push(...t.redo); Object.assign(view, t.view);
   hl = null; if (noteMode) setNoteMode(false);
-  notesEl.hidden = !!t.doc; $('paper').value = paperColor();
+  notesEl.hidden = !!t.doc; $('paper').style.background = paperColor(); if (CP.on === 'paper') closeCP();
   $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc';
   $('newDoc').title = t.doc ? 'Change the page size (Canvas Size)' : 'New document from the selection, or from what\'s on screen';
   selChanged(); syncHistory(); renderLayers(); renderTabs(); updateZoomLabel(); dirtyScene();
@@ -2315,7 +2375,7 @@ void main() { ivec2 p = ivec2(gl_FragCoord.xy); vec4 d = texelFetch(uT, p, 0), s
 precision highp float; uniform sampler2D uT; out vec4 o;
 void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
   const XID = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]), xm = new Float32Array(9);
-  const BUDGET = 320 * 1024 * 1024, texTiles = new Set(), pool = new Map();
+  const BUDGET = (IOS ? 160 : 320) * 1024 * 1024, texTiles = new Set(), pool = new Map();
   let P = null, gen = 0, fno = 0, used = 0, upEnd = 0, pending = false;
   const bytes = n => n * n * 16 / 3;   // RGBA plus mip chain
   function prog(fs) {
@@ -2618,7 +2678,7 @@ function drawLineGuide(L) {
   octx.stroke();
   if (stroke.w && L.end) {   // worker strokes: show the line itself here until it's committed
     const o = stroke.opts;
-    octx.globalAlpha = o.opacity; octx.strokeStyle = S.color; octx.lineCap = 'round'; octx.lineWidth = Math.max(1, o.size * view.z * (o.pSize ? 0.06 + 0.94 * L.end.p : 1));
+    octx.globalAlpha = o.opacity; octx.strokeStyle = stroke.erase ? paperColor() : S.color; octx.lineCap = 'round'; octx.lineWidth = Math.max(1, o.size * view.z * (o.pSize ? 0.06 + 0.94 * L.end.p : 1));
     octx.beginPath();
     for (const m of o.mats) for (const [i, [px, py]] of [[L.ax, L.ay], [L.end.x, L.end.y]].entries()) {
       const dx = px - o.cx, dy = py - o.cy, sx = (o.cx + m[0] * dx + m[1] * dy) * view.z + view.x, sy = (o.cy + m[2] * dx + m[3] * dy) * view.z + view.y;
@@ -2694,7 +2754,8 @@ function ring(x, y, r, alpha) {
 }
 
 /* ---------- input ---------- */
-let act = null, penSeen = false, spaceHeld = false, altHeld = false;
+let act = null, penSeen = false, spaceHeld = false, altHeld = false, gest = null;
+const virt = { line: false, pick: false };   // the touch dock's Line / Pick buttons, standing in for Shift / Alt
 const touches = new Map();
 const pressureOf = e => e.pointerType === 'mouse' || e.pointerType === 'touch' ? 1 : (e.pressure > 0 ? e.pressure : 0.04);
 function updateZoomLabel() { $('zoomOut').textContent = Math.round(view.z * dpr * 100) + '%'; }
@@ -2726,12 +2787,16 @@ function selDown(e, x, y) {
 }
 ov.addEventListener('pointerdown', e => {
   e.preventDefault();
+  if (cpOpen()) { closeCP(); return; }   // a touch outside the color menu just closes it
   try { ov.setPointerCapture(e.pointerId); } catch (_) {}
   if (anim) { cancelAnimationFrame(anim); anim = 0; }   // any pen-down stops a group jump where it is
   if (e.pointerType === 'pen') penSeen = true;
   const x = e.clientX, y = e.clientY;
   if (e.pointerType === 'touch') {
+    if (act && act.pen) return;   // a resting hand never interrupts the pen
     touches.set(e.pointerId, { x, y });
+    if (touches.size === 1) gest = { t0: performance.now(), max: 1, moved: false, at: new Map() };   // two/three-finger taps: undo/redo
+    if (gest) { gest.max = Math.max(gest.max, touches.size); gest.at.set(e.pointerId, { x, y }); }
     if (touches.size === 2) {
       if (act && act.type === 'draw') { if (act.Q && act.Q.q) queued.splice(queued.indexOf(act.Q), 1); else if (stroke) cancelStroke(); }
       startPinch(); return;
@@ -2746,16 +2811,16 @@ ov.addEventListener('pointerdown', e => {
   if (xf) { xfDown(e, x, y); return; }
   if (noteMode && !e.altKey && !e.ctrlKey && !e.metaKey) { addNote(x, y); return; }
   if (selTool) { selDown(e, x, y); return; }
-  if (e.altKey) { act = { type: 'pick', id: e.pointerId, prev: S.color }; altHeld = true; hover = { x, y, type: e.pointerType }; pickAt(x, y); return; }
+  if (e.altKey || virt.pick) { act = { type: 'pick', id: e.pointerId, prev: S.color }; altHeld = e.altKey; hover = { x, y, type: e.pointerType }; pickAt(x, y); return; }
   if (e.ctrlKey || e.metaKey) { act = { type: 'resize', id: e.pointerId, ax: x, ay: y, s0: S.size }; dirtyOverlay(); return; }
   if (modHandlesOn()) { const h = modHit(x, y); if (h) { act = { type: 'modh', id: e.pointerId, h }; return; } }
   if (sym.mode !== 'off' && Math.hypot(x - (sym.cx * view.z + view.x), y - (sym.cy * view.z + view.y)) < 14) { act = { type: 'axis', id: e.pointerId }; return; }
   const erase = S.erase || e.button === 5 || (e.buttons & 32) !== 0;
-  act = { type: 'draw', id: e.pointerId };
+  act = { type: 'draw', id: e.pointerId, pen: e.pointerType === 'pen' };
   const w = toWorld(x, y);
   // Firefox reports 0 pressure at pen-down: start the stroke at this point once a real pressure arrives
   if (e.pointerType === 'pen' && !(e.pressure > 0)) { act.wait = { x: w.x, y: w.y, erase }; return; }
-  startDraw(w.x, w.y, pressureOf(e), erase, e.shiftKey);
+  startDraw(w.x, w.y, pressureOf(e), erase, e.shiftKey || virt.line);
 });
 function startDraw(x, y, p, erase, shift) {
   if (stroke) { act.Q = { q: [[x, y, p, shift]], erase }; queued.push(act.Q); return; }   // last big stroke is still finishing on the worker
@@ -2764,7 +2829,10 @@ function startDraw(x, y, p, erase, shift) {
 }
 ov.addEventListener('pointermove', e => {
   hover = { x: e.clientX, y: e.clientY, type: e.pointerType };
-  if (e.pointerType === 'touch' && touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (e.pointerType === 'touch' && touches.has(e.pointerId)) {
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = gest && gest.at.get(e.pointerId); if (g && Math.hypot(e.clientX - g.x, e.clientY - g.y) > 14) gest.moved = true;
+  }
   if (!act) { altHeld = e.altKey; if (xf) xfCursor(e.clientX, e.clientY); dirtyOverlay(); return; }
   if (act.type === 'pinch') { if (touches.size >= 2) movePinch(); return; }
   if (e.pointerId !== act.id) return;
@@ -2791,12 +2859,12 @@ ov.addEventListener('pointermove', e => {
       if (act.wait) {
         const i = evs.findIndex(ev => ev.pressure > 0);
         if (i < 0) break;
-        startDraw(act.wait.x, act.wait.y, evs[i].pressure, act.wait.erase, e.shiftKey);
+        startDraw(act.wait.x, act.wait.y, evs[i].pressure, act.wait.erase, e.shiftKey || virt.line);
         act.wait = null; evs = evs.slice(i);
       }
-      if (act.Q && act.Q.q) { for (const ev of evs) { const w = toWorld(ev.clientX, ev.clientY); act.Q.q.push([w.x, w.y, pressureOf(ev), e.shiftKey]); } break; }
+      if (act.Q && act.Q.q) { for (const ev of evs) { const w = toWorld(ev.clientX, ev.clientY); act.Q.q.push([w.x, w.y, pressureOf(ev), e.shiftKey || virt.line]); } break; }
       if (!stroke) break;
-      setLineMode(e.shiftKey);
+      setLineMode(e.shiftKey || virt.line);
       for (const ev of evs) { const w = toWorld(ev.clientX, ev.clientY); if (stroke.line) lineMove(w.x, w.y, pressureOf(ev)); else strokeTo(w.x, w.y, pressureOf(ev)); }
       if (stroke.w) wflush(false);
       dirtyOverlay(); break;
@@ -2806,6 +2874,10 @@ ov.addEventListener('pointermove', e => {
 function pointerEnd(e) {
   if (e.pointerType === 'touch') {
     touches.delete(e.pointerId);
+    if (!touches.size && gest) {
+      const g = gest; gest = null;
+      if (!g.moved && performance.now() - g.t0 < 400 && (g.max === 2 || g.max === 3)) setTimeout(() => { if (g.max === 2) undo(); else redo(); toast(g.max === 2 ? 'Undo' : 'Redo'); });
+    }
     if (act && act.type === 'pinch') { if (touches.size < 2) { act = null; saveSettings(); } return; }
   }
   if (!act || e.pointerId !== act.id) return;
@@ -2817,6 +2889,7 @@ function pointerEnd(e) {
   else if (act.type === 'selmove') setSel(act.dx || act.dy ? shiftSel(sel, act.dx, act.dy) : null);   // a click inside deselects
   else if (act.type === 'move') { const A = act; act = null; endMove(A); }
   else if (act.type === 'modh') { saveLayers(); renderMods(); }
+  else if (act.type === 'pick') { if (virt.pick) setVirt('pick', false); if (S.color !== act.prev) addRecent(S.color); }
   act = null; ov.classList.remove('grabbing'); saveSettings(); dirtyOverlay();
 }
 ov.addEventListener('pointerup', pointerEnd);
@@ -2851,7 +2924,10 @@ function mountNote(n) {
   const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
   ta.addEventListener('input', () => { n.text = ta.value; fit(); saveNotes(); });
   ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur(); });
-  ta.addEventListener('blur', () => { if (!n.text.trim()) removeNote(n); });   // empty notes disappear
+  ta.addEventListener('pagehide', () => { flushSettings(); flushSave(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSettings(); flushSave(); } });
+document.addEventListener('gesturestart', e => e.preventDefault());   // Safari: no page pinch-zoom over the toolbar
+addEventListener('blur', () => { if (!n.text.trim()) removeNote(n); });   // empty notes disappear
   grip.addEventListener('pointerdown', e => {
     if (e.target.closest('.nx')) return;
     e.preventDefault(); grip.setPointerCapture(e.pointerId);
@@ -2955,9 +3031,11 @@ addEventListener('keydown', e => {
   else if (k === 'tab') { e.preventDefault(); $('ui').classList.toggle('hidden'); }
   else if (k === '0') zoomAt(W / 2, H / 2, 1 / dpr);
   else if (k === '?' || k === '/') toggleWelcome();
+  else if (k === 'v') toggleBrushColor();
+  else if (k === 'escape' && cpOpen()) closeCP();
 });
 addEventListener('keyup', e => {
-  if (e.key === 'Shift') { setLineMode(false); return; }
+  if (e.key === 'Shift') { setLineMode(virt.line); return; }
   if (e.key === 'Alt') { e.preventDefault(); altHeld = false; dirtyOverlay(); return; }
   if (e.code === 'Space') { e.preventDefault(); spaceHeld = false; notesEl.classList.remove('pass'); setCursorMode(e); dirtyOverlay(); }
   else if (e.key === 'Control' || e.key === 'Meta') setCursorMode(e);
@@ -2972,7 +3050,11 @@ const LOGMAX = Math.log(1500);
 function syncSize() {
   $('size').value = clamp(Math.log(S.size) / LOGMAX * 100, 0, 100);
   $('sizeOut').textContent = S.size < 10 ? S.size.toFixed(1) : Math.round(S.size);
+  if (document.activeElement !== $('sizePx')) $('sizePx').value = Math.round(S.size);
 }
+$('sizePx').addEventListener('input', e => { const v = parseFloat(e.target.value); if (v >= 1) { S.size = clamp(v, 1, 3000); syncSize(); dirtyOverlay(); saveSettings(); } });
+$('sizePx').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') e.target.blur(); });
+$('sizePx').addEventListener('blur', syncSize);
 $('size').addEventListener('input', e => { S.size = Math.max(1, Math.exp(e.target.value / 100 * LOGMAX)); syncSize(); dirtyOverlay(); saveSettings(); });
 $('flow').addEventListener('input', e => { S.opacity = e.target.value / 100; $('flowOut').textContent = e.target.value + '%'; saveSettings(); });
 
@@ -2999,8 +3081,114 @@ $('tol').addEventListener('input', e => { const v = parseInt(e.target.value, 10)
 $('contig').classList.toggle('on', S.contig);
 $('contig').onclick = () => { S.contig = !S.contig; $('contig').classList.toggle('on', S.contig); saveSettings(); };
 
-function setColor(c) { S.color = c; $('color').value = c; setErase(false); saveSettings(); }
-$('color').addEventListener('input', e => setColor(e.target.value));
+function setColor(c) { S.color = c; $('color').style.background = c; setErase(false); saveSettings(); if (CP.on === 'brush' && !CP.busy) cpFrom(c); }
+function addRecent(c) { S.recent = [c, ...S.recent.filter(x => x !== c)].slice(0, 12); saveSettings(); if (CP.on) cpSwatches(); }
+
+/* Color menu: a saturation/brightness square, a hue bar, hex, swatches and recent colors. Used for the brush (V or the
+   color button) and the paper. Pointer-driven, so it works with a pen; nothing here runs while drawing. */
+const CP = { on: null, h: 0, s: 0, v: 0, start: null, get: null, set: null, busy: false };
+const PRESETS = [['#1b2532', 'Graphite'], ['#2d6cb0', 'Blue pencil'], ['#4b9aa8', 'Teal'], ['#a8432c', 'Red chalk'], ['#7a8796', 'Cool grey'], ['#ffffff', 'White'], ['#000000', 'Black'], ['#808080', 'Mid grey'], ['#e0b04a', 'Ochre'], ['#5c8a4a', 'Sap green']];
+const cpOpen = () => !!CP.on;
+function hexToHsv(hex) {
+  const [r, g, b] = hexToRgb(hex).map(v => v / 255), mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+  let h = 0; if (d) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360; }
+  return [h, mx ? d / mx : 0, mx];
+}
+function hsvToHex(h, s, v) { const f = n => { const k = (n + h / 60) % 6; return (v - v * s * Math.max(0, Math.min(k, 4 - k, 1))) * 255; }; return rgbToHex(f(5), f(3), f(1)); }
+function cpFrom(hex) { const [h, s, v] = hexToHsv(hex); if (s > 0 && v > 0) CP.h = h; CP.s = s; CP.v = v; cpDraw(); }   // greys keep the last hue
+function cpDraw() {
+  if (!CP.on) return;
+  const sv = $('cpSV'), hu = $('cpHue'), r = devicePixelRatio || 1;
+  for (const c of [sv, hu]) { const w = Math.round(c.clientWidth * r), h = Math.round(c.clientHeight * r); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
+  let g = sv.getContext('2d'); const W2 = sv.width, H2 = sv.height;
+  g.fillStyle = hsvToHex(CP.h, 1, 1); g.fillRect(0, 0, W2, H2);
+  let gr = g.createLinearGradient(0, 0, W2, 0); gr.addColorStop(0, '#fff'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, W2, H2);
+  gr = g.createLinearGradient(0, 0, 0, H2); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, '#000'); g.fillStyle = gr; g.fillRect(0, 0, W2, H2);
+  const mx = CP.s * W2, my = (1 - CP.v) * H2;
+  g.lineWidth = 2 * r; g.strokeStyle = CP.v > 0.55 && CP.s < 0.5 ? '#1b2532' : '#fff'; g.beginPath(); g.arc(mx, my, 6 * r, 0, Math.PI * 2); g.stroke();
+  g = hu.getContext('2d'); gr = g.createLinearGradient(0, 0, hu.width, 0);
+  for (let i = 0; i <= 6; i++) gr.addColorStop(i / 6, hsvToHex(i * 60 % 360, 1, 1));
+  g.fillStyle = gr; g.fillRect(0, 0, hu.width, hu.height);
+  const hx = CP.h / 360 * hu.width; g.lineWidth = 2 * r; g.strokeStyle = '#fff'; g.strokeRect(hx - 3 * r, r, 6 * r, hu.height - 2 * r);
+  const now = CP.get();
+  $('cpNew').style.background = now; $('cpOld').style.background = CP.start;
+  if (document.activeElement !== $('cpHex')) $('cpHex').value = now.toUpperCase();
+}
+function cpApply() { CP.busy = true; CP.set(hsvToHex(CP.h, CP.s, CP.v)); CP.busy = false; cpDraw(); }
+function cpSwatches() {
+  const fill = (box, list) => { box.innerHTML = ''; for (const [c, n] of list) { const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.title = n || c; b.setAttribute('aria-label', n || c); b.onclick = () => { CP.busy = true; CP.set(c); CP.busy = false; cpFrom(c); }; box.appendChild(b); } };
+  fill($('cpSw'), PRESETS); fill($('cpRecent'), S.recent.map(c => [c]));
+  if (!S.recent.length) $('cpRecent').innerHTML = '<span class="note">Colors you use show up here</span>';
+}
+function openCP(which, anchor, at) {
+  if (CP.on) closeCP();
+  CP.on = which;
+  if (which === 'brush') { CP.get = () => S.color; CP.set = c => setColor(c); }
+  else { CP.get = paperColor; CP.set = c => { if (ws.doc) ws.paper = c; else { S.paper = c; saveSettings(); } $('paper').style.background = c; dirtyScene(); }; }
+  CP.start = CP.get();
+  const el = $('cpop'); el.hidden = false; cpSwatches();
+  const w = el.offsetWidth, h = el.offsetHeight, a = anchor.getBoundingClientRect();
+  let x = at ? at.x + 16 : a.left, y = at ? at.y - h / 2 : a.bottom + 6;
+  if (!at && which === 'paper') { x = a.left - w - 8; y = a.top - 40; }
+  el.style.left = clamp(x, 8, innerWidth - w - 8) + 'px'; el.style.top = clamp(y, 8, innerHeight - h - 8) + 'px';
+  cpFrom(CP.start);
+}
+function closeCP() {
+  if (!CP.on) return;
+  const c = CP.get(), which = CP.on; CP.on = null; $('cpop').hidden = true;
+  if (which === 'brush' && c !== CP.start) addRecent(c);
+}
+function toggleBrushColor() {
+  if (CP.on === 'brush') { closeCP(); return; }
+  const onCanvas = hover && hover.type !== 'touch' && !$('ui').contains(document.elementFromPoint(hover.x, hover.y));
+  openCP('brush', $('color'), onCanvas ? hover : null);
+}
+function cpDrag(el, fn) {
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    const go = ev => { const r = el.getBoundingClientRect(); fn(clamp((ev.clientX - r.left) / r.width, 0, 1), clamp((ev.clientY - r.top) / r.height, 0, 1)); cpApply(); };
+    go(e); el.onpointermove = go; el.onpointerup = el.onpointercancel = () => { el.onpointermove = null; };
+  });
+}
+cpDrag($('cpSV'), (u, v) => { CP.s = u; CP.v = 1 - v; });
+cpDrag($('cpHue'), u => { CP.h = Math.min(359.9, u * 360); });
+$('cpHex').addEventListener('input', e => { let v = e.target.value.trim(); if (v[0] !== '#') v = '#' + v; if (/^#[0-9a-f]{6}$/i.test(v)) { CP.busy = true; CP.set(v.toLowerCase()); CP.busy = false; cpFrom(v.toLowerCase()); } });
+$('cpHex').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' || e.key === 'Escape') closeCP(); });
+$('color').onclick = () => CP.on === 'brush' ? closeCP() : openCP('brush', $('color'));
+$('paper').onclick = () => CP.on === 'paper' ? closeCP() : openCP('paper', $('paper'));
+document.addEventListener('pointerdown', e => { if (CP.on && !$('cpop').contains(e.target) && e.target !== $('color') && e.target !== $('paper') && e.target !== ov) closeCP(); }, true);
+
+/* pen pressure button: click toggles pressure for the current tool; long-press or right-click opens the settings */
+function syncPress() { const on = !!(S.pSize || S.pOpac); $('pressBtn').classList.toggle('on', on); $('pressBtn').setAttribute('aria-pressed', on); }
+let pressHold = 0, pressLong = false;
+const pressSettings = () => { showPanel('brush', true, true); $('pSize').focus(); $('pSize').scrollIntoView({ block: 'center' }); };
+$('pressBtn').addEventListener('pointerdown', () => { pressLong = false; clearTimeout(pressHold); pressHold = setTimeout(() => { pressLong = true; pressSettings(); }, 500); });
+for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) $('pressBtn').addEventListener(ev, () => clearTimeout(pressHold));
+$('pressBtn').addEventListener('contextmenu', e => { e.preventDefault(); clearTimeout(pressHold); pressSettings(); });
+$('pressBtn').onclick = () => {
+  if (pressLong) { pressLong = false; return; }
+  if (S.pSize || S.pOpac) { S.pPrev = { pSize: S.pSize, pOpac: S.pOpac }; S.pSize = S.pOpac = false; }
+  else { const p = S.pPrev || {}; S.pSize = p.pSize !== false; S.pOpac = !!p.pOpac; }
+  syncDynamics(); saveSettings(); toast(S.pSize || S.pOpac ? 'Pen pressure on' : 'Pen pressure off');
+};
+
+/* touch dock (iPad / touch screens). Line: hold while drawing, or tap to keep it on. Pick: the next touch picks a color. */
+function setVirt(k, on) {
+  virt[k] = on; const b = $(k === 'line' ? 'dLine' : 'dPick'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+  if (k === 'line' && stroke) setLineMode(on);
+  dirtyOverlay();
+}
+$('dLine').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const id = e.pointerId, t0 = performance.now(), was = virt.line;
+  setVirt('line', true);
+  const up = ev => { if (ev.pointerId !== id) return; removeEventListener('pointerup', up); removeEventListener('pointercancel', up); setVirt('line', performance.now() - t0 > 300 ? false : !was); };
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+});
+$('dPick').onclick = () => setVirt('pick', !virt.pick);
+$('dUndo').onclick = () => undo();
+$('dRedo').onclick = () => redo();
+{ const coarse = matchMedia('(any-pointer: coarse)'); const show = () => { $('dock').hidden = !(coarse.matches || IOS); }; show(); coarse.addEventListener && coarse.addEventListener('change', show); }
 [['#1b2532', 'Graphite'], ['#2d6cb0', 'Blue pencil'], ['#4b9aa8', 'Teal'], ['#a8432c', 'Red chalk'], ['#7a8796', 'Cool grey'], ['#ffffff', 'White']].forEach(([c, n]) => {
   const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.title = n; b.setAttribute('aria-label', n);
   b.onclick = () => setColor(c); $('swatches').appendChild(b);
@@ -3296,16 +3484,17 @@ const bindProp = (id, out, get, set, fmt) => {
 };
 bindProp('spacing', 'spacingOut', () => Math.round(S.spacing * 100), v => S.spacing = v / 100, v => v + '%');
 bindProp('smooth', 'smoothOut', () => Math.round(S.smooth * 100), v => S.smooth = v / 100, v => v + '%');
-$('pSize').onchange = e => { S.pSize = e.target.checked; saveSettings(); };
-$('pOpac').onchange = e => { S.pOpac = e.target.checked; saveSettings(); };
+$('pSize').onchange = e => { S.pSize = e.target.checked; syncPress(); saveSettings(); };
+$('pOpac').onchange = e => { S.pOpac = e.target.checked; syncPress(); saveSettings(); };
 $('rot').onchange = e => { S.rot = e.target.value; saveSettings(); };
 function syncDynamics() {
   $('spacing').value = Math.round(S.spacing * 100); $('spacingOut').textContent = Math.round(S.spacing * 100) + '%';
   $('smooth').value = Math.round(S.smooth * 100); $('smoothOut').textContent = Math.round(S.smooth * 100) + '%';
   $('pSize').checked = S.pSize; $('pOpac').checked = S.pOpac; $('rot').value = S.rot;
+  syncPress();
 }
 syncDynamics();
-$('paper').value = S.paper; $('paper').addEventListener('input', e => { if (ws.doc) ws.paper = e.target.value; else { S.paper = e.target.value; saveSettings(); } dirtyScene(); });
+$('paper').style.background = S.paper;
 
 /* stroke test: the same angles/sizes/pressure cases as the offline simulation */
 function testStrokes() {
@@ -3397,7 +3586,7 @@ builtinBrushes();
 initLayers(); renderLayers();
 syncSize();
 $('flow').value = Math.round(S.opacity * 100); $('flowOut').textContent = Math.round(S.opacity * 100) + '%';
-$('color').value = S.color;
+$('color').style.background = S.color;
 { const wide = innerWidth >= 700, p = S.panels || {};
   showPanel('layers', wide && p.layers !== false, false);
   showPanel('brush', wide && !!p.brush, false); }
@@ -3407,6 +3596,8 @@ S.brush = clamp(S.brush, 0, brushes.length - 1);
 renderTips();
 loadAlphas().then(() => { S.brush = clamp(S.brush, 0, brushes.length - 1); renderTips(); });
 loadTiles().then(n => { if (n) hideWelcome(); });
+// offline + installable (Add to Home Screen on iPad). Only over https, so local testing never serves a stale cached copy.
+if ('serviceWorker' in navigator && location.protocol === 'https:' && standalone) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
 </body>
