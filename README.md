@@ -17,9 +17,12 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Ellipse guide (O)**, like Leonardo's. Strokes that start on the ellipse follow it exactly, with your own pressure. Drag its handles to move it, size it, squash it into perspective and turn it.
 - **Rotate the canvas.** Hold R and drag, or twist two fingers on a touch screen. It snaps straight near 0°, and the ° readout beside the zoom resets it.
 - **Liquify (Ctrl+Shift+X).** Push, twirl, bloat and restore the selection (or the layer) with a brush, then Enter to apply.
-- **App edition.** Installed (or with `?app` in the address), Sinopia gets a File / Edit / Image / Layer / Select / View / Help menu bar, and you can change any shortcut (Edit → Keyboard shortcuts). You can also turn the menus on from the ? sheet.
+- **App edition.** Installed (or with `?app` in the address), Sinopia gets a File / Edit / Image / Layer / Select / Filter / View / Help menu bar, and you can change any shortcut (Edit → Keyboard shortcuts). You can also turn the menus on from the ? sheet.
 - **Project files.** Ctrl+S saves everything (every layer, group, open document and note) to one `.sinopia` file; Ctrl+O or dropping the file opens it again.
 - **Images.** Ctrl+V pastes an image from any app, and File → Place image (Ctrl+Shift+P) adds one from disk. Either way it lands on its own layer with the transform handles ready.
+- **Filters and grading (App edition).** Develop (exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance; Ctrl+Shift+A), Resolve-style lift / gamma / gain / offset color wheels (Ctrl+Shift+G), Hue/Saturation (Ctrl+U), Levels (Ctrl+L), and a Filter menu with Gaussian blur, sharpen, RGB split and noise. Everything previews live, stays inside the selection, and can run on a merged copy of everything visible.
+- **Layer masks.** The ◐ button in the layers panel adds a mask (from the selection, if there is one). Press \ to paint on it: the brush hides, the eraser reveals. Shift+F6 feathers a selection.
+- **Cryptomatte.** File → Open EXR (or drop an .exr) opens a render with its Cryptomatte. Click an object to select it with clean edges, ready to mask, grade or paint over.
 - **Flip view (Shift+H)** mirrors the view to check proportions, without changing the drawing.
 - **Your layout.** Drag the dotted grip to move the toolbar, the panels or the touch dock anywhere. Press ? for a searchable list of every shortcut.
 - **Notes.** Press T (or the note button) and click to pin a text note to the canvas. Notes are see-through, with a dark ink that multiplies into the drawing. Notes pan and zoom with the drawing; drag the top strip to move one. They aren't included in PNG export.
@@ -68,6 +71,10 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 | Save / open project | Ctrl + S / Ctrl + O |
 | Place image | Ctrl + Shift + P (or paste with Ctrl + V) |
 | Fit / flip view | Ctrl + 0 / Shift + H |
+| Develop / color wheels | Ctrl + Shift + A / Ctrl + Shift + G |
+| Hue/Saturation / Levels | Ctrl + U / Ctrl + L |
+| Paint on the layer mask | \ |
+| Feather selection | Shift + F6 |
 | Cycle mirror mode | M |
 | Undo / redo | Ctrl + Z / Ctrl + Shift + Z |
 | New layer | Ctrl + Shift + N |

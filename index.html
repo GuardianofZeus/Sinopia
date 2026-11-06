@@ -149,6 +149,9 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .layer.on{background:var(--chrome); box-shadow:inset 3px 0 0 var(--accent)}
 .layer .name{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .layer.hid .name{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--line)}
+.mchip{width:16px; height:16px; flex:none; border:1.5px solid var(--muted); border-radius:3px; padding:0; margin-right:4px; cursor:pointer; background:radial-gradient(circle, var(--ink) 0 34%, transparent 38%), var(--panel)}
+.mchip.on{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent)}
+.mchip.off{opacity:.4; background:linear-gradient(135deg, transparent 45%, var(--muted) 45% 55%, transparent 55%), var(--panel)}
 .layer .op{font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums}
 .layer input{flex:1; min-width:0; height:24px; border:1px solid var(--accent); border-radius:2px; background:var(--chrome); color:var(--ink); font:500 12.5px var(--font-ui); padding:0 5px}
 .eye{width:26px; height:26px; border:0; border-radius:2px; background:transparent; color:var(--ink); display:grid; place-items:center; cursor:pointer; padding:0}
@@ -264,6 +267,15 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .kb .bind{min-width:110px; justify-content:flex-start; font-variant-numeric:tabular-nums}
 .kb .bind.wait{outline:2px solid var(--accent)}
 .kb .bind.custom{color:var(--accent)}
+/* filter sheet */
+.flt .card{width:min(520px, 100%)}
+.flt .props{display:flex; flex-direction:column; gap:5px}
+.flt .prop{grid-template-columns:110px 1fr 58px; gap:8px}
+.flt .num{width:100%; box-sizing:border-box}
+.wheels{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px}
+.wheel{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; color:var(--muted)}
+.wheel canvas{width:100%; max-width:104px; aspect-ratio:1; touch-action:none; cursor:crosshair; border-radius:50%}
+.wheel input[type=range]{width:100%; accent-color:var(--accent)}
 /* small pop-up menus (New doc presets; later the App menu bar) */
 .menu{position:fixed; z-index:7; min-width:200px; background:var(--chrome); border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow); padding:4px; display:flex; flex-direction:column}
 .menu button{display:flex; justify-content:space-between; gap:16px; align-items:center; height:30px; padding:0 10px; border:0; border-radius:3px; background:transparent; color:var(--ink); font:500 12.5px var(--font-ui); text-align:left; cursor:pointer}
@@ -428,6 +440,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
           <button class="btn sm" id="layerAdd" title="New layer (Ctrl+Shift+N)" aria-label="New layer"><svg viewBox="0 0 18 18"><path d="M9 4v10M4 9h10"/></svg></button>
           <button class="btn sm" id="groupAdd" title="New group from the active layer (Ctrl+1–9 jumps to groups)" aria-label="New group"><svg viewBox="0 0 18 18"><path d="M2.5 5.5V14a1 1 0 001 1h11a1 1 0 001-1V7a1 1 0 00-1-1H9L7.5 4h-4a1 1 0 00-1 1.5z"/><path d="M9 8.5v4M7 10.5h4"/></svg></button>
           <button class="btn sm" id="layerDup" title="Duplicate layer" aria-label="Duplicate layer"><svg viewBox="0 0 18 18"><rect x="6" y="6" width="9" height="9" rx="1.5"/><path d="M12 6V4.5A1.5 1.5 0 0010.5 3h-6A1.5 1.5 0 003 4.5v6A1.5 1.5 0 004.5 12H6"/></svg></button>
+          <button class="btn sm" id="layerMask" title="Layer mask: add one, or its options. Shift+click turns it on or off, \ paints on it" aria-label="Layer mask"><svg viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" rx="1.5"/><circle cx="9" cy="9" r="3.2" fill="currentColor"/></svg></button>
           <button class="btn sm" id="layerMerge" title="Merge down" aria-label="Merge down"><svg viewBox="0 0 18 18"><path d="M9 3v8M5.5 7.5L9 11l3.5-3.5M4 15h10"/></svg></button>
           <button class="btn sm" id="layerUp" title="Move up" aria-label="Move layer up"><svg viewBox="0 0 18 18"><path d="M9 14V4M5 8l4-4 4 4"/></svg></button>
           <button class="btn sm" id="layerDown" title="Move down" aria-label="Move layer down"><svg viewBox="0 0 18 18"><path d="M9 4v10M5 10l4 4 4-4"/></svg></button>
@@ -507,12 +520,31 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   </div>
 </div>
 
+<div class="dialog sheet flt" id="fltDlg" hidden>
+  <div class="card" role="dialog" aria-labelledby="fltTitle">
+    <div class="row"><h2 id="fltTitle">Filter</h2><label class="check" title="Run the filter on a new layer made from everything visible, instead of only the active layer"><input type="checkbox" id="fltMerged"> Merged copy</label></div>
+    <div class="wheels" id="fltWheels" hidden></div>
+    <div class="props" id="fltParams"></div>
+    <p class="note" id="fltInfo"></p>
+    <div class="row"><button class="btn" id="fltReset">Reset</button><span class="row" style="gap:6px"><button class="btn" id="fltCancel">Cancel</button><button class="btn primary" id="fltOk">Apply</button></span></div>
+  </div>
+</div>
+
+<div class="dialog" id="numDlg" hidden>
+  <div class="card" role="dialog" aria-labelledby="numMsg" style="width:min(360px,100%)">
+    <label class="field" id="numMsg" style="font-size:13px;color:var(--ink)"></label>
+    <input class="num" type="number" id="numVal" style="width:100%;height:32px">
+    <div class="row" style="justify-content:flex-end"><button class="btn" id="numNo">Cancel</button><button class="btn primary" id="numYes">OK</button></div>
+  </div>
+</div>
+
 <div class="dialog" id="askDlg" hidden>
   <div class="card" role="alertdialog" aria-labelledby="askMsg" style="width:min(420px,100%)">
     <p id="askMsg" style="margin:0;font-size:13.5px;line-height:1.5"></p>
     <div class="row" style="justify-content:flex-end"><button class="btn" id="askNo">Cancel</button><button class="btn primary" id="askYes">OK</button></div>
   </div>
 </div>
+<input type="file" id="exrFile" accept=".exr,image/x-exr" hidden>
 <input type="file" id="openFile" accept=".sinopia,application/octet-stream" hidden>
 <input type="file" id="placeFile" accept="image/*" hidden>
 
@@ -782,12 +814,29 @@ function newLayer(name) {
   if (ws.doc) L.doc = true;   // document layers are never saved
   allLayers.set(L.id, L); return L;
 }
+function mkMask(L, id) {
+  const M = { id: id || nextId++, name: L.name + ' mask', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', isMask: true, owner: L, on: true, get mods() { return this.owner.mods; } };
+  if (L.doc) M.doc = true;
+  allLayers.set(M.id, M); nextId = Math.max(nextId, M.id + 1); return M;
+}
+const maskOn = L => !!(L.mask && L.mask.on && L.mask.tiles.size);
+let maskEdit = false;
+const paintL = () => maskEdit && cur.mask ? cur.mask : cur;   // what strokes, fills and filters change
+function maskedLayer(L) {   // a stand-in with the mask applied to its pixels (export, merge, documents)
+  if (!maskOn(L)) return L;
+  const tiles = new Map();
+  for (const [k, t] of L.tiles) {
+    const m = L.mask.tiles.get(k); if (!m || m.blank) { tiles.set(k, t); continue; }
+    const c = cloneCanvas(t.c), g = c.getContext('2d'); g.globalCompositeOperation = 'destination-out'; g.drawImage(m.c, 0, 0); tiles.set(k, mkTile(c));
+  }
+  return Object.assign(Object.create(L), { tiles });
+}
 function saveLayers() {
   const G = cur && groupOf(cur); if (G) G.active = cur.id;   // each group remembers its last active layer
   if (ws.doc) return;
   LS.set('sinopia.layers', { nextId, nextGid, active: cur && cur.id,
     groups: groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
-    layers: layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, mods: L.mods })) });
+    layers: layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) });
 }
 const groupOf = L => L.g ? groups.find(G => G.id === L.g) || null : null;
 const shown = L => L.visible && L.opacity > 0 && (!L.g || !groupOf(L) || groupOf(L).visible);
@@ -1052,17 +1101,17 @@ function settle() { while (bakeQ.length) bake(bakeQ.shift()); }   // before anyt
 function beginStroke(wx, wy, p, erase, local) {
   hideWelcome();
   if (!cur.visible) toast('This layer is hidden');
-  const hist = { kind: 'tiles', layer: cur, map: new Map() };
+  const PL = paintL(), hist = { kind: 'tiles', layer: PL, map: new Map() };
   const P = erase === S.erase ? toolProfile() : Object.assign(toolProfile(), S.tools.erase);   // pen eraser end uses the eraser's settings
   const b = brushes[clamp(P.brush, 0, brushes.length - 1)];
   const rgb = hexToRgb(S.color), mats = symMatrices();
-  const T = strokeTarget(cur, erase, rgb, hist);
+  const T = strokeTarget(PL, erase, rgb, hist);
   const opts = { size: P.size, opacity: P.opacity, pSize: P.pSize, pOpac: P.pOpac, spacing: P.spacing, rot: P.rot,
                  mats, cx: sym.cx, cy: sym.cy, tip: b };
   const snap = !local && guideNear(wx, wy) ? true : false;
   if (snap) [wx, wy] = guideSnap(wx, wy);
   const w = !local && useWorker(P, b, mats.length);
-  stroke = { T, erase, opts, hist, smooth: P.smooth, rgb, layer: cur, w, sid: ++strokeSeq,
+  stroke = { T, erase, opts, hist, smooth: P.smooth, rgb, layer: PL, w, sid: ++strokeSeq,
     s: w ? { q: [], add(x, y, p) { this.q.push(x, y, p); }, finish() {} } : new Stroke(T, opts),
     sx: wx, sy: wy, raw: { x: wx, y: wy, p }, snap };
   if (w) wbegin(b);
@@ -1283,6 +1332,7 @@ function applyEntry(e) {
   if (e.kind === 'resize') return applyResize(e);
   if (e.kind === 'mods') { const inv = modSnap(e.layer); e.layer.mods = e.mods; saveLayers(); renderLayers(); return inv; }
   if (e.kind === 'sel') { const inv = { kind: 'sel', sel }; sel = e.sel; selChanged(); return inv; }
+  if (e.kind === 'mask') { const inv = { kind: 'mask', layer: e.layer, mask: e.layer.mask || null }; e.layer.mask = e.mask; if (e.mask) markSave(e.mask, e.mask.tiles.keys()); if (!e.mask && cur === e.layer) maskEdit = false; saveLayers(); renderLayers(); dirtyScene(); return inv; }
   if (e.kind === 'tiles') {
     const inv = { kind: 'tiles', layer: e.layer, map: new Map() };
     for (const [k, before] of e.map) {
@@ -1302,8 +1352,8 @@ function applyEntry(e) {
   saveLayers(); renderLayers();
   return inv;
 }
-function undo() { if (xf) { xfEnd(false); return; } if (act || stroke || !undoStack.length) return; settle(); redoStack.push(applyEntry(undoStack.pop())); syncHistory(); dirtyScene(); }
-function redo() { if (xf) return; if (act || stroke || !redoStack.length) return; settle(); undoStack.push(applyEntry(redoStack.pop())); syncHistory(); dirtyScene(); }
+function undo() { if (flt) { fltEnd(false); return; } if (xf) { xfEnd(false); return; } if (act || stroke || !undoStack.length) return; settle(); redoStack.push(applyEntry(undoStack.pop())); syncHistory(); dirtyScene(); }
+function redo() { if (xf || flt) return; if (act || stroke || !redoStack.length) return; settle(); undoStack.push(applyEntry(redoStack.pop())); syncHistory(); dirtyScene(); }
 function syncHistory() { $('undo').disabled = !undoStack.length; $('redo').disabled = !redoStack.length; }
 
 /* ---------- layer operations ---------- */
@@ -1407,12 +1457,82 @@ function contentBounds(list) {
   }
   return isFinite(minX) ? { minX, minY, maxX, maxY } : null;
 }
+function maskTile(alpha) {   // a mask tile from a per-pixel (or uniform) hidden amount
+  const c = mk(TILE, TILE), g = c.getContext('2d');
+  if (typeof alpha === 'number') { g.fillStyle = 'rgba(0,0,0,' + alpha / 255 + ')'; g.fillRect(0, 0, TILE, TILE); }
+  else { const im = g.createImageData(TILE, TILE), d = im.data; for (let i = 0; i < alpha.length; i++) d[i * 4 + 3] = alpha[i]; g.putImageData(im, 0, 0); }
+  const t = mkTile(c); t.blank = false; return t;
+}
+function addMask(fromSel) {
+  if (!idle() || flt) return;
+  settle();
+  const L = cur, M = mkMask(L);
+  if (fromSel && sel) {   // hidden = 1 − selection, over the layer's tiles and the selection's own
+    const keys = new Set([...L.tiles.keys(), ...sel.m.keys()]);
+    for (const k of keys) {
+      const v = selGet(sel, k); if (v === 255) continue;
+      M.tiles.set(k, maskTile(typeof v === 'number' ? 255 - v : v.map(x => 255 - x)));
+    }
+  }
+  pushUndo({ kind: 'mask', layer: L, mask: L.mask || null });
+  L.mask = M; markSave(M, M.tiles.keys()); saveLayers(); renderLayers(); dirtyScene();
+  if (fromSel && sel) setSel(null);
+  toast(fromSel ? 'Mask made from the selection. \\ paints on it: the brush hides, the eraser reveals' : 'Mask added. \\ paints on it: the brush hides, the eraser reveals');
+}
+function setMaskEdit(on) {
+  if (on && !cur.mask) { addMask(!!sel); }
+  maskEdit = !!on && !!cur.mask; renderLayers(); syncSelUI();
+  toast(maskEdit ? 'Painting on ' + cur.name + '’s mask: the brush hides, the eraser reveals. \\ goes back to the pixels' : 'Painting on ' + cur.name);
+}
+function invertMask() {
+  if (!cur.mask || !idle()) return;
+  settle();
+  const L = cur, M = L.mask, h = { kind: 'tiles', layer: M, map: new Map() };
+  for (const k of new Set([...L.tiles.keys(), ...M.tiles.keys()])) {
+    const t = M.tiles.get(k); h.map.set(k, t ? t.c : null);
+    const c = mk(TILE, TILE), g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, TILE, TILE);
+    if (t) { g.globalCompositeOperation = 'destination-out'; g.drawImage(t.c, 0, 0); }
+    if (t) { t.c = c; t.v++; t.blank = false; } else { const n = mkTile(c); n.blank = false; M.tiles.set(k, n); }
+  }
+  pushUndo(h); markSave(M, h.map.keys()); dirtyScene(); toast('Mask inverted');
+}
+function applyMask() {
+  const L = cur, M = L.mask; if (!M || !idle()) return;
+  settle();
+  const h = { kind: 'tiles', layer: L, map: new Map(), extra: { kind: 'mask', layer: L, mask: M } };
+  if (M.on) for (const [k, t] of L.tiles) {
+    const m = M.tiles.get(k); if (!m || m.blank) continue;
+    h.map.set(k, cloneCanvas(t.c)); const g = t.c.getContext('2d'); g.globalCompositeOperation = 'destination-out'; g.drawImage(m.c, 0, 0); g.globalCompositeOperation = 'source-over'; t.v++;
+  }
+  L.mask = null; maskEdit = false;
+  pushUndo(h); markSave(L, h.map.keys()); saveLayers(); renderLayers(); dirtyScene(); toast('Mask applied to ' + L.name);
+}
+function deleteMask() {
+  const L = cur; if (!L.mask || !idle()) return;
+  pushUndo({ kind: 'mask', layer: L, mask: L.mask }); L.mask = null; maskEdit = false; saveLayers(); renderLayers(); dirtyScene(); toast('Mask deleted (Ctrl+Z brings it back)');
+}
+function toggleMask() { if (!cur.mask) return; cur.mask.on = !cur.mask.on; saveLayers(); renderLayers(); dirtyScene(); toast(cur.mask.on ? 'Mask on' : 'Mask off (Shift+click the mask button to turn it back on)'); }
+function maskMenu(anchor) {
+  const M = cur.mask;
+  showMenu(anchor, M ? [
+    { label: maskEdit ? 'Paint on the pixels' : 'Paint on the mask', sub: '\\', fn: () => setMaskEdit(!maskEdit) },
+    { label: M.on ? 'Turn the mask off' : 'Turn the mask on', sub: 'Shift+click', fn: toggleMask },
+    { label: 'Invert mask', fn: invertMask },
+    { label: 'Feather the mask (blur)…', fn: () => { maskEdit = true; renderLayers(); fltStart('blur'); } },
+    '-',
+    { label: 'Apply mask', fn: applyMask },
+    { label: 'Delete mask', fn: deleteMask },
+  ] : [
+    { label: 'Add mask (reveal all)', fn: () => addMask(false) },
+    { label: 'Mask from selection', sub: sel ? '' : 'needs a selection', fn: () => sel ? addMask(true) : toast('Make a selection first') },
+  ]);
+}
 function mergeDown() {
   const i = layers.indexOf(cur); if (i < 1) { toast('No layer below to merge into'); return; }
   settle();
   const top = cur, below = layers[i - 1];
-  const tiles = { kind: 'tiles', layer: below, map: new Map() }, baked = bakeCopies(top);   // modifiers are applied by merging
-  for (const [k, t] of baked ? [...baked].map(([k, c]) => [k, { c }]) : top.tiles) {
+  const topM = maskedLayer(top), tiles = { kind: 'tiles', layer: below, map: new Map() }, baked = bakeCopies(topM);   // modifiers and the mask are applied by merging
+  for (const [k, t] of baked ? [...baked].map(([k, c]) => [k, { c }]) : topM.tiles) {
     let b = below.tiles.get(k);
     tiles.map.set(k, b ? cloneCanvas(b.c) : null);
     if (!b) { b = mkTile(); below.tiles.set(k, b); }
@@ -1883,6 +2003,8 @@ function pasteClip() {
 }
 const HINT = $('hint').textContent;
 const FILL_HINT = 'Click to fill with the brush color · All layers finds the area from line art on any layer · Alt picks a color · B back to brush';
+const MASK_HINT = 'Painting on the layer mask: the brush hides, the eraser reveals · \\ back to the pixels · Shift+click the mask chip turns it off';
+const CRYPTO_HINT = 'Click an object to select it from the Cryptomatte · Shift adds · Alt subtracts · Image → Cryptomatte layer picks Object, Material or Asset';
 const SEL_HINT = 'Shift adds · Alt subtracts · Shift+Alt intersects · Ctrl-drag moves the pixels · Delete clears · Ctrl+D deselects · B back to brush';
 function syncSelUI() {
   for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand'], ['tFill', 'fill']]) $(id).classList.toggle('on', selTool === t);
@@ -1890,7 +2012,7 @@ function syncSelUI() {
   $('selOpts').hidden = !(selTool && selTool !== 'fill') && !sel; $('wandOpts').hidden = selTool !== 'wand'; $('fillOpts').hidden = selTool !== 'fill';
   $('selInv').hidden = $('selNone').hidden = !sel; $('selDoc').hidden = !sel || !!ws.doc;
   ov.classList.toggle('sel', !!selTool);
-  $('hint').textContent = xf ? XF_HINT : selTool === 'fill' ? FILL_HINT : selTool ? SEL_HINT : HINT;
+  $('hint').textContent = xf ? XF_HINT : selTool === 'crypto' ? CRYPTO_HINT : maskEdit && !selTool ? MASK_HINT : selTool === 'fill' ? FILL_HINT : selTool ? SEL_HINT : HINT;
 }
 function setSelTool(t) {
   if (t && noteMode) setNoteMode(false);
@@ -1935,8 +2057,8 @@ function openDoc(A) {   // A: {x, y, w, h} in canvas world px; A.blank makes an 
   for (const L of A.blank ? [] : layers) {
     if (!shown(L) || !L.tiles.size) continue;
     const N = newLayer(L.name); N.doc = true; N.opacity = L.opacity;
-    const bk = bakeCopies(L);
-    copyRegion(bk ? { tiles: new Map([...bk].map(([k, c]) => [k, { c }])) } : L, N, Math.round(b.x0), Math.round(b.y0), w, h);
+    const LM = maskedLayer(L), bk = bakeCopies(LM);
+    copyRegion(bk ? { tiles: new Map([...bk].map(([k, c]) => [k, { c }])) } : LM, N, Math.round(b.x0), Math.round(b.y0), w, h);
     if (N.tiles.size) D.layers.push(N); else allLayers.delete(N.id);
   }
   if (!D.layers.length) { const N = newLayer('Layer 1'); N.doc = true; D.layers.push(N); }
@@ -2048,6 +2170,7 @@ function drawDocArea() {
 }
 function switchWS(t) {
   if (t === ws || act || stroke) return;
+  if (flt) fltEnd(true);
   if (xf) xfEnd(true);
   settle(); if (anim) { cancelAnimationFrame(anim); anim = 0; }
   Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: normV(view), sel });
@@ -2598,7 +2721,7 @@ function initLayers() {
     nextId = meta.nextId || 1; nextGid = meta.nextGid || 1;
     groups = (meta.groups || []).map(G => ({ id: G.id, name: G.name, visible: G.visible !== false, open: G.open !== false, key: G.key || null, active: G.active }));
     for (const G of groups) nextGid = Math.max(nextGid, G.id + 1);
-    for (const m of meta.layers) { const L = { id: m.id, name: m.name, visible: m.visible !== false, opacity: m.opacity == null ? 1 : m.opacity, tiles: new Map(), g: groups.some(G => G.id === m.g) ? m.g : null, blend: 'normal', mods: Array.isArray(m.mods) ? m.mods : [] }; allLayers.set(L.id, L); layers.push(L); nextId = Math.max(nextId, L.id + 1); }
+    for (const m of meta.layers) { const L = { id: m.id, name: m.name, visible: m.visible !== false, opacity: m.opacity == null ? 1 : m.opacity, tiles: new Map(), g: groups.some(G => G.id === m.g) ? m.g : null, blend: 'normal', mods: Array.isArray(m.mods) ? m.mods : [] }; allLayers.set(L.id, L); layers.push(L); nextId = Math.max(nextId, L.id + 1); if (m.mask && m.mask.id) { L.mask = mkMask(L, m.mask.id); L.mask.on = m.mask.on !== false; } }
     tidyGroups();
     cur = layers.find(L => L.id === meta.active) || layers[layers.length - 1];
   } else { const L = newLayer('Layer 1'); layers.push(L); cur = L; saveLayers(); }
@@ -2878,25 +3001,28 @@ void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
         for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= a0 && tx <= a1 && ty >= b0 && ty <= b1) draw(tx, ty, t, op); }
       }
     };
-    const drawLayer = (L, op) => {
-      const cps = copiesOf(L);
-      if (!cps) { drawTiles(L, op, tx0, tx1, ty0, ty1); return; }
+    const drawLayer = (L, op, src) => {
+      const cps = copiesOf(L); src = src || L;
+      if (!cps) { drawTiles(src, op, tx0, tx1, ty0, ty1); return; }
       const scr = { minX: -ox / z, minY: -oy / z, maxX: (cv.width - ox) / z, maxY: (cv.height - oy) / z };
       for (const M of cps) {   // device-space matrix V·M·V⁻¹, and the tiles this copy can show on screen
         const e = z * M[4] + ox - (M[0] * ox + M[2] * oy), f = z * M[5] + oy - (M[1] * ox + M[3] * oy);
         xm.set([M[0], M[1], 0, M[2], M[3], 0, e, f, 1]); curX = xm;
         const q = boxUnder(minv(M), scr);
-        drawTiles(L, op, Math.floor(q.minX / TILE), Math.floor(q.maxX / TILE), Math.floor(q.minY / TILE), Math.floor(q.maxY / TILE));
+        drawTiles(src, op, Math.floor(q.minX / TILE), Math.floor(q.maxX / TILE), Math.floor(q.minY / TILE), Math.floor(q.maxY / TILE));
       }
       curX = XID;
     };
     const quad = () => { gl.uniform2f(on.u.uV, cv.width, cv.height); gl.uniform4f(on.u.uR, 0, 0, cv.width, cv.height); gl.uniformMatrix3fv(on.u.uX, false, XID); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
     for (const L of layers) {
       if (!shown(L) || !L.tiles.size) continue;
-      const m = doc ? BLENDS.indexOf(L.blend) : 0;
-      if (m <= 0) { drawLayer(L, L.opacity); continue; }
+      const m = doc ? BLENDS.indexOf(L.blend) : 0, msk = maskOn(L);
+      if (m <= 0 && !msk) { drawLayer(L, L.opacity); continue; }
+      const back = curFB; Lb = Lb || screenBuf(2);
       bindFB(Lb.fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-      drawLayer(L, 1);
+      drawLayer(L, m > 0 ? 1 : L.opacity);
+      if (msk) { gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_ALPHA); drawLayer(L, 1, L.mask); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); }   // × (1 − hidden)
+      if (m <= 0) { bindFB(back); on = P.copy; gl.useProgram(on.p); gl.bindTexture(gl.TEXTURE_2D, Lb.tex); quad(); gl.bindTexture(gl.TEXTURE_2D, null); continue; }
       bindFB(B.fb); gl.disable(gl.BLEND); on = P.blend; gl.useProgram(on.p);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, Lb.tex); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, A.tex);
       gl.uniform1f(on.u.uO, L.opacity); gl.uniform1i(on.u.uM, m); quad();
@@ -2937,6 +3063,7 @@ function make2D() {
     strokePatch() {}, strokeFree() {}, tilePatch() {}
   };
 }
+let scratch2D = null;
 function renderScene(ctx, rect) {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   let X0 = 0, Y0 = 0, X1 = cv.width, Y1 = cv.height;
@@ -2954,29 +3081,38 @@ function renderScene(ctx, rect) {
   ctx.fillStyle = paperColor(); ctx.fillRect(X0, Y0, X1 - X0, Y1 - Y0);
   ctx.imageSmoothingEnabled = z < 3; ctx.imageSmoothingQuality = 'low';
   const tx0 = Math.floor((X0 - ox) / size), tx1 = Math.floor((X1 - ox) / size), ty0 = Math.floor((Y0 - oy) / size), ty1 = Math.floor((Y1 - oy) / size);
-  const draw = (tx, ty, t) => {
+  const draw = (g, tx, ty, t) => {
     const x0 = Math.round(tx * size + ox), x1 = Math.round((tx + 1) * size + ox), y0 = Math.round(ty * size + oy), y1 = Math.round((ty + 1) * size + oy);
-    ctx.drawImage(lodOf(t, size), x0, y0, x1 - x0, y1 - y0);
+    g.drawImage(lodOf(t, size), x0, y0, x1 - x0, y1 - y0);
   };
-  const drawTiles = (L, a0, a1, b0, b1) => {
+  const drawTiles = (g, L, a0, a1, b0, b1) => {
     if ((a1 - a0 + 1) * (b1 - b0 + 1) <= L.tiles.size) {
-      for (let ty = b0; ty <= b1; ty++) for (let tx = a0; tx <= a1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(tx, ty, t); }
+      for (let ty = b0; ty <= b1; ty++) for (let tx = a0; tx <= a1; tx++) { const t = L.tiles.get(tkey(tx, ty)); if (t) draw(g, tx, ty, t); }
     } else {
-      for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= a0 && tx <= a1 && ty >= b0 && ty <= b1) draw(tx, ty, t); }
+      for (const [k, t] of L.tiles) { const c = k.indexOf(','), tx = +k.slice(0, c), ty = +k.slice(c + 1); if (tx >= a0 && tx <= a1 && ty >= b0 && ty <= b1) draw(g, tx, ty, t); }
     }
   };
   const scr = { minX: (X0 - ox) / z, minY: (Y0 - oy) / z, maxX: (X1 - ox) / z, maxY: (Y1 - oy) / z };
+  const pass = (g, L, src) => {
+    const cps = copiesOf(L);
+    if (!cps) { drawTiles(g, src, tx0, tx1, ty0, ty1); return; }
+    for (const M of cps) {
+      g.setTransform(M[0], M[1], M[2], M[3], z * M[4] + ox - (M[0] * ox + M[2] * oy), z * M[5] + oy - (M[1] * ox + M[3] * oy));
+      const q = boxUnder(minv(M), scr);
+      drawTiles(g, src, Math.floor(q.minX / TILE), Math.floor(q.maxX / TILE), Math.floor(q.minY / TILE), Math.floor(q.maxY / TILE));
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  };
   for (const L of layers) {
     if (!shown(L) || !L.tiles.size) continue;
+    if (!maskOn(L)) { ctx.globalAlpha = L.opacity; ctx.globalCompositeOperation = doc ? blend2D(L.blend) : 'source-over'; pass(ctx, L, L); continue; }
+    if (!scratch2D || scratch2D.width !== cv.width || scratch2D.height !== cv.height) scratch2D = mk(cv.width, cv.height);
+    const g = scratch2D.getContext('2d');   // masked: the layer, minus its mask, then onto the stage
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.clearRect(X0, Y0, X1 - X0, Y1 - Y0);
+    g.imageSmoothingEnabled = z < 3; g.imageSmoothingQuality = 'low';
+    pass(g, L, L); g.globalCompositeOperation = 'destination-out'; pass(g, L, L.mask); g.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = L.opacity; ctx.globalCompositeOperation = doc ? blend2D(L.blend) : 'source-over';
-    const cps = copiesOf(L);
-    if (!cps) { drawTiles(L, tx0, tx1, ty0, ty1); continue; }
-    for (const M of cps) {
-      ctx.setTransform(M[0], M[1], M[2], M[3], z * M[4] + ox - (M[0] * ox + M[2] * oy), z * M[5] + oy - (M[1] * ox + M[3] * oy));
-      const q = boxUnder(minv(M), scr);
-      drawTiles(L, Math.floor(q.minX / TILE), Math.floor(q.maxX / TILE), Math.floor(q.minY / TILE), Math.floor(q.maxY / TILE));
-    }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(scratch2D, X0, Y0, X1 - X0, Y1 - Y0, X0, Y0, X1 - X0, Y1 - Y0);
   }
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   if (doc) ctx.restore();
@@ -3143,6 +3279,7 @@ function selDown(e, x, y) {
   hideWelcome();
   if (e.ctrlKey || e.metaKey) { startMove(e.pointerId, x, y); return; }
   const w = toWorld(x, y), mode = e.shiftKey && e.altKey ? 'int' : e.shiftKey ? 'add' : e.altKey ? 'sub' : 'new';
+  if (selTool === 'crypto') { const s = cryptoSel(w.x, w.y); if (s !== null) setSel(mode === 'new' ? s : combine(sel, s, mode)); return; }
   if (selTool === 'wand') { const s = wandSel(w.x, w.y); setSel(mode === 'new' ? s : combine(sel, s, mode)); return; }
   if (mode === 'new' && selAt(w.x, w.y) >= 128) { act = { type: 'selmove', id: e.pointerId, sx: x, sy: y, dx: 0, dy: 0 }; return; }   // drag inside: move the outline
   act = { type: 'sel', id: e.pointerId, tool: selTool, mode, sh0: e.shiftKey, alt0: e.altKey, a: w, b: w, pts: [w], sq: false, ctr: false };
@@ -3172,6 +3309,7 @@ ov.addEventListener('pointerdown', e => {
   if (spaceHeld && (e.ctrlKey || e.metaKey)) { act = { type: 'zoom', id: e.pointerId, ax: x, ay: y, z0: view.z, w: toWorld(x, y) }; return; }
   if (e.button === 1 || spaceHeld) { act = { type: 'pan', id: e.pointerId, lx: x, ly: y }; ov.classList.add('grabbing'); return; }
   if (e.button === 2) return;
+  if (flt) return;   // a filter is open: only pan and zoom
   if (xf) { xfDown(e, x, y); return; }
   if (noteMode && !e.altKey && !e.ctrlKey && !e.metaKey) { addNote(x, y); return; }
   if (selTool === 'fill' && !e.altKey && !virt.pick && !e.ctrlKey && !e.metaKey) { const w = toWorld(x, y); fillAt(w.x, w.y); return; }
@@ -3361,6 +3499,7 @@ const rgbToHex = (r, g, b) => '#' + [r, g, b].map(v => Math.round(v).toString(16
 addEventListener('keydown', e => {
   const t = e.target, tag = t.tagName;
   if ((tag === 'INPUT' && (t.type === 'number' || t.type === 'text')) || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if (flt && !e.target.closest('#fltDlg')) { if (e.key === 'Escape') fltEnd(false); if (e.key === 'Enter') fltEnd(true); return; }
   if (e.key === 'Shift') { if (!e.repeat) setLineMode(true); return; }
   if (k0(e) === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) { rHeld = true; ov.classList.add('grab'); return; }
   if (e.code === 'Space') { e.preventDefault(); spaceHeld = true; notesEl.classList.add('pass'); setCursorMode(e); dirtyOverlay(); return; }
@@ -3385,6 +3524,11 @@ addEventListener('keydown', e => {
   if (!mod && !e.altKey && e.shiftKey && k === 'h') { view.flip = !view.flip; rotLayout(); saveSettings(); toast(view.flip ? 'View flipped (the drawing itself isn’t changed)' : 'View back to normal'); return; }
   if (mod && !e.shiftKey && !e.altKey && k === 't') { e.preventDefault(); startTransform(); return; }
   if (mod && e.shiftKey && !e.altKey && k === 'x') { e.preventDefault(); startTransform(true); return; }
+  if (mod && e.shiftKey && !e.altKey && k === 'a') { e.preventDefault(); fltStart('develop'); return; }
+  if (mod && e.shiftKey && !e.altKey && k === 'g') { e.preventDefault(); fltStart('grade'); return; }
+  if (mod && !e.shiftKey && !e.altKey && k === 'u') { e.preventDefault(); fltStart('huesat'); return; }
+  if (mod && !e.shiftKey && !e.altKey && k === 'l') { e.preventDefault(); fltStart('levels'); return; }
+  if (!mod && e.shiftKey && e.key === 'F6') { e.preventDefault(); featherSel(); return; }
   if (mod && !e.shiftKey && !e.altKey && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); jumpGroup(+e.code.slice(5)); return; }
   if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && k === 'y') { e.preventDefault(); redo(); return; }
@@ -3407,6 +3551,7 @@ addEventListener('keydown', e => {
   else if (k === 'w') setSelTool('wand');
   else if (k === 'delete' || k === 'backspace') { e.preventDefault(); clearSelected(); }
   else if (k === 'x') delLayer();
+  else if (e.key === '\\') setMaskEdit(!maskEdit);
   else if (k === 't') setNoteMode(!noteMode);
   else if (k === 'escape' && noteMode) setNoteMode(false);
   else if (k === 'escape' && sel && !act) setSel(null);
@@ -3430,7 +3575,7 @@ addEventListener('keyup', e => {
 addEventListener('blur', () => { spaceHeld = false; altHeld = false; rHeld = false; notesEl.classList.remove('pass'); setCursorMode(null); dirtyOverlay(); });
 addEventListener('resize', () => { if (rotD) { rotD = -1; rotLayout(); } else resize(); });
 addEventListener('dragover', e => e.preventDefault());
-addEventListener('drop', e => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (!fs || !fs.length) return; if (/\.sinopia$/i.test(fs[0].name)) { ask('Open this project? It replaces what’s on the canvas.', 'Open').then(y => y && loadProject(fs[0])); return; } if (e.shiftKey || isApp()) placeFile(fs[0]); else importFiles(fs); });
+addEventListener('drop', e => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (!fs || !fs.length) return; if (/\.exr$/i.test(fs[0].name)) { openEXR(fs[0]); return; } if (/\.sinopia$/i.test(fs[0].name)) { ask('Open this project? It replaces what’s on the canvas.', 'Open').then(y => y && loadProject(fs[0])); return; } if (e.shiftKey || isApp()) placeFile(fs[0]); else importFiles(fs); });
 
 /* ---------- UI wiring ---------- */
 const LOGMAX = Math.log(1500);
@@ -3756,8 +3901,15 @@ function renderLayers() {
     li.setAttribute('aria-selected', L === cur);
     const name = document.createElement('span'); name.className = 'name'; name.textContent = L.name;
     const op = document.createElement('span'); op.className = 'op'; op.textContent = opText(L);
-    li.append(eyeBtn(L.visible, 'layer', () => { L.visible = !L.visible; }), name, op);
-    li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight([L], L.name); else if (cur !== L) { cur = L; saveLayers(); renderLayers(); } };
+    li.append(eyeBtn(L.visible, 'layer', () => { L.visible = !L.visible; }), name);
+    if (L.mask) {   // the mask chip: click paints on the mask, Shift+click turns it off
+      const ch = document.createElement('button'); ch.className = 'mchip' + (maskEdit && L === cur ? ' on' : '') + (L.mask.on ? '' : ' off');
+      ch.title = (L.mask.on ? 'Layer mask' : 'Layer mask (off)') + ': click to paint on it, Shift+click to turn it on or off'; ch.setAttribute('aria-label', 'Layer mask');
+      ch.onclick = ev => { ev.stopPropagation(); if (ev.shiftKey) { cur = L; toggleMask(); return; } if (cur !== L) { cur = L; maskEdit = false; } setMaskEdit(!maskEdit); };
+      li.append(ch);
+    }
+    li.append(op);
+    li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight([L], L.name); else if (cur !== L || maskEdit) { cur = L; maskEdit = false; saveLayers(); renderLayers(); syncSelUI(); } };
     li.onkeydown = ev => { if (ev.key === 'Enter') { cur = L; saveLayers(); renderLayers(); } };
     renamable(li, name, L, 'Layer name');
     const row = { li, L }; layerRows.push(row); li.addEventListener('pointerdown', ev => startRowDrag(ev, row));
@@ -3769,8 +3921,11 @@ function renderLayers() {
   const i = layers.indexOf(cur);
   $('layerUp').disabled = !layerMove(1); $('layerDown').disabled = !layerMove(-1);
   $('layerMerge').disabled = i <= 0; $('layerDel').disabled = layers.length < 2;
+  if (!cur.mask) maskEdit = false;
+  $('layerMask').classList.toggle('on', !!cur.mask);
 }
 $('blend').innerHTML = BLENDS.map((m, i) => '<option value="' + m + '">' + BLEND_NAMES[i] + '</option>').join('');
+$('layerMask').onclick = e => { if (e.shiftKey && cur.mask) toggleMask(); else maskMenu(e.currentTarget); };
 $('blend').onchange = e => { cur.blend = e.target.value; e.target.blur(); renderLayers(); dirtyScene(); };
 $('tXf').onclick = () => xf ? xfEnd(true) : startTransform();
 $('xfWarp').onclick = xfWarp; $('xfFlipH').onclick = () => xfFlip(true); $('xfFlipV').onclick = () => xfFlip(false);
@@ -4008,7 +4163,16 @@ const KEYS = [
   ['Layers', [
     [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('N'), 'New layer'],
     [K('X'), 'Delete the active layer'],
+    [K('\\'), 'Paint on the layer mask (brush hides, eraser reveals) or back on the pixels. The ◐ button in the layers panel adds a mask'],
     [K('Ctrl') + ' + click', 'In the layers panel: flash that layer’s drawing'],
+  ]],
+  ['Image and filters', [
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('A'), 'Develop: exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance'],
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('G'), 'Color wheels: lift, gamma, gain and offset, like Resolve'],
+    [K('Ctrl') + ' + ' + K('U') + ' / ' + K('Ctrl') + ' + ' + K('L'), 'Hue / Saturation / Levels'],
+    [K('Shift') + ' + ' + K('F6'), 'Feather the selection'],
+    ['Filter menu', 'Gaussian blur, sharpen, RGB split, add noise, new noise layer. Previews live; Merged copy works on everything visible'],
+    ['File → Open EXR', 'Opens an EXR as a document; with Cryptomatte, click an object to select it'],
   ]],
   ['File', [
     [K('Ctrl') + ' + ' + K('S'), 'Save the project (.sinopia: every layer, group, document and note). Ctrl+Shift+S saves as'],
@@ -4055,7 +4219,7 @@ $('keysDlg').addEventListener('pointerdown', e => { if (e.target === $('keysDlg'
 let exportBlob = null, exportUrl = null;
 async function doExport() {
   settle();
-  const vis = layers.filter(shown).map(L => { const b = bakeCopies(L); return b ? Object.assign(Object.create(L), { tiles: new Map([...b].map(([k, c]) => [k, mkTile(c)])) }) : L; });
+  const vis = layers.filter(shown).map(maskedLayer).map(L => { const b = bakeCopies(L); return b ? Object.assign(Object.create(L), { tiles: new Map([...b].map(([k, c]) => [k, mkTile(c)])) }) : L; });
   const doc = ws.doc, bb = doc ? { minX: 0, minY: 0, maxX: doc.w, maxY: doc.h } : contentBounds(vis);   // a document exports at its own size
   if (!bb) { toast('Nothing visible to export yet'); return; }
   const { minX, minY, maxX, maxY } = bb;
@@ -4111,6 +4275,7 @@ const CMDS = [
   ['File', 'saveas', 'Save project as…', 'Ctrl+Shift+S', () => saveProject(true)],
   '-File',
   ['File', 'place', 'Place image…', 'Ctrl+Shift+P', () => $('placeFile').click()],
+  ['File', 'openexr', 'Open EXR (Cryptomatte)…', '', () => { $('exrFile').value = ''; $('exrFile').click(); }],
   ['File', 'export', 'Export PNG…', 'Ctrl+Shift+E', () => doExport()],
   ['File', 'closedoc', 'Close document', '', () => ws.doc && closeDoc(ws), 'doc'],
   ['Edit', 'undo', 'Undo', 'Ctrl+Z', () => undo()],
@@ -4126,6 +4291,11 @@ const CMDS = [
   ['Edit', 'liquify', 'Liquify', 'Ctrl+Shift+X', () => startTransform(true)],
   '-Edit',
   ['Edit', 'keys', 'Keyboard shortcuts…', '', () => openKb()],
+  ['Image', 'develop', 'Develop (exposure, contrast, highlights…)…', 'Ctrl+Shift+A', () => fltStart('develop')],
+  ['Image', 'grade', 'Color wheels (lift / gamma / gain / offset)…', 'Ctrl+Shift+G', () => fltStart('grade')],
+  ['Image', 'huesat', 'Hue / Saturation…', 'Ctrl+U', () => fltStart('huesat')],
+  ['Image', 'levels', 'Levels…', 'Ctrl+L', () => fltStart('levels')],
+  '-Image',
   ['Image', 'docsize', 'Document size…', '', () => docSizeDialog(), 'doc'],
   ['Image', 'clearlayer', 'Clear layer', '', () => idle() && clearLayer()],
   ['Layer', 'newlayer', 'New layer', 'Ctrl+Shift+N', () => addLayer()],
@@ -4134,16 +4304,33 @@ const CMDS = [
   ['Layer', 'merge', 'Merge down', '', () => mergeDown()],
   '-Layer',
   ['Layer', 'newgroup', 'New group', '', () => newGroup()],
+  ['Layer', 'addmask', 'Add layer mask', '', () => addMask(false)],
+  ['Layer', 'selmask', 'Layer mask from selection', '', () => sel ? addMask(true) : toast('Make a selection first')],
+  ['Layer', 'editmask', 'Paint on the mask / pixels', '\\', () => setMaskEdit(!maskEdit)],
+  ['Layer', 'invmask', 'Invert mask', '', () => invertMask()],
+  ['Layer', 'applymask', 'Apply mask', '', () => applyMask()],
+  ['Layer', 'delmask', 'Delete mask', '', () => deleteMask()],
+  '-Layer',
   ['Layer', 'array', 'Add Array modifier', '', () => addArray()],
   ['Layer', 'applymods', 'Apply modifiers', '', () => applyMods()],
   ['Select', 'all', 'Select all', 'Ctrl+A', () => setSel(invertSel(null))],
   ['Select', 'none', 'Deselect', 'Ctrl+D', () => setSel(null)],
   ['Select', 'invert', 'Invert selection', 'Ctrl+Shift+I', () => setSel(invertSel(sel))],
   '-Select',
+  ['Select', 'feather', 'Feather…', 'Shift+F6', () => featherSel()],
+  '-Select',
   ['Select', 'rect', 'Rectangle select', 'S', () => setSelTool('rect')],
   ['Select', 'ellipse', 'Ellipse select', '', () => setSelTool('ellipse')],
   ['Select', 'lasso', 'Lasso', 'L', () => setSelTool('lasso')],
   ['Select', 'wand', 'Magic wand', 'W', () => setSelTool('wand')],
+  ['Select', 'crypto', 'Cryptomatte pick', '', () => ws.crypto ? setSelTool('crypto') : toast('Open an EXR with Cryptomatte first (File → Open EXR)')],
+  ['Select', 'cryptonext', 'Cryptomatte layer (Object / Material / Asset)', '', () => cryptoNext()],
+  ['Filter', 'blur', 'Gaussian blur…', '', () => fltStart('blur')],
+  ['Filter', 'sharpen', 'Sharpen (unsharp mask)…', '', () => fltStart('sharpen')],
+  ['Filter', 'split', 'RGB split / chromatic aberration…', '', () => fltStart('split')],
+  '-Filter',
+  ['Filter', 'noise', 'Add noise…', '', () => fltStart('noise')],
+  ['Filter', 'noiselayer', 'New noise layer…', '', () => noiseLayer()],
   ['View', 'zoomin', 'Zoom in', 'Ctrl+=', () => zoomAt(W / 2, H / 2, view.z * 1.25)],
   ['View', 'zoomout', 'Zoom out', 'Ctrl+-', () => zoomAt(W / 2, H / 2, view.z / 1.25)],
   ['View', 'zoom100', 'Actual size (100%)', '0', () => zoomAt(W / 2, H / 2, 1 / dpr)],
@@ -4179,7 +4366,7 @@ function customKey(e) {
 /* menu bar */
 function buildMenubar() {
   const bar = $('menubar'); bar.querySelectorAll('.mb').forEach(b => b.remove());
-  for (const name of ['File', 'Edit', 'Image', 'Layer', 'Select', 'View', 'Help']) {
+  for (const name of ['File', 'Edit', 'Image', 'Layer', 'Select', 'Filter', 'View', 'Help']) {
     const b = document.createElement('button'); b.className = 'mb'; b.textContent = name; b.setAttribute('aria-haspopup', 'menu');
     const open = () => {
       const items = [];
@@ -4203,6 +4390,427 @@ const _closeMenu = closeMenu;
 closeMenu = function () { _closeMenu(); menuOwner = null; $('menubar').querySelectorAll('.mb').forEach(x => x.classList.remove('on')); };
 function setApp(on) { S.app = on; saveSettings(); $('menubar').hidden = !on; $('appToggle').classList.toggle('on', on); if (on) toast('App menus on. Help → Hide the App menus turns them off'); }
 $('appToggle').onclick = () => setApp(!isApp());
+
+/* ---------- filters and adjustments (App edition) ----------
+   The target pixels (the active layer, or a merged copy of everything visible; clipped to the selection) are read into
+   one region image and run through small WebGL 2 programs on their own canvas (filterGL). Each slider change re-renders
+   from the untouched original and writes the result into the layer tiles, so the preview sits in the right place in the
+   layer stack. Cancel puts the original tiles back; Apply is one undo step. Spatial filters pad the region so blur can
+   spread past the drawing. */
+let FG = null, flt = null;
+const FILTERS = {
+  blur: { label: 'Gaussian blur', spatial: true, params: [['radius', 'Radius px', 0, 100, 8, 0.5]] },
+  sharpen: { label: 'Sharpen (unsharp mask)', spatial: true, params: [['amount', 'Amount %', 0, 300, 80, 1], ['radius', 'Radius px', 0.5, 20, 2, 0.1]] },
+  split: { label: 'RGB split', spatial: true, params: [['dist', 'Distance px', 0, 60, 6, 0.5], ['angle', 'Angle °', -180, 180, 0, 1]] },
+  huesat: { label: 'Hue / Saturation', params: [['hue', 'Hue °', -180, 180, 0, 1], ['sat', 'Saturation', -100, 100, 0, 1], ['light', 'Lightness', -100, 100, 0, 1]] },
+  levels: { label: 'Levels', params: [['inB', 'Input black', 0, 254, 0, 1], ['inW', 'Input white', 1, 255, 255, 1], ['gam', 'Midtones (gamma)', 0.1, 4, 1, 0.01], ['outB', 'Output black', 0, 255, 0, 1], ['outW', 'Output white', 0, 255, 255, 1]] },
+  develop: { label: 'Develop', params: [['exp', 'Exposure', -3, 3, 0, 0.01], ['con', 'Contrast', -100, 100, 0, 1], ['hi', 'Highlights', -100, 100, 0, 1], ['sh', 'Shadows', -100, 100, 0, 1], ['wh', 'Whites', -100, 100, 0, 1], ['bl', 'Blacks', -100, 100, 0, 1], ['temp', 'Temperature', -100, 100, 0, 1], ['tint', 'Tint', -100, 100, 0, 1], ['vib', 'Vibrance', -100, 100, 0, 1], ['sat', 'Saturation', -100, 100, 0, 1]] },
+  grade: { label: 'Color wheels', wheels: ['Lift', 'Gamma', 'Gain', 'Offset'], params: [['sat', 'Saturation', 0, 200, 100, 1], ['mix', 'Mix %', 0, 100, 100, 1]] },
+  noise: { label: 'Add noise', params: [['amount', 'Amount', 0, 100, 12, 1], ['size', 'Grain size px', 1, 8, 1, 0.1], ['color', 'Color %', 0, 100, 0, 1], ['grain', 'Film grain (mids)', 0, 1, 1, 1], ['seed', 'Seed', 0, 999, 1, 1]] },
+};
+const FS_HEAD = `#version 300 es
+precision highp float; uniform sampler2D s; uniform sampler2D s2; uniform vec2 px; uniform vec2 org; uniform float P[12]; uniform vec3 Wh[4]; in vec2 uv; out vec4 o;
+vec3 un(vec4 t) { return t.a > 0.0 ? t.rgb / t.a : vec3(0.0); }
+float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+vec3 toLin(vec3 c) { return pow(max(c, 0.0), vec3(2.2)); } vec3 toSrgb(vec3 c) { return pow(max(c, 0.0), vec3(1.0 / 2.2)); }
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+vec3 rgb2hsl(vec3 c) { float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), l = (mx + mn) * 0.5, d = mx - mn, h = 0.0, s = 0.0;
+  if (d > 1e-5) { s = l > 0.5 ? d / (2.0 - mx - mn) : d / (mx + mn); h = mx == c.r ? (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0) : mx == c.g ? (c.b - c.r) / d + 2.0 : (c.r - c.g) / d + 4.0; h /= 6.0; }
+  return vec3(h, s, l); }
+float h2r(float p, float q, float t) { t = fract(t); return t < 1.0/6.0 ? p + (q - p) * 6.0 * t : t < 0.5 ? q : t < 2.0/3.0 ? p + (q - p) * (2.0/3.0 - t) * 6.0 : p; }
+vec3 hsl2rgb(vec3 h) { if (h.y < 1e-5) return vec3(h.z); float q = h.z < 0.5 ? h.z * (1.0 + h.y) : h.z + h.y - h.z * h.y, p = 2.0 * h.z - q; return vec3(h2r(p, q, h.x + 1.0/3.0), h2r(p, q, h.x), h2r(p, q, h.x - 1.0/3.0)); }
+`;
+const FS_SRC = {
+  blur: `void main() { float sg = max(P[0], 0.001) / 2.0, st = max(1.0, sg * 3.0 / 48.0); vec4 a = vec4(0.0); float w = 0.0;
+    for (int i = -48; i <= 48; i++) { float x = float(i) * st, k = exp(-x * x / (2.0 * sg * sg)); a += texture(s, uv + vec2(P[1], P[2]) * px * x) * k; w += k; } o = a / w; }`,
+  usm: `void main() { vec4 a = texture(s, uv), b = texture(s2, uv); vec4 r = a + (a - b) * P[0]; r.a = a.a; o = vec4(clamp(r.rgb, 0.0, r.a), r.a); }`,
+  split: `void main() { vec2 d = vec2(cos(P[1]), sin(P[1])) * P[0] * px; vec4 r = texture(s, uv + d), g = texture(s, uv), b = texture(s, uv - d);
+    o = vec4(r.r, g.g, b.b, max(r.a, max(g.a, b.a))); }`,
+  color: `uniform int mode;
+  void main() { vec4 t = texture(s, uv); if (t.a <= 0.0 && mode != 7) { o = t; return; } vec3 c = un(t);
+    if (mode == 3) { vec3 h = rgb2hsl(c); h.x = fract(h.x + P[0] / 360.0); h.y = clamp(h.y * (1.0 + P[1] / 100.0), 0.0, 1.0); c = hsl2rgb(h);
+      c = P[2] > 0.0 ? mix(c, vec3(1.0), P[2] / 100.0) : c * (1.0 + P[2] / 100.0); }
+    else if (mode == 4) { c = clamp((c * 255.0 - P[0]) / max(P[1] - P[0], 1.0), 0.0, 1.0); c = pow(c, vec3(1.0 / P[2])); c = (P[3] + c * (P[4] - P[3])) / 255.0; }
+    else if (mode == 5) { vec3 l = toLin(c) * exp2(P[0]); c = toSrgb(l);
+      c = (c - 0.5) * (1.0 + P[1] / 100.0) + 0.5;
+      float y = luma(c), hm = smoothstep(0.45, 1.0, y), sm = 1.0 - smoothstep(0.0, 0.55, y);
+      c += c * (P[2] / 100.0) * 0.6 * hm + (P[3] / 100.0) * 0.35 * sm;
+      float b = P[5] / 100.0 * -0.12, w = 1.0 - P[4] / 100.0 * 0.15; c = (c - b) / max(w - b, 0.05);
+      c.r += P[6] / 100.0 * 0.12; c.b -= P[6] / 100.0 * 0.12; c.g -= P[7] / 100.0 * 0.1;
+      float m = luma(c), sat = length(c - vec3(m)); c = mix(vec3(m), c, 1.0 + P[8] / 100.0 * (1.0 - clamp(sat * 2.0, 0.0, 1.0)));
+      c = mix(vec3(luma(c)), c, 1.0 + P[9] / 100.0); }
+    else if (mode == 6) { vec3 c0 = c, lift = Wh[0], gm = Wh[1], gain = Wh[2], off = Wh[3];
+      c = (1.0 + gain) * (c + lift * (1.0 - c)); c = pow(max(c, 0.0), exp(-gm)); c += off;
+      c = mix(vec3(luma(c)), c, P[0] / 100.0); c = mix(c0, c, P[1] / 100.0); }
+    else if (mode == 7) { vec2 q = floor((gl_FragCoord.xy + org) / max(P[1], 1.0)) + P[4] * 17.0;
+      float u1 = max(hash(q), 1e-4), u2 = hash(q + 31.7), n = sqrt(-2.0 * log(u1)) * cos(6.2831853 * u2);
+      vec3 nc = vec3(n, sqrt(-2.0 * log(max(hash(q + 7.1), 1e-4))) * cos(6.2831853 * hash(q + 3.3)), sqrt(-2.0 * log(max(hash(q + 9.9), 1e-4))) * cos(6.2831853 * hash(q + 5.5)));
+      vec3 nv = mix(vec3(n), nc, P[2] / 100.0) * P[0] / 100.0 * 0.35;
+      if (t.a <= 0.0) { if (P[5] < 0.5) { o = t; return; } float a = clamp(abs(n) * P[0] / 100.0 * 0.6, 0.0, 1.0); o = vec4(vec3(n > 0.0 ? a : 0.0), a); return; }
+      float y = luma(c), w = P[3] > 0.5 ? 4.0 * y * (1.0 - y) + 0.15 : 1.0; c += nv * w; }
+    c = clamp(c, 0.0, 1.0); o = vec4(c * t.a, t.a); }`,
+};
+FS_SRC.mixm = `uniform sampler2D m; void main() { o = mix(texture(s2, uv), texture(s, uv), texture(m, uv).a); }`;
+function filterGL() {
+  if (FG !== null) return FG;
+  const c = mk(1, 1), gl = c.getContext('webgl2', { premultipliedAlpha: true, preserveDrawingBuffer: true, antialias: false, depth: false });
+  if (!gl) return FG = false;
+  const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.bindVertexArray(gl.createVertexArray()); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  gl.disable(gl.BLEND); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  return FG = { c, gl, progs: {}, max: gl.getParameter(gl.MAX_TEXTURE_SIZE) };
+}
+function fprog(name) {
+  if (FG.progs[name]) return FG.progs[name];
+  const gl = FG.gl, sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) console.error(name, gl.getShaderInfoLog(o)); return o; };
+  const p = gl.createProgram();
+  gl.attachShader(p, sh(gl.VERTEX_SHADER, '#version 300 es\nin vec2 a; out vec2 uv; void main() { uv = a; gl_Position = vec4(a * 2.0 - 1.0, 0.0, 1.0); }'));
+  gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS_HEAD + FS_SRC[name])); gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p);
+  const u = n => gl.getUniformLocation(p, n);
+  return FG.progs[name] = { p, s: u('s'), s2: u('s2'), m: u('m'), px: u('px'), org: u('org'), P: u('P'), Wh: u('Wh'), mode: u('mode') };
+}
+function ftex(w, h, img) {
+  const gl = FG.gl, t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  if (img) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+  const fb = img ? null : gl.createFramebuffer();
+  if (fb) { gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); }
+  return { t, fb };
+}
+/* one pass: program name, source textures, target, uniforms */
+function fpass(name, src, dst, P, extra) {
+  const gl = FG.gl, pr = fprog(name), F2 = flt || extra.F;
+  gl.useProgram(pr.p); gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fb); gl.viewport(0, 0, F2.w, F2.h);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.t); gl.uniform1i(pr.s, 0);
+  if (extra && extra.s2) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, extra.s2.t); gl.uniform1i(pr.s2, 1); }
+  if (extra && extra.m) { gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, extra.m.t); gl.uniform1i(pr.m, 2); }
+  gl.uniform2f(pr.px, 1 / F2.w, 1 / F2.h); gl.uniform2f(pr.org, F2.r.x0, -F2.r.y1);
+  const a = new Float32Array(12); (P || []).forEach((v, i) => a[i] = v); gl.uniform1fv(pr.P, a);
+  if (pr.Wh) gl.uniform3fv(pr.Wh, new Float32Array(extra && extra.wh || 12));
+  if (pr.mode) gl.uniform1i(pr.mode, extra && extra.mode || 0);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+/* wheel puck (x, y in the unit disc) -> a balanced color offset (no change in brightness) */
+function wheelVec(x, y, scale) {
+  const r = Math.min(1, Math.hypot(x, y)); if (r < 1e-3) return [0, 0, 0];
+  const h = (Math.atan2(-y, x) / (2 * Math.PI) + 1) % 1, [R, G, B] = hexToRgb(hsvToHex(h * 360, 1, 1)).map(v => v / 255), m = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+  return [(R - m) * r * scale, (G - m) * r * scale, (B - m) * r * scale];
+}
+function fltRun() {
+  const X = flt; if (!X) return;
+  const gl = FG.gl, p = X.P, K = X.kind, T = X.tx;
+  let out = T.a;
+  if (K === 'blur') { if (p.radius < 0.25) out = X.src; else { fpass('blur', X.src, T.a, [p.radius, 1, 0]); fpass('blur', T.a, T.b, [p.radius, 0, 1]); out = T.b; } }
+  else if (K === 'sharpen') { fpass('blur', X.src, T.a, [p.radius, 1, 0]); fpass('blur', T.a, T.b, [p.radius, 0, 1]); fpass('usm', X.src, T.a, [p.amount / 100], { s2: T.b }); }
+  else if (K === 'split') fpass('split', X.src, T.a, [p.dist, p.angle * Math.PI / 180]);
+  else {
+    const mode = { huesat: 3, levels: 4, develop: 5, grade: 6, noise: 7 }[K], P = X.spec.params.map(q => p[q[0]]);
+    if (K === 'noise') P[5] = X.empty ? 1 : 0;
+    const wh = K === 'grade' ? [...wheelVec(p.w0x, p.w0y, 0.3).map(v => v + p.l0 * 0.5), ...wheelVec(p.w1x, p.w1y, 0.8).map(v => v + p.l1), ...wheelVec(p.w2x, p.w2y, 0.6).map(v => v + p.l2), ...wheelVec(p.w3x, p.w3y, 0.25).map(v => v + p.l3 * 0.3)] : null;
+    fpass('color', X.src, T.a, P, { mode, wh });
+  }
+  if (X.mtex && out !== X.src) { fpass('mixm', out, out === T.a ? T.b : T.a, [], { s2: X.src, m: X.mtex }); out = out === T.a ? T.b : T.a; }
+  // read back (bottom-up, premultiplied) into an ImageData (top-down, straight alpha) and write it into the tiles
+  const w = X.w, h = X.h, buf = X.buf || (X.buf = new Uint8Array(w * h * 4)), im = X.im || (X.im = new ImageData(w, h)), d = im.data;
+  if (out === X.src) { fpass('mixm', X.src, T.a, [], { s2: X.src, m: X.mtex || X.src }); out = T.a; }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, out.fb); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+  for (let y = 0; y < h; y++) {
+    const si = (h - 1 - y) * w * 4, di = y * w * 4;
+    for (let x = 0; x < w * 4; x += 4) { const a = buf[si + x + 3]; d[di + x + 3] = a; if (a) { const k = 255 / a; d[di + x] = buf[si + x] * k; d[di + x + 1] = buf[si + x + 1] * k; d[di + x + 2] = buf[si + x + 2] * k; } else d[di + x] = d[di + x + 1] = d[di + x + 2] = 0; }
+  }
+  const L = X.L;
+  for (const k of X.hist.map.keys()) {
+    const [tx, ty] = keyXY(k), ox = tx * TILE, oy = ty * TILE;
+    let t = L.tiles.get(k); if (!t) { t = mkTile(); L.tiles.set(k, t); }
+    const sx = Math.max(0, ox - X.r.x0), sy = Math.max(0, oy - X.r.y0), ex = Math.min(w, ox + TILE - X.r.x0), ey = Math.min(h, oy + TILE - X.r.y0);
+    if (ex > sx && ey > sy) t.c.getContext('2d').putImageData(im, X.r.x0 - ox, X.r.y0 - oy, sx, sy, ex - sx, ey - sy);
+    t.v++; t.blank = false;
+  }
+  dirtyScene();
+}
+let fltQueued = false;
+const fltKick = () => { if (fltQueued) return; fltQueued = true; requestAnimationFrame(() => { fltQueued = false; fltRun(); }); };
+function fltStart(kind, opts) {
+  if (!idle() || flt) return;
+  if (!filterGL()) { toast('Filters need WebGL 2, which this browser doesn’t have'); return; }
+  settle();
+  const spec = FILTERS[kind]; opts = opts || {};
+  let L = paintL();
+  if (!opts.noMerge && $('fltMerged').checked && !(maskEdit && cur.mask)) {   // a new layer from everything visible
+    const vis = layers.filter(shown).map(maskedLayer); if (!vis.length) { toast('Nothing visible'); return; }
+    layerOp(() => {
+      const N = newLayer('Merged ' + spec.label.toLowerCase()); N.g = cur.g; layers.splice(layers.indexOf(cur) + 1, 0, N);
+      const keys = new Set(vis.flatMap(V => [...V.tiles.keys()]));
+      for (const k of keys) { const t = mkTile(), g = t.c.getContext('2d'); for (const V of vis) { const vt = V.tiles.get(k); if (vt && !vt.blank) { g.globalAlpha = V.opacity; g.globalCompositeOperation = ws.doc ? blend2D(V.blend) : 'source-over'; g.drawImage(vt.c, 0, 0); } } t.blank = false; N.tiles.set(k, t); }
+      markSave(N, N.tiles.keys()); cur = N;
+    });
+    L = cur;
+  }
+  let r = opts.area;
+  if (!r) {
+    const lb = contentBounds([L]); if (!lb) { toast(L.name + ' is empty'); return; }
+    const pad = spec.spatial ? 96 : 0;
+    r = { x0: lb.minX - pad, y0: lb.minY - pad, x1: lb.maxX + pad, y1: lb.maxY + pad };
+    if (sel && !sel.out) { const b = selBounds(sel); if (!b) { toast('Nothing selected'); return; } r = { x0: Math.max(r.x0, Math.floor(b.x0) - pad), y0: Math.max(r.y0, Math.floor(b.y0) - pad), x1: Math.min(r.x1, Math.ceil(b.x1) + pad), y1: Math.min(r.y1, Math.ceil(b.y1) + pad) }; }
+    if (ws.doc) r = { x0: Math.max(r.x0, 0), y0: Math.max(r.y0, 0), x1: Math.min(r.x1, ws.doc.w), y1: Math.min(r.y1, ws.doc.h) };
+  }
+  r = { x0: Math.floor(r.x0), y0: Math.floor(r.y0), x1: Math.ceil(r.x1), y1: Math.ceil(r.y1) };
+  const w = r.x1 - r.x0, h = r.y1 - r.y0;
+  if (w <= 0 || h <= 0) { toast('Nothing to filter there'); return; }
+  if (w > Math.min(FG.max, 8192) || h > Math.min(FG.max, 8192)) { toast('That’s ' + w + ' × ' + h + ' px. Filters work on up to ' + Math.min(FG.max, 8192) + ' px at a time: select a smaller area.'); return; }
+  const src = mk(w, h), g = src.getContext('2d'), hist = { kind: 'tiles', layer: L, map: new Map() };
+  for (let ty = Math.floor(r.y0 / TILE); ty <= Math.floor((r.y1 - 1) / TILE); ty++) for (let tx = Math.floor(r.x0 / TILE); tx <= Math.floor((r.x1 - 1) / TILE); tx++) {
+    const k = tkey(tx, ty), t = L.tiles.get(k);
+    hist.map.set(k, t ? cloneCanvas(t.c) : null);
+    if (t && !t.blank) g.drawImage(t.c, tx * TILE - r.x0, ty * TILE - r.y0);
+  }
+  flt = { kind, spec, L, r, w, h, hist, empty: !!opts.empty, P: {}, merged: L !== cur || (!opts.noMerge && $('fltMerged').checked) };
+  flt.src = ftex(w, h, src); flt.tx = { a: ftex(w, h), b: ftex(w, h) };
+  flt.mtex = sel ? ftex(w, h, maskCanvas(sel, r.x0, r.y0, w, h)) : null;
+  for (const q of spec.params) flt.P[q[0]] = S.flt && S.flt[kind] && S.flt[kind][q[0]] != null ? S.flt[kind][q[0]] : q[4];
+  if (spec.wheels) for (let i = 0; i < 4; i++) for (const k of ['w' + i + 'x', 'w' + i + 'y', 'l' + i]) flt.P[k] = 0;
+  if (opts.P) Object.assign(flt.P, opts.P);
+  fltUI(); fltRun();
+}
+function fltEnd(apply) {
+  const X = flt; if (!X) return;
+  flt = null; $('fltDlg').hidden = true;
+  if (!apply && X.merged) { restoreTiles(X.L, X.hist.map); applyEntry(undoStack.pop()); syncHistory(); X.merged = false; }   // Cancel also removes the merged copy
+  if (apply) { pushUndo(X.hist); markSave(X.L, X.hist.map.keys()); S.flt = S.flt || {}; S.flt[X.kind] = {}; for (const q of X.spec.params) S.flt[X.kind][q[0]] = X.P[q[0]]; saveSettings(); }
+  else restoreTiles(X.L, X.hist.map);
+  const gl = FG.gl; for (const o of [X.src, X.tx.a, X.tx.b, X.mtex]) if (o) { gl.deleteTexture(o.t); if (o.fb) gl.deleteFramebuffer(o.fb); }
+  dirtyScene();
+}
+function fltUI() {
+  const X = flt, box = $('fltParams'); box.innerHTML = '';
+  $('fltTitle').textContent = X.spec.label; $('fltDlg').hidden = false;
+  for (const [k, label, min, max, def, step] of X.spec.params) {
+    if (X.kind === 'noise' && k === 'seed') continue;
+    const row = document.createElement('label'); row.className = 'prop';
+    const rg = document.createElement('input'); rg.type = 'range'; rg.min = min; rg.max = max; rg.step = step; rg.value = X.P[k];
+    const nb = document.createElement('input'); nb.type = 'number'; nb.className = 'num'; nb.step = step; nb.value = X.P[k];
+    const set = (v, from) => { if (!isFinite(v)) return; X.P[k] = v; if (from !== rg) rg.value = v; if (from !== nb) nb.value = v; fltKick(); };
+    rg.oninput = () => set(+rg.value, rg); nb.oninput = () => set(parseFloat(nb.value), nb);
+    rg.ondblclick = () => set(def);
+    row.append(label, rg, nb); box.appendChild(row);
+  }
+  const wb = $('fltWheels'); wb.hidden = !X.spec.wheels; wb.innerHTML = '';
+  if (X.spec.wheels) X.spec.wheels.forEach((name, i) => {
+    const el = document.createElement('div'); el.className = 'wheel';
+    const c = document.createElement('canvas'); c.width = c.height = 208; c.title = name + ': drag to tint, double-click to reset';
+    const lum = document.createElement('input'); lum.type = 'range'; lum.min = -1; lum.max = 1; lum.step = 0.01; lum.value = X.P['l' + i]; lum.title = name + ' brightness (double-click to reset)';
+    const draw = () => {
+      const g = c.getContext('2d'), R = 100; g.clearRect(0, 0, 208, 208);
+      const cg = g.createConicGradient ? g.createConicGradient(0, 104, 104) : null;
+      if (cg) { for (let a = 0; a <= 6; a++) cg.addColorStop(a / 6, hsvToHex((360 - a * 60) % 360, 0.65, 0.8)); g.fillStyle = cg; } else g.fillStyle = '#888';
+      g.beginPath(); g.arc(104, 104, R, 0, Math.PI * 2); g.fill();
+      const rg = g.createRadialGradient(104, 104, 0, 104, 104, R); rg.addColorStop(0, 'rgba(128,128,128,1)'); rg.addColorStop(1, 'rgba(128,128,128,0)'); g.fillStyle = rg; g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 2; g.stroke();
+      const x = 104 + X.P['w' + i + 'x'] * R, y = 104 + X.P['w' + i + 'y'] * R;
+      g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.stroke(); g.strokeStyle = '#1b2532'; g.lineWidth = 1.5; g.stroke();
+    };
+    c.addEventListener('pointerdown', e => {
+      e.preventDefault(); try { c.setPointerCapture(e.pointerId); } catch (_) {}
+      const go = ev => { const b = c.getBoundingClientRect(); let x = (ev.clientX - b.left) / b.width * 2 - 1, y = (ev.clientY - b.top) / b.height * 2 - 1; const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; } if (ev.shiftKey) { x *= 0.25; y *= 0.25; } X.P['w' + i + 'x'] = x; X.P['w' + i + 'y'] = y; draw(); fltKick(); };
+      go(e); c.onpointermove = go; c.onpointerup = c.onpointercancel = () => { c.onpointermove = null; };
+    });
+    c.ondblclick = () => { X.P['w' + i + 'x'] = X.P['w' + i + 'y'] = 0; draw(); fltKick(); };
+    lum.oninput = () => { X.P['l' + i] = +lum.value; fltKick(); }; lum.ondblclick = () => { lum.value = X.P['l' + i] = 0; fltKick(); };
+    const lab = document.createElement('span'); lab.textContent = name;
+    el.append(c, lum, lab); wb.appendChild(el); draw();
+  });
+  $('fltInfo').textContent = (X.L.name) + ' · ' + X.w + ' × ' + X.h + ' px' + (sel ? ' · inside the selection' : '') + ' · double-click a slider to reset it' + (X.spec.wheels ? '. Shift-drag a wheel for fine control' : '');
+}
+$('fltOk').onclick = () => fltEnd(true);
+$('fltCancel').onclick = () => fltEnd(false);
+$('fltReset').onclick = () => { if (!flt) return; for (const q of flt.spec.params) flt.P[q[0]] = q[4]; if (flt.spec.wheels) for (const k in flt.P) if (/^[wl]\d/.test(k)) flt.P[k] = 0; fltUI(); fltRun(); };
+$('fltMerged').onchange = () => { if (!flt) return; const k = flt.kind; fltEnd(false); fltStart(k); };
+$('fltDlg').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fltEnd(true); if (e.key === 'Escape') fltEnd(false); });
+/* a noise layer: on a document, 50% grey set to Overlay; on the canvas, black and white grain on a clear layer */
+function noiseLayer() {
+  if (!idle() || flt) return;
+  if (!filterGL()) { toast('Filters need WebGL 2'); return; }
+  const a = ws.doc ? { x0: 0, y0: 0, x1: ws.doc.w, y1: ws.doc.h } : (() => { const p = toWorld(0, 0), q = toWorld(W, H); return { x0: Math.min(p.x, q.x), y0: Math.min(p.y, q.y), x1: Math.max(p.x, q.x), y1: Math.max(p.y, q.y) }; })();
+  layerOp(() => {
+    const N = newLayer('Noise'); N.g = cur.g; layers.splice(layers.indexOf(cur) + 1, 0, N); cur = N;
+    if (ws.doc) {
+      N.blend = 'overlay';
+      for (let ty = Math.floor(a.y0 / TILE); ty <= Math.floor((a.y1 - 1) / TILE); ty++) for (let tx = Math.floor(a.x0 / TILE); tx <= Math.floor((a.x1 - 1) / TILE); tx++) {
+        const t = mkTile(), g = t.c.getContext('2d'); g.fillStyle = '#808080'; g.fillRect(a.x0 - tx * TILE, a.y0 - ty * TILE, a.x1 - a.x0, a.y1 - a.y0); t.blank = false; N.tiles.set(tkey(tx, ty), t);
+      }
+    }
+  });
+  const was = $('fltMerged').checked; $('fltMerged').checked = false;
+  fltStart('noise', { area: a, empty: !ws.doc, noMerge: true, P: ws.doc ? { amount: 40, grain: 0 } : { amount: 30, grain: 0 } });
+  $('fltMerged').checked = was;
+}
+/* Select → Feather: blur the selection mask on the GPU */
+function askNum(msg, v) {
+  return new Promise(res => {
+    $('numMsg').textContent = msg; $('numVal').value = v; $('numDlg').hidden = false; setTimeout(() => { $('numVal').focus(); $('numVal').select(); });
+    const done = x => { $('numDlg').hidden = true; res(x); };
+    $('numYes').onclick = () => done(parseFloat($('numVal').value)); $('numNo').onclick = () => done(null);
+    $('numDlg').onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') done(parseFloat($('numVal').value)); if (e.key === 'Escape') done(null); };
+  });
+}
+async function featherSel() {
+  if (!idle() || flt) return;
+  if (!sel) { toast('Nothing selected'); return; }
+  if (sel.out) { toast('Feather works on a closed selection (not an inverted or Select all one)'); return; }
+  const rad = await askNum('Feather radius (px)', S.feather || 8); if (!(rad > 0)) return;
+  S.feather = rad; saveSettings();
+  if (!filterGL()) return;
+  const b = selBounds(sel); if (!b) return;
+  const pad = Math.ceil(rad * 2) + 2, r = { x0: Math.floor(b.x0) - pad, y0: Math.floor(b.y0) - pad, x1: Math.ceil(b.x1) + pad, y1: Math.ceil(b.y1) + pad }, w = r.x1 - r.x0, h = r.y1 - r.y0;
+  if (w > FG.max || h > FG.max) { toast('That selection is too large to feather'); return; }
+  const F = { w, h, r }, src = ftex(w, h, maskCanvas(sel, r.x0, r.y0, w, h)), A = ftex(w, h), B = ftex(w, h);
+  fpass('blur', src, A, [rad * 2, 1, 0], { F }); fpass('blur', A, B, [rad * 2, 0, 1], { F });
+  const gl = FG.gl, px = new Uint8Array(w * h * 4); gl.bindFramebuffer(gl.FRAMEBUFFER, B.fb); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const ms = new Map();
+  for (let y = 0; y < h; y++) { const Y = r.y0 + y, ty = Math.floor(Y / TILE), row = (h - 1 - y) * w;
+    for (let x = 0; x < w; x++) { const a = px[(row + x) * 4 + 3]; if (!a) continue; const X2 = r.x0 + x, tx = Math.floor(X2 / TILE), k = tkey(tx, ty); let v = ms.get(k); if (!v) ms.set(k, v = new Uint8Array(TILE * TILE)); v[(Y - ty * TILE) * TILE + X2 - tx * TILE] = a; } }
+  for (const o of [src, A, B]) { gl.deleteTexture(o.t); if (o.fb) gl.deleteFramebuffer(o.fb); }
+  const m = new Map(); for (const [k, v] of ms) putNorm(m, k, v, 0);
+  setSel(mkSel(m, 0)); toast('Selection feathered by ' + rad + ' px');
+}
+
+const half2f = h => { const s = h & 0x8000 ? -1 : 1, e = h >> 10 & 31, m = h & 1023; return e === 0 ? s * m * 5.960464477539063e-8 : e === 31 ? (m ? NaN : s * Infinity) : s * (1 + m / 1024) * Math.pow(2, e - 15); };
+async function inflateZ(b) { return new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer()); }
+function unRLE(b, n) {
+  const out = new Uint8Array(n); let i = 0, o = 0;
+  while (i < b.length && o < n) { const c = (b[i++] << 24) >> 24; if (c < 0) { for (let k = 0; k < -c && o < n; k++) out[o++] = b[i++]; } else { const v = b[i++]; for (let k = 0; k <= c && o < n; k++) out[o++] = v; } }
+  return out;
+}
+function unPredict(t) {   // ZIP / RLE: undo the byte delta, then re-interleave the two halves
+  for (let i = 1; i < t.length; i++) t[i] = (t[i - 1] + t[i] - 128) & 255;
+  const out = new Uint8Array(t.length), half = (t.length + 1) >> 1;
+  for (let i = 0, j = 0; i < t.length; i += 2, j++) { out[i] = t[j]; if (i + 1 < t.length) out[i + 1] = t[half + j]; }
+  return out;
+}
+async function readEXR(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  if (buf.byteLength < 8 || dv.getUint32(0, true) !== 20000630) throw new Error('That isn’t an OpenEXR file');
+  const ver = dv.getUint32(4, true);
+  if (ver & 0x200) throw new Error('Tiled EXRs aren’t supported yet: save it as scanline');
+  if (ver & 0x1000) throw new Error('Multi-part EXRs aren’t supported yet: save it as a single-part multilayer EXR');
+  let p = 8; const str = () => { const a = p; while (u8[p]) p++; return new TextDecoder().decode(u8.subarray(a, p++)); };
+  const H = { meta: {} };
+  for (;;) {
+    const name = str(); if (!name) break;
+    const type = str(), size = dv.getInt32(p, true); p += 4; const a = p;
+    if (type === 'chlist') { H.ch = []; while (u8[p]) { const n = str(); H.ch.push({ name: n, type: dv.getInt32(p, true) }); p += 16; } }
+    else if (type === 'compression') H.comp = u8[p];
+    else if (type === 'box2i') H[name] = [0, 1, 2, 3].map(i => dv.getInt32(p + i * 4, true));
+    else if (type === 'string') H.meta[name] = new TextDecoder().decode(u8.subarray(p, p + size));
+    p = a + size;
+  }
+  const lpb = { 0: 1, 1: 1, 2: 1, 3: 16 }[H.comp];
+  if (!lpb) throw new Error('This EXR uses ' + (['', '', '', '', 'PIZ', 'PXR24', 'B44', 'B44A', 'DWAA', 'DWAB'][H.comp] || 'an unknown') + ' compression. Save it with ZIP, ZIPS, RLE or no compression');
+  const [x0, y0, x1, y1] = H.dataWindow, w = x1 - x0 + 1, h = y1 - y0 + 1, nb = Math.ceil(h / lpb);
+  const bs = c => c.type === 1 ? 2 : 4, rowBytes = w * H.ch.reduce((a, c) => a + bs(c), 0);
+  const data = H.ch.map(c => c.type === 1 ? new Uint16Array(w * h) : new Uint32Array(w * h));   // raw bits: ids must stay exact
+  for (let b = 0; b < nb; b++) {
+    const off = Number(dv.getBigUint64(p + b * 8, true)), y = dv.getInt32(off, true), len = dv.getInt32(off + 4, true);
+    const lines = Math.min(lpb, y1 - y + 1), want = lines * rowBytes;
+    let blk = u8.subarray(off + 8, off + 8 + len);
+    if (H.comp && len < want) blk = unPredict(H.comp === 1 ? unRLE(blk, want) : await inflateZ(blk));
+    const bd = new DataView(blk.buffer, blk.byteOffset, blk.byteLength); let q = 0;
+    for (let l = 0; l < lines; l++) {
+      const row = (y - y0 + l) * w;
+      H.ch.forEach((c, ci) => { const d = data[ci]; if (c.type === 1) for (let x = 0; x < w; x++, q += 2) d[row + x] = bd.getUint16(q, true); else for (let x = 0; x < w; x++, q += 4) d[row + x] = bd.getUint32(q, true); });
+    }
+  }
+  return { w, h, H, ch: H.ch.map((c, i) => ({ name: c.name, type: c.type, d: data[i] })) };
+}
+function exrFloat(c) {   // a channel as floats
+  if (c.type === 2) return new Float32Array(c.d.buffer);
+  const f = new Float32Array(c.d.length); if (c.type === 1) for (let i = 0; i < f.length; i++) f[i] = half2f(c.d[i]); else for (let i = 0; i < f.length; i++) f[i] = c.d[i]; return f;
+}
+function cryptoLayers(E) {   // [{name, ranks: [{id: Uint32Array, cov: Float32Array}], manifest}]
+  const out = [], byName = new Map(E.ch.map(c => [c.name.toLowerCase(), c]));
+  const names = new Set(Object.keys(E.H.meta).filter(k => /^cryptomatte\/[^/]+\/name$/.test(k)).map(k => E.H.meta[k]));
+  if (!names.size) for (const c of E.ch) { const m = /^(.*crypto[^.]*?)\d\d\.r$/i.exec(c.name); if (m) names.add(m[1]); }
+  for (const n0 of names) {
+    const lo = n0.toLowerCase(), short = lo.replace(/^.*\./, ''), hit = byName.has(lo + '00.r') ? lo : (E.ch.map(c => c.name.toLowerCase()).find(x => x.endsWith(short + '00.r')) || '').slice(0, -4);
+    if (!hit) continue;
+    const n = hit, ranks = [];
+    for (let i = 0; i < 16; i++) {
+      const pre = (n + String(i).padStart(2, '0')).toLowerCase(), ch = ['r', 'g', 'b', 'a'].map(x => byName.get(pre + '.' + x));
+      if (!ch[0]) break;
+      if (ch[0].type !== 2) continue;   // ids are only exact as 32-bit floats
+      ranks.push({ id: ch[0].d, cov: exrFloat(ch[1]) }); if (ch[2] && ch[3]) ranks.push({ id: ch[2].d, cov: exrFloat(ch[3]) });
+    }
+    if (!ranks.length) continue;
+    const mk2 = Object.keys(E.H.meta).find(k => k.endsWith('/name') && E.H.meta[k] === n0);
+    let manifest = {}; try { manifest = JSON.parse(E.H.meta[mk2 ? mk2.replace(/name$/, 'manifest') : ''] || '{}'); } catch (e) {}
+    const rev = new Map(Object.entries(manifest).map(([k, v]) => [parseInt(v, 16) >>> 0, k]));
+    out.push({ name: n0.replace(/^.*\./, ''), full: n0, ranks, rev });
+  }
+  return out;
+}
+const srgb8 = v => { v = v <= 0 ? 0 : v >= 1 ? 1 : v; return Math.round((v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055) * 255); };
+function exrBeauty(E) {   // the RGB(A) pass, linear → sRGB, straight alpha; prefers plain R/G/B, then Combined, then any non-Crypto layer
+  const groups = new Map();
+  for (const c of E.ch) { const i = c.name.lastIndexOf('.'), pre = i < 0 ? '' : c.name.slice(0, i), x = c.name.slice(i + 1).toUpperCase(); if (/crypto/i.test(pre)) continue; if (!groups.has(pre)) groups.set(pre, {}); groups.get(pre)[x] = c; }
+  const ok = [...groups].filter(([, g]) => g.R && g.G && g.B);
+  const pick = ok.find(([p]) => p === '') || ok.find(([p]) => /combined|image|beauty|rgba/i.test(p)) || ok[0];
+  if (!pick) return null;
+  const g = pick[1], R = exrFloat(g.R), G = exrFloat(g.G), B = exrFloat(g.B), A = g.A ? exrFloat(g.A) : null, n = E.w * E.h;
+  const im = new ImageData(E.w, E.h), d = im.data;
+  for (let i = 0; i < n; i++) { const a = A ? Math.max(0, Math.min(1, A[i])) : 1, k = a > 1e-6 ? 1 / a : 0; d[i * 4] = srgb8(R[i] * k); d[i * 4 + 1] = srgb8(G[i] * k); d[i * 4 + 2] = srgb8(B[i] * k); d[i * 4 + 3] = Math.round(a * 255); }
+  return { im, name: pick[0] || 'RGB' };
+}
+function cryptoPreview(E, C) {   // false color by id, like Nuke's Cryptomatte preview
+  const im = new ImageData(E.w, E.h), d = im.data, r0 = C.ranks[0];
+  for (let i = 0; i < r0.id.length; i++) { const id = r0.id[i]; if (!id) continue; let x = Math.imul(id ^ (id >>> 16), 0x45d9f3b); x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) ^ (x >>> 16); d[i * 4] = 60 + (x & 0xbf); d[i * 4 + 1] = 60 + (x >>> 8 & 0xbf); d[i * 4 + 2] = 60 + (x >>> 16 & 0xbf); d[i * 4 + 3] = 255; }
+  return im;
+}
+function imageToLayer(L, im) {   // an ImageData at world (0, 0) into a layer's tiles
+  const c = mk(im.width, im.height); c.getContext('2d').putImageData(im, 0, 0);
+  for (let ty = 0; ty <= Math.floor((im.height - 1) / TILE); ty++) for (let tx = 0; tx <= Math.floor((im.width - 1) / TILE); tx++) { const t = mkTile(); t.c.getContext('2d').drawImage(c, -tx * TILE, -ty * TILE); t.blank = false; L.tiles.set(tkey(tx, ty), t); }
+}
+async function openEXR(file) {
+  if (!idle()) return;
+  toast('Reading ' + file.name + '…');
+  let E; try { E = await readEXR(await file.arrayBuffer()); } catch (e) { toast(e.message || 'Couldn’t read that EXR'); return; }
+  if (E.w > DOC_MAX || E.h > DOC_MAX) { toast('That EXR is larger than ' + DOC_MAX + ' px'); return; }
+  const C = cryptoLayers(E), beauty = exrBeauty(E);
+  if (!C.length && !beauty) { toast('No RGB or Cryptomatte channels found in that EXR'); return; }
+  if (ws.doc) switchWS(canvasWS);
+  openDoc({ x: 0, y: 0, w: E.w, h: E.h, blank: true });
+  if (!ws.doc) return;
+  ws.name = file.name.replace(/\.exr$/i, '');
+  const base = cur;
+  if (C.length) { base.name = C[0].name + ' (IDs)'; imageToLayer(base, cryptoPreview(E, C[0])); if (beauty) base.visible = false; }
+  if (beauty) { const L = C.length ? newLayer(beauty.name) : base; L.doc = true; L.name = beauty.name; imageToLayer(L, beauty.im); if (L !== base) layers.push(L); cur = L; }
+  ws.crypto = C.length ? { list: C, i: 0, w: E.w, h: E.h } : null;
+  renderLayers(); renderTabs(); dirtyScene();
+  if (C.length) { setSelTool('crypto'); toast('Cryptomatte: ' + C.map(c => c.name).join(', ') + '. Click an object to select it'); }
+  else toast('Opened ' + file.name + ' (no Cryptomatte in it)');
+}
+function cryptoSel(wx, wy) {
+  const X = ws.crypto; if (!X) { toast('Open an EXR with Cryptomatte first (File → Open EXR)'); return null; }
+  const x = Math.floor(wx), y = Math.floor(wy); if (x < 0 || y < 0 || x >= X.w || y >= X.h) return null;
+  const C = X.list[X.i], i0 = y * X.w + x;
+  let id = 0, best = -1; for (const r of C.ranks) if (r.id[i0] && r.cov[i0] > best) { best = r.cov[i0]; id = r.id[i0]; }
+  if (!id) { toast('Nothing in the ' + C.name + ' matte there'); return null; }
+  const ms = new Map();
+  for (let p = 0; p < X.w * X.h; p++) {
+    let a = 0; for (const r of C.ranks) if (r.id[p] === id) a += r.cov[p];
+    if (a <= 0.002) continue;
+    const px = p % X.w, py = (p / X.w) | 0, tx = Math.floor(px / TILE), ty = Math.floor(py / TILE), k = tkey(tx, ty);
+    let v = ms.get(k); if (!v) ms.set(k, v = new Uint8Array(TILE * TILE));
+    v[(py - ty * TILE) * TILE + px - tx * TILE] = Math.min(255, Math.round(a * 255));
+  }
+  const m = new Map(); for (const [k, v] of ms) putNorm(m, k, v, 0);
+  toast((C.rev.get(id >>> 0) || 'Object ' + (id >>> 0).toString(16)) + ' (' + C.name + ')');
+  return mkSel(m, 0);
+}
+function cryptoNext() {
+  const X = ws.crypto; if (!X) { toast('Open an EXR with Cryptomatte first (File → Open EXR)'); return; }
+  X.i = (X.i + 1) % X.list.length; setSelTool('crypto'); toast('Cryptomatte layer: ' + X.list[X.i].name);
+}
 
 /* fit everything visible */
 function fitView() {
@@ -4259,8 +4867,8 @@ async function buildProject() {
     const d = wsData(spaces[i]);
     out.push({ name: spaces[i].name, doc: spaces[i].doc, paper: d.paper, view: d.view, active: d.cur && d.cur.id,
       groups: d.groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
-      layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods })) });
-    for (const L of d.layers) await pack(i, L);
+      layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) });
+    for (const L of d.layers) { await pack(i, L); if (L.mask) await pack(i, L.mask); }
   }
   const head = new TextEncoder().encode(JSON.stringify({ v: 1, app: 'Sinopia', saved: new Date().toISOString(), spaces: out, tiles,
     notes: notes.filter(n => n.text.trim()).map(n => ({ x: n.x, y: n.y, text: n.text })), guide: S.guide || null, sym }));
@@ -4291,6 +4899,7 @@ async function openProject() {
   }
   $('openFile').value = ''; $('openFile').click();
 }
+$('exrFile').onchange = e => { const f = e.target.files[0]; if (f) openEXR(f); };
 $('openFile').onchange = e => { const f = e.target.files[0]; if (f) { fileHandle = null; loadProject(f); } };
 async function loadProject(file) {
   const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf);
@@ -4305,7 +4914,7 @@ async function loadProject(file) {
   P.spaces.forEach((sp, i) => {
     const idMap = new Map(), gMap = new Map();
     const gs = (sp.groups || []).map(G => { const id = nextGid++; gMap.set(G.id, id); return { id, name: G.name, visible: G.visible !== false, open: G.open !== false, key: i ? null : G.key || null, active: null }; });
-    const ls = sp.layers.map(m => { const L = { id: nextId++, name: m.name, visible: m.visible !== false, opacity: m.opacity == null ? 1 : m.opacity, tiles: new Map(), g: gMap.get(m.g) || null, blend: m.blend || 'normal', mods: Array.isArray(m.mods) ? m.mods : [] }; if (sp.doc) L.doc = true; idMap.set(m.id, L); allLayers.set(L.id, L); return L; });
+    const ls = sp.layers.map(m => { const L = { id: nextId++, name: m.name, visible: m.visible !== false, opacity: m.opacity == null ? 1 : m.opacity, tiles: new Map(), g: gMap.get(m.g) || null, blend: m.blend || 'normal', mods: Array.isArray(m.mods) ? m.mods : [] }; if (sp.doc) L.doc = true; idMap.set(m.id, L); allLayers.set(L.id, L); if (m.mask) { L.mask = mkMask(L); L.mask.on = m.mask.on !== false; idMap.set(m.mask.id, L.mask); } return L; });
     for (const G of gs) { const o = (sp.groups || []).find(x => gMap.get(x.id) === G.id); G.active = o && idMap.get(o.active) ? idMap.get(o.active).id : null; }
     made.push({ sp, ls, gs, idMap });
   });
@@ -4320,7 +4929,7 @@ async function loadProject(file) {
   S.paper = C.sp.paper || S.paper; $('paper').style.background = S.paper;
   if (C.sp.view) { view.r = 0; view.flip = false; Object.assign(view, C.sp.view); rotLayout(true); updateZoomLabel(); }
   if (P.guide) { Object.assign(guide, P.guide); saveGuide(); $('tGuide').classList.toggle('on', guide.on); }
-  for (const L of layers) markSave(L, L.tiles.keys());
+  for (const L of layers) { markSave(L, L.tiles.keys()); if (L.mask) markSave(L.mask, L.mask.tiles.keys()); }
   if (!saveSet.size) markSave(layers[0], []);
   saveLayers(); saveSettings();
   for (const nn of [...notes]) { nn.el.remove(); } notes = [];

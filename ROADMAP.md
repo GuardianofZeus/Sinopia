@@ -44,14 +44,14 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] Keyboard shortcut editor
 - [x] Copy and paste images from other apps (the clipboard pastes as a new layer)
 
-## Phase 4: App edition, image work ("go a little crazy")
+## Phase 4: App edition, image work ("go a little crazy") (done)
 
-- [ ] **Filters**: blur, sharpen, RGB split / chromatic aberration, levels, curves, hue/saturation. All on the GPU, all live-previewed.
-- [ ] **Layer masks** (paint black/white on a mask, non-destructive)
-- [ ] **Lightroom-style develop panel**: exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance
-- [ ] **Color wheels like DaVinci Resolve**: lift, gamma, gain and offset wheels as a final grade over the whole document
-- [ ] **Noise generator**: film grain, gaussian, value and Perlin noise, as its own layer or a filter (size, amount, mono or color)
-- [ ] **Cryptomatte**: open an EXR with Cryptomatte layers (from Blender, Nuke and others), click an object to get a selection mask of it. Needs an EXR reader in the app edition only.
+- [x] **Filters**: Gaussian blur, sharpen (unsharp mask), RGB split / chromatic aberration, levels, hue/saturation, add noise. All on the GPU, all live-previewed, clipped to the selection, optionally on a merged copy. (Curves is still to come.)
+- [x] **Layer masks**: non-destructive; the brush hides and the eraser reveals while painting on the mask (\). Add, from selection, invert, feather (blur), turn off, apply, delete.
+- [x] **Lightroom-style develop panel**: exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance
+- [x] **Color wheels like DaVinci Resolve**: lift, gamma, gain and offset wheels, each with a brightness slider. Use Merged copy for a final grade over everything
+- [x] **Noise generator**: gaussian film grain (midtone-weighted or flat), grain size, mono or color, as a filter or a new noise layer (an Overlay layer in documents). Value and Perlin noise are still to come.
+- [x] **Cryptomatte**: File → Open EXR (or drop one) makes a document with the beauty pass and a false-color ID layer. The Cryptomatte pick tool selects an object with anti-aliased edges; Shift adds, Alt subtracts. Scanline EXRs with ZIP, ZIPS, RLE or no compression (not PIZ / DWA yet).
 
 ## From Leonardo, worth borrowing
 

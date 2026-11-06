@@ -133,6 +133,27 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - **Flip view** (Shift+H, `view.flip`): an extra `scaleX(-1)` in the rotation layout, mirrored in `unrot`. The pixels never change.
 - Fit (Ctrl+0, `fitView`), zoom in and out (Ctrl+= / Ctrl+−).
 
+**Filters and adjustments** (Phase 4, 2026-11-06). `FILTERS` lists each one's sliders; `fltStart(kind)` opens the sheet (`#fltDlg`).
+- The target (the active layer, or the mask while painting on it, or a new **Merged copy** layer of everything visible) is read over its content bounds, clipped to the selection's bounds, into one region image. Spatial filters pad it by 96 px.
+- `filterGL()` is a separate small WebGL 2 canvas. `fpass` runs one fragment shader (`FS_HEAD` + `FS_SRC`): `blur` (separable Gaussian, two passes), `usm`, `split`, `color` (modes 3–7: hue/sat, levels, develop, color wheels, noise) and `mixm` (mixes with the original through the selection mask).
+- Every slider change re-renders from the untouched original and writes straight into the layer tiles, so the preview is in place in the stack. Cancel restores the tiles (and removes a merged copy); Apply is one tiles undo step and remembers the sliders in `S.flt`.
+- While a filter is open, only pan and zoom reach the canvas, Enter/Esc apply/cancel, and Ctrl+Z cancels. Up to 8192 px a side.
+- Color wheels (`wheelVec`): the puck's hue becomes a balanced RGB offset (no brightness change), plus each wheel's brightness slider. Lift = c + lift·(1−c), gain = c·(1+gain), gamma = pow(c, e^−gamma), then offset.
+- `noiseLayer()`: a 50% grey Overlay layer of the page in documents, or clear black-and-white grain over the screen on the canvas.
+- **Feather** (Shift+F6, `featherSel`): blurs the selection mask with the same blur shader. `askNum` is a themed number prompt (`#numDlg`).
+
+**Layer masks** (Phase 4). `L.mask` is a layer-like object (`mkMask`, its own id, registered in `allLayers`) whose **alpha means hidden**.
+- So strokes, undo, autosave (IndexedDB under the mask's id; `saveLayers` stores `mask: {id, on}`) and filters work on it unchanged. `paintL()` is what strokes, fills and filters change: the mask while `maskEdit` (\ or the row's mask chip), otherwise the layer. The brush hides, the eraser reveals.
+- WebGL: a masked layer draws into screen buffer 2, then the mask tiles draw over it with `blendFunc(ZERO, ONE_MINUS_SRC_ALPHA)` (× (1 − hidden)), then it's copied (or blended, in documents) onto the target. A live stroke on the mask goes through the normal stroke shader, so the reveal or hide shows as you paint. Canvas 2D does the same with a screen-sized scratch canvas and `destination-out`.
+- `maskedLayer(L)` is a stand-in with the mask applied, used by export, merge down, Open as document and filter Merged copy. The mask follows the layer's modifiers (its `mods` is a getter onto the owner's).
+- Mask from selection covers the layer's tiles and the selection's own; painting outside those later isn't hidden. Undo kind `{kind:'mask', layer, mask}`; Apply mask is a tiles entry with a mask entry as `extra`.
+
+**Cryptomatte / EXR** (Phase 4). `readEXR`: scanline, single-part OpenEXR with no compression, RLE, ZIPS or ZIP (`DecompressionStream('deflate')`, then `unPredict`). Channels are kept as raw bits, so float ids stay exact.
+- `cryptoLayers` reads the `cryptomatte/<key>/name` and `manifest` metadata and the `<name>NN.RGBA` rank channels (matching with or without the view-layer prefix). `exrBeauty` picks the plain RGB(A) or Combined pass, linear → sRGB, un-premultiplied.
+- `openEXR` makes a document of the EXR's size: the beauty layer, plus a hidden false-color ID layer (`cryptoPreview`). `ws.crypto` holds the mattes (not saved in projects).
+- The pick tool (`selTool === 'crypto'`, `cryptoSel`) takes the clicked pixel's highest-coverage id and sums every rank's coverage for it into an anti-aliased selection. `cryptoNext` switches between Object, Material and Asset mattes.
+- Tested with a synthetic ZIP EXR (two objects, half and float channels). Not yet with a real Blender file.
+
 **Paper color.** The default paper (background) is neutral gray `#808080` (Ben's request). Saved papers still on an old default (`#f7f9fb`, `#fbfaf6`) move to it; a paper color he picked himself is kept. The brush color persists between sessions as before.
 
 **Resize readout.** Ctrl+drag shows only the ring. The px label and the toast were removed at Ben's request.
@@ -207,6 +228,10 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Shortcut sheet | ? (searchable). App edition: Edit → Keyboard shortcuts to rebind |
 | Project | Ctrl+S save (.sinopia), Ctrl+Shift+S save as, Ctrl+O open, Ctrl+Shift+P place image, Ctrl+Shift+E export, Ctrl+V pastes images from other apps |
 | View | Ctrl+0 fit, Ctrl+= / Ctrl+− zoom, Shift+H flip view |
+| Filters | Ctrl+Shift+A develop, Ctrl+Shift+G color wheels, Ctrl+U hue/saturation, Ctrl+L levels; Filter menu: blur, sharpen, RGB split, noise, noise layer. Enter applies, Esc cancels |
+| Layer mask | ◐ button in the layers panel (Shift+click toggles). \ paints on the mask: brush hides, eraser reveals |
+| Feather | Shift+F6 |
+| Cryptomatte | File → Open EXR (or drop an .exr), then click objects; Shift adds, Alt subtracts |
 | iPad | Two-finger tap = undo, three-finger tap = redo. Dock on the left: Line (hold, or tap to latch) = Shift, Pick = Alt, Undo, Redo |
 | Mirror cycle | M (off, vertical, horizontal, both, radial; Kaleido option; drag the center handle) |
 | Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |
@@ -243,7 +268,8 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 2. **Worker threshold tuning:** `useWorker`'s 400 is an estimate. Tune it on Ben's PC if very large brushes feel laggy (worker) or stall (main thread).
 3. **Canvas rotation** (Leonardo has it). This is now easy in the WebGL vertex shader.
 4. Optional "build-up" mode for soft brushes (MAX blending means a single stroke never darkens over itself).
-5. More modifiers (radial array as its own type, mirror, offset/jitter), transform options typed as numbers, feather and polygonal lasso, a wand "sample all layers" option, and layer thumbnails. Selection basics are in.
+5. More modifiers (radial array as its own type, mirror, offset/jitter), transform options typed as numbers, polygonal lasso, and layer thumbnails. Selection basics and feather are in.
+9. **Phase 4 follow-ups:** Curves, Perlin/value noise, adjustment *layers* (filters are destructive today, with live preview), PIZ/DWA EXR compression, and checking Cryptomatte against a real Blender EXR.
 6. **Documents next:** saving (IndexedDB, keyed per document), “Place back” onto the canvas, new blank documents of a chosen size, layer thumbnails, and more blend modes. Ben wants many documents open at once in the full app.
 7. Save and load a project file (currently it lives only in browser storage plus PNG export).
 8. **Straight lines:** now a rubber band with a hard 10° snap and a 4-line guide, per Ben. Tune `LINE_STEP` or the guide alpha if he asks.
