@@ -60,6 +60,16 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] **Draw together on a local network**: `Start collab server.bat` (no dependencies, Node.js) serves the app and relays live strokes, tiles, layers and notes between everyone connected
 - [ ] Later: share documents too; per-user undo that doesn't take back the other person's strokes on the same tiles; internet sessions without a VPN (needs a hosted relay)
 
+## Phase 6: color correction (2026-11-07)
+
+- [x] Filters no longer flip the layer upside down (the GPU read-back was turned over twice)
+- [x] **Image → Adjustments**, Photoshop-style: Brightness/Contrast, Levels, Curves, Hue/Saturation, Color Balance, Black & White, Photo Filter, Channel Mixer, Invert, Posterize, Threshold, Desaturate. Levels, Curves and Threshold show a histogram
+- [x] **Develop like DaVinci Resolve's primaries**: scrub fields (drag left / right) for temp, tint, exposure, contrast, pivot, mid/detail, color boost, shadows, highlights, saturation and hue; the wheels' master values scrub too
+- [x] The filter panel can be dragged anywhere
+- [x] **Smudge tool** (F): finger-paint smearing with its own size, strength and pressure
+- [x] Fill sampling is a clear toolbar option: All layers or This layer (Shift+G)
+- [ ] Later: adjustment *layers* (non-destructive), Selective Color, Gradient Map, Match Color
+
 ## From Leonardo, worth borrowing
 
 I couldn't open Leonardo itself: this session has no desktop-control tools, only the browser. These come from its store listing and reviews, plus what it's known for:

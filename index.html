@@ -276,6 +276,30 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .wheel{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; color:var(--muted)}
 .wheel canvas{width:100%; max-width:104px; aspect-ratio:1; touch-action:none; cursor:crosshair; border-radius:50%}
 .wheel input[type=range]{width:100%; accent-color:var(--accent)}
+.dialog.flt{pointer-events:none}   /* the canvas stays reachable for pan and zoom; only the card takes the pointer */
+.dialog.flt .card{pointer-events:auto; max-height:calc(100vh - 90px)}
+.flt h4{margin:6px 0 0; font-size:10px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
+.flt .prop.chk{grid-template-columns:1fr}
+/* DaVinci Resolve-style scrub fields: drag left / right on one to change it, click to type, double-click to reset */
+.scrubs{display:grid; grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:6px}
+.scrub{position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px 4px 7px; border:1px solid var(--line); border-radius:3px;
+  background:var(--chrome-2); cursor:ew-resize; touch-action:none; user-select:none; -webkit-user-select:none}
+.scrub:hover{border-color:var(--muted)}
+.scrub.drag{border-color:var(--accent)}
+.scrub .lab{font-size:10.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
+.scrub .val{font:600 13px var(--font-ui); font-variant-numeric:tabular-nums; color:var(--ink)}
+.scrub.changed .val{color:var(--accent)}
+.scrub .bar{position:absolute; left:6px; right:6px; bottom:3px; height:2px; background:var(--line); border-radius:1px}
+.scrub .bar i{position:absolute; top:0; bottom:0; background:var(--accent); border-radius:1px}
+.scrub input{width:100%; box-sizing:border-box; text-align:center; font:600 13px var(--font-ui)}
+.wheel .scrub{width:100%; box-sizing:border-box}
+.histo{display:block; width:100%; height:64px; border-radius:3px; background:var(--chrome-2)}
+.curves{display:block; width:100%; aspect-ratio:1; max-width:300px; margin:0 auto; touch-action:none; cursor:crosshair; border-radius:3px; background:var(--chrome-2)}
+.chans{display:flex; gap:4px; justify-content:center}
+.chans .btn.on{background:var(--accent); color:var(--accent-ink); border-color:transparent}
+.seg{display:inline-flex; align-items:center; gap:2px}
+.seg .seglab{font-size:11px; color:var(--muted); margin-right:3px}
+.menu .more::after{content:"›"; margin-left:8px; color:var(--muted)}
 /* small pop-up menus (New doc presets; later the App menu bar) */
 .menu{position:fixed; z-index:7; min-width:200px; background:var(--chrome); border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow); padding:4px; display:flex; flex-direction:column}
 .menu button{display:flex; justify-content:space-between; gap:16px; align-items:center; height:30px; padding:0 10px; border:0; border-radius:3px; background:transparent; color:var(--ink); font:500 12.5px var(--font-ui); text-align:left; cursor:pointer}
@@ -343,6 +367,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       <span class="sep"></span>
       <button class="btn on" id="tBrush" title="Brush (B)" aria-label="Brush"><svg viewBox="0 0 18 18"><path d="M3 15c2.2 0 3.4-1 3.6-3.2L13.5 4.9l-.4-.4L6.2 11.4C4 11.6 3 12.8 3 15z"/><path d="M11.6 3l3.4 3.4"/></svg></button>
       <button class="btn" id="tErase" title="Eraser (E)" aria-label="Eraser"><svg viewBox="0 0 18 18"><path d="M7 15h8"/><path d="M3.5 11.5l7-7 4 4-6.5 6.5H6.5z"/><path d="M7 8l4 4"/></svg></button>
+      <button class="btn" id="tSmudge" title="Smudge (F): drag to push paint around. The opacity slider sets its strength" aria-label="Smudge"><svg viewBox="0 0 18 18"><path d="M7.5 15.5c-2 0-3.5-1.6-3.5-3.6V7.2c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V9"/><path d="M6.2 9V3.7c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V8.5"/><path d="M8.4 8.5V3c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v5.5"/><path d="M10.6 8.5V4.4c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v7.3c0 2.1-1.6 3.8-3.6 3.8H7.5"/><path d="M14 13.5c1 .3 2 .3 3 0" opacity=".6"/></svg></button>
       <button class="btn" id="tFill" title="Fill (G): fills the area of similar color you click, with the brush color" aria-label="Fill"><svg viewBox="0 0 18 18"><path d="M8 2.5l6 6-5.5 5.5a1.5 1.5 0 01-2.1 0L2.5 10.1a1.5 1.5 0 010-2.1z"/><path d="M3 8.5h10.5"/><path d="M15.5 11.5s1.2 1.6 1.2 2.5a1.2 1.2 0 01-2.4 0c0-.9 1.2-2.5 1.2-2.5z" fill="currentColor"/></svg></button>
       <button class="btn" id="tGuide" title="Ellipse guide (O): strokes that start on the ellipse follow it. Drag its handles to move, size, squash and turn it" aria-label="Ellipse guide" aria-pressed="false"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="4" transform="rotate(-25 9 9)"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></button>
       <button class="btn" id="tNote" title="Note (T): click the canvas to place one" aria-label="Note"><svg viewBox="0 0 18 18"><path d="M3.5 3.5h11v7l-4 4h-7z"/><path d="M10.5 14.5v-4h4"/><path d="M6 7h6M6 9.5h3"/></svg></button>
@@ -368,7 +393,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       </span>
       <span id="fillOpts" class="row" hidden style="gap:4px;padding:0 4px">
         <input class="num" type="number" id="fillTol" min="0" max="255" aria-label="Fill tolerance" title="Tolerance: how different a color can be and still be filled (0–255)">
-        <button class="btn" id="fillAll" title="Look at all visible layers to find the area (line art on another layer). Off: only the active layer">All layers</button>
+        <span class="seg" role="group" aria-label="Fill sampling" title="Which pixels decide where the fill stops. It always paints on the active layer"><span class="seglab">Sample</span><button class="btn" id="fillAll" title="All layers: line art on any visible layer bounds the fill (paint on its own layer under the lines)">All layers</button><button class="btn" id="fillOne" title="This layer: only the active layer's pixels bound the fill">This layer</button></span>
         <label class="pxbox" title="Grow the fill under anti-aliased line edges, in px"><input class="num" type="number" id="fillGrow" min="0" max="8" step="1" aria-label="Fill grow">grow</label>
       </span>
       <span id="selOpts" class="row" hidden style="gap:4px;padding:0 4px">
@@ -387,7 +412,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
     </div>
     <div class="group">
       <label class="slider" title="Brush size — or hold Ctrl and drag on the canvas">Size <input type="range" id="size" min="0" max="100" step="0.1"><output id="sizeOut">20</output></label>
-      <label class="slider">Opacity <input type="range" id="flow" min="1" max="100" step="1"><output id="flowOut">100%</output></label>
+      <label class="slider"><span id="flowLab">Opacity</span> <input type="range" id="flow" min="1" max="100" step="1"><output id="flowOut">100%</output></label>
     </div>
     <div class="group">
       <button class="cswatch" id="color" aria-label="Brush color" title="Brush color (V). Hold Alt on the canvas to pick one"></button>
@@ -566,8 +591,11 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
 </div>
 
 <div class="dialog sheet flt" id="fltDlg" hidden>
-  <div class="card" role="dialog" aria-labelledby="fltTitle">
+  <div class="card" role="dialog" aria-labelledby="fltTitle" id="fltCard">
+    <div class="pgrip" id="fltGrip" title="Drag to move (double-click to put it back)"></div>
     <div class="row"><h2 id="fltTitle">Filter</h2><label class="check" title="Run the filter on a new layer made from everything visible, instead of only the active layer"><input type="checkbox" id="fltMerged"> Merged copy</label></div>
+    <canvas class="histo" id="fltHisto" width="512" height="128" hidden></canvas>
+    <div id="fltCurves" hidden></div>
     <div class="wheels" id="fltWheels" hidden></div>
     <div class="props" id="fltParams"></div>
     <p class="note" id="fltInfo"></p>
@@ -875,6 +903,7 @@ if (saved) {
   if (S.color === '#2a2220') S.color = '#1b2532';
   if (saved.view && saved.v2) { Object.assign(view, saved.view); hadView = true; }
   S.erase = false;
+  if (S.smudge) { S.tools.smudge = toolProfile(); for (const k of TOOL_KEYS) if (S.tools.brush && S.tools.brush[k] !== undefined) S[k] = S.tools.brush[k]; S.smudge = false; }   // always start on the brush
 }
 { const fv = LS.get(fkey('fv'));   // each file has its own view and paper
   if (fv) { if (fv.view) { Object.assign(view, fv.view); hadView = true; } if (fv.paper) S.paper = fv.paper; }
@@ -2084,17 +2113,17 @@ function pasteClip() {
   toast('Pasted in place on a new layer. Ctrl+drag with a select tool moves it.');
 }
 const HINT = $('hint').textContent;
-const FILL_HINT = 'Click to fill with the brush color · All layers finds the area from line art on any layer · Alt picks a color · B back to brush';
+const FILL_HINT = 'Click to fill with the brush color · Sample: All layers (line art on any layer bounds it) or This layer · Shift+G switches · Alt picks a color · B back to brush';
 const MASK_HINT = 'Painting on the layer mask: the brush hides, the eraser reveals · \\ back to the pixels · Shift+click the mask chip turns it off';
 const CRYPTO_HINT = 'Click an object to select it from the Cryptomatte · Shift adds · Alt subtracts · Image → Cryptomatte layer picks Object, Material or Asset';
 const SEL_HINT = 'Shift adds · Alt subtracts · Shift+Alt intersects · Ctrl-drag moves the pixels · Delete clears · Ctrl+D deselects · B back to brush';
 function syncSelUI() {
   for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand'], ['tFill', 'fill']]) $(id).classList.toggle('on', selTool === t);
-  $('tErase').classList.toggle('on', S.erase && !selTool); $('tBrush').classList.toggle('on', !S.erase && !selTool);
+  syncToolBtns();
   $('selOpts').hidden = !(selTool && selTool !== 'fill') && !sel; $('wandOpts').hidden = selTool !== 'wand'; $('fillOpts').hidden = selTool !== 'fill';
   $('selInv').hidden = $('selNone').hidden = !sel; $('selDoc').hidden = !sel || !!ws.doc;
   ov.classList.toggle('sel', !!selTool);
-  $('hint').textContent = xf ? XF_HINT : selTool === 'crypto' ? CRYPTO_HINT : maskEdit && !selTool ? MASK_HINT : selTool === 'fill' ? FILL_HINT : selTool ? SEL_HINT : HINT;
+  $('hint').textContent = xf ? XF_HINT : selTool === 'crypto' ? CRYPTO_HINT : maskEdit && !selTool ? MASK_HINT : selTool === 'fill' ? FILL_HINT : selTool ? SEL_HINT : S.smudge ? SMUDGE_HINT : HINT;
 }
 function setSelTool(t) {
   if (t && noteMode) setNoteMode(false);
@@ -2171,7 +2200,27 @@ function showMenu(anchor, items) {
     if (it === '-') { m.appendChild(document.createElement('hr')); continue; }
     const b = document.createElement('button'); b.setAttribute('role', 'menuitem'); if (it.on) b.classList.add('on');
     b.innerHTML = '<span></span><span class="sub"></span>'; b.firstChild.textContent = it.label; b.lastChild.textContent = it.sub || '';
-    b.onclick = () => { closeMenu(); it.fn(); };
+    if (it.items) {   // a submenu: opens beside the item on hover or click
+      b.classList.add('more'); b.setAttribute('aria-haspopup', 'menu');
+      const openSub = () => {
+        if (m._sub && m._sub.owner === b) return; if (m._sub) m._sub.remove();
+        const sm = document.createElement('div'); sm.className = 'menu'; sm.setAttribute('role', 'menu'); sm.owner = b;
+        for (const si of it.items) {
+          if (si === '-') { sm.appendChild(document.createElement('hr')); continue; }
+          const sb = document.createElement('button'); sb.setAttribute('role', 'menuitem');
+          sb.innerHTML = '<span></span><span class="sub"></span>'; sb.firstChild.textContent = si.label; sb.lastChild.textContent = si.sub || '';
+          sb.onclick = () => { closeMenu(); si.fn(); }; sm.appendChild(sb);
+        }
+        m.appendChild(sm); m._sub = sm;
+        const r = b.getBoundingClientRect(), right = r.right + 2 + sm.offsetWidth < innerWidth - 8;
+        sm.style.left = (right ? r.right + 2 : r.left - sm.offsetWidth - 2) + 'px'; sm.style.top = clamp(r.top - 5, 8, innerHeight - sm.offsetHeight - 8) + 'px';
+      };
+      b.onpointerenter = openSub; b.onclick = () => { openSub(); m._sub.querySelector('button').focus(); };
+      b.onkeydown = e => { if (e.key === 'ArrowRight') { e.preventDefault(); b.onclick(); } };
+    } else {
+      b.onpointerenter = () => { if (m._sub) { m._sub.remove(); m._sub = null; } };
+      b.onclick = () => { closeMenu(); it.fn(); };
+    }
     m.appendChild(b);
   }
   document.body.appendChild(m); menuEl = m;
@@ -3384,6 +3433,98 @@ function selDown(e, x, y) {
   act = { type: 'sel', id: e.pointerId, tool: selTool, mode, sh0: e.shiftKey, alt0: e.altKey, a: w, b: w, pts: [w], sq: false, ctr: false };
   dirtyOverlay();
 }
+/* ---------- smudge (F) ----------
+   A finger-painting smudge. The brush carries a patch of paint (C, premultiplied floats, in brush-local pixels). At each dab
+   the canvas under the brush moves toward the carried paint, and the carried paint picks up a little of the canvas.
+   Dabs sit on whole pixels, so the carried patch is never resampled: smears stay sharp instead of going soft.
+   Strength (the opacity slider) is how long the paint keeps: 100% drags a stroke's paint the whole way.
+   It works straight on the layer's tile pixels (read once per tile per stroke), clipped to the selection, one undo step. */
+let SM = null;
+function smTile(k, make) {
+  let e = SM.tiles.get(k);
+  if (e) return e;
+  const L = SM.L; let t = L.tiles.get(k);
+  if (!t && !make) return null;
+  SM.hist.map.set(k, t ? cloneCanvas(t.c) : null);
+  if (!t) { t = mkTile(); L.tiles.set(k, t); }
+  const g = t.c.getContext('2d', { willReadFrequently: true });
+  e = { t, g, im: g.getImageData(0, 0, TILE, TILE), x0: TILE, y0: TILE, x1: 0, y1: 0 };
+  SM.tiles.set(k, e); return e;
+}
+function startSmudge(x, y, p) {
+  settle();
+  const L = paintL(), Rm = Math.max(1, Math.round(S.size / 2));
+  if (Rm > 400) toast('Big smudges are slow: try a smaller size');
+  SM = { L, Rm, D: Rm * 2 + 1, tiles: new Map(), hist: { kind: 'tiles', layer: L, map: new Map() }, x: Math.round(x), y: Math.round(y), p, fx: x, fy: y, first: true };
+  SM.C = new Float32Array(SM.D * SM.D * 4);
+  smDab(SM.x, SM.y, p);
+  smFlush();
+}
+/* one dab at whole-pixel (cx, cy) */
+function smDab(cx, cy, p) {
+  const M = SM, r = Math.max(0.5, M.Rm * (S.pSize ? Math.max(0.15, p) : 1)), Rm = M.Rm, D = M.D, C = M.C;
+  const keep = S.opacity, pick = 0.015 + 0.6 * (1 - keep) * (1 - keep), amt = S.pOpac ? Math.min(1, 0.25 + p) : 1;
+  const ri = Math.ceil(r), x0 = cx - ri, y0 = cy - ri, x1 = cx + ri, y1 = cy + ri;
+  for (let ty = Math.floor(y0 / TILE); ty <= Math.floor(y1 / TILE); ty++) for (let tx = Math.floor(x0 / TILE); tx <= Math.floor(x1 / TILE); tx++) {
+    const k = tkey(tx, ty), ox = tx * TILE, oy = ty * TILE;
+    // an empty tile only matters if there's paint on the brush to put there
+    let e = smTile(k, false);
+    const ax = Math.max(x0, ox), ay = Math.max(y0, oy), bx = Math.min(x1, ox + TILE - 1), by = Math.min(y1, oy + TILE - 1);
+    const d = e ? e.im.data : null, sm = sel ? selGet(sel, k) : 255;
+    let wrote = false;
+    for (let Y = ay; Y <= by; Y++) {
+      const dy = Y - cy, ci0 = ((dy + Rm) * D + Rm) * 4, li = (Y - oy) * TILE;
+      for (let X = ax; X <= bx; X++) {
+        const dx = X - cx, dd = Math.sqrt(dx * dx + dy * dy); if (dd >= r) continue;
+        const ci = ci0 + dx * 4, i = (li + X - ox) * 4;
+        let pr = 0, pg = 0, pb = 0, pa = 0;
+        if (d) { pa = d[i + 3] / 255; pr = d[i] * pa; pg = d[i + 1] * pa; pb = d[i + 2] * pa; }
+        if (M.first) { C[ci] = pr; C[ci + 1] = pg; C[ci + 2] = pb; C[ci + 3] = pa; continue; }   // pen-down: pick up what's there
+        const t = dd / r, f = (1 - t * t), mv = typeof sm === 'number' ? sm : sm[li + X - ox];
+        const w = f * f * (3 - 2 * f) * amt * mv / 255;
+        if (w <= 0.002) continue;
+        const nr = pr + (C[ci] - pr) * w, ng = pg + (C[ci + 1] - pg) * w, nb = pb + (C[ci + 2] - pb) * w, na = pa + (C[ci + 3] - pa) * w;
+        C[ci] += (nr - C[ci]) * pick; C[ci + 1] += (ng - C[ci + 1]) * pick; C[ci + 2] += (nb - C[ci + 2]) * pick; C[ci + 3] += (na - C[ci + 3]) * pick;
+        if (!e) { if (na < 0.002) continue; e = smTile(k, true); }
+        const q = e.im.data;
+        if (na > 0.001) { q[i] = nr / na; q[i + 1] = ng / na; q[i + 2] = nb / na; } q[i + 3] = na * 255;
+        wrote = true;
+      }
+    }
+    if (wrote) { const lx0 = ax - ox, ly0 = ay - oy, lx1 = bx - ox + 1, ly1 = by - oy + 1; if (lx0 < e.x0) e.x0 = lx0; if (ly0 < e.y0) e.y0 = ly0; if (lx1 > e.x1) e.x1 = lx1; if (ly1 > e.y1) e.y1 = ly1; }
+  }
+  M.first = false;
+}
+/* follow the pen: smoothed a little (the brush's smoothing), then dabs every few whole pixels along the way */
+function smudgeTo(x, y, p) {
+  const M = SM, a = 1 - clamp(S.smooth || 0, 0, 0.95) * 0.9;
+  M.fx += (x - M.fx) * a; M.fy += (y - M.fy) * a; M.p += (p - M.p) * 0.5;
+  const step = Math.max(1, Math.min(6, M.Rm * 0.06));
+  let dx = M.fx - M.x, dy = M.fy - M.y, len = Math.hypot(dx, dy);
+  while (len >= step) {
+    const nx = Math.round(M.x + dx / len * step), ny = Math.round(M.y + dy / len * step);
+    if (nx === M.x && ny === M.y) break;
+    // shift the carried patch by the whole-pixel move, so what's carried stays put relative to the brush
+    smDab(nx, ny, M.p); M.x = nx; M.y = ny;
+    dx = M.fx - M.x; dy = M.fy - M.y; len = Math.hypot(dx, dy);
+  }
+}
+function smFlush() {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [k, e] of SM.tiles) {
+    if (e.x1 <= e.x0) continue;
+    e.g.putImageData(e.im, 0, 0, e.x0, e.y0, e.x1 - e.x0, e.y1 - e.y0); e.t.v++; e.t.blank = false;
+    const [tx, ty] = keyXY(k); x0 = Math.min(x0, tx * TILE + e.x0); y0 = Math.min(y0, ty * TILE + e.y0); x1 = Math.max(x1, tx * TILE + e.x1); y1 = Math.max(y1, ty * TILE + e.y1);
+    e.x0 = e.y0 = TILE; e.x1 = e.y1 = 0;
+  }
+  if (isFinite(x0)) { if (copiesOf(SM.L)) dirtyScene(); else dirtyWorld({ x0, y0, x1, y1 }); }
+}
+function endSmudge() {
+  if (!SM) return;
+  smFlush();
+  const M = SM; SM = null;
+  if (M.hist.map.size) { pushUndo(M.hist); markSave(M.L, M.hist.map.keys()); }
+}
 ov.addEventListener('pointerdown', e => {
   e.preventDefault();
   if (cpOpen()) { closeCP(); return; }   // a touch outside the color menu just closes it
@@ -3419,6 +3560,7 @@ ov.addEventListener('pointerdown', e => {
   if (modHandlesOn()) { const h = modHit(x, y); if (h) { act = { type: 'modh', id: e.pointerId, h }; return; } }
   if (sym.mode !== 'off' && Math.hypot(x - (sym.cx * view.z + view.x), y - (sym.cy * view.z + view.y)) < 14) { act = { type: 'axis', id: e.pointerId }; return; }
   const erase = S.erase || e.button === 5 || (e.buttons & 32) !== 0;
+  if (S.smudge && !erase) { const w = toWorld(x, y); act = { type: 'smudge', id: e.pointerId, pen: e.pointerType === 'pen' }; startSmudge(w.x, w.y, pressureOf(e)); return; }
   act = { type: 'draw', id: e.pointerId, pen: e.pointerType === 'pen' };
   const w = toWorld(x, y);
   // Firefox reports 0 pressure at pen-down: start the stroke at this point once a real pressure arrives
@@ -3458,6 +3600,11 @@ ov.addEventListener('pointermove', e => {
     case 'xf': xfMove(e); break;
     case 'move': case 'selmove':
       act.dx = Math.round((e.clientX - act.sx) / view.z); act.dy = Math.round((e.clientY - act.sy) / view.z); dirtyOverlay(); break;
+    case 'smudge': {
+      const ce = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+      for (const ev of ce.length ? ce : [e]) { const w = toWorld(ev.clientX, ev.clientY); smudgeTo(w.x, w.y, pressureOf(ev)); }
+      smFlush(); dirtyOverlay(); break;
+    }
     case 'draw': {
       const ce = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
       let evs = ce.length ? ce : [e];
@@ -3490,6 +3637,7 @@ function pointerEnd(e) {
     if (act.wait) { startDraw(act.wait.x, act.wait.y, 0.5, act.wait.erase, false); act.wait = null; }   // a tap that never reported pressure
     if (act.Q && act.Q.q) act.Q.end = true; else if (stroke && !stroke.ending) endStroke();
   }
+  else if (act.type === 'smudge') endSmudge();
   else if (act.type === 'sel') { const A = act; act = null; finishSel(A); }
   else if (act.type === 'selmove') setSel(act.dx || act.dy ? shiftSel(sel, act.dx, act.dy) : null);   // a click inside deselects
   else if (act.type === 'move') { const A = act; act = null; endMove(A); }
@@ -3629,6 +3777,11 @@ addEventListener('keydown', e => {
   if (mod && e.shiftKey && !e.altKey && k === 'g') { e.preventDefault(); fltStart('grade'); return; }
   if (mod && !e.shiftKey && !e.altKey && k === 'u') { e.preventDefault(); fltStart('huesat'); return; }
   if (mod && !e.shiftKey && !e.altKey && k === 'l') { e.preventDefault(); fltStart('levels'); return; }
+  if (mod && !e.shiftKey && !e.altKey && k === 'm') { e.preventDefault(); fltStart('curves'); return; }
+  if (mod && !e.shiftKey && !e.altKey && k === 'b') { e.preventDefault(); fltStart('balance'); return; }
+  if (mod && e.shiftKey && e.altKey && e.code === 'KeyB') { e.preventDefault(); fltStart('bw'); return; }
+  if (mod && !e.shiftKey && !e.altKey && k === 'i') { e.preventDefault(); fltStart('invert'); return; }
+  if (mod && e.shiftKey && !e.altKey && k === 'u') { e.preventDefault(); fltStart('desat'); return; }
   if (!mod && e.shiftKey && e.key === 'F6') { e.preventDefault(); featherSel(); return; }
   if (mod && !e.shiftKey && !e.altKey && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); jumpGroup(+e.code.slice(5)); return; }
   if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
@@ -3643,10 +3796,12 @@ addEventListener('keydown', e => {
   }
   if (k === 'backspace' && (e.altKey || e.shiftKey) && !mod) { e.preventDefault(); fillSel(); return; }   // Photoshop: Alt+Backspace fills with the foreground color
   if (mod || e.altKey) return;
-  if (k === 'g') setSelTool(selTool === 'fill' ? null : 'fill');
+  if (k === 'g' && e.shiftKey) { if (selTool !== 'fill') setSelTool('fill'); setFillAll(!S.fillAll); }
+  else if (k === 'g') setSelTool(selTool === 'fill' ? null : 'fill');
   else if (k === 'o') setGuide(!guide.on);
   else if (k === 'b') { setSelTool(null); setErase(false); }
   else if (k === 'e') { const on = selTool ? true : !S.erase; setSelTool(null); setErase(on); }
+  else if (k === 'f') { setSelTool(null); setTool(S.smudge ? 'brush' : 'smudge'); }
   else if (k === 's') setSelTool(selTool === 'rect' ? 'ellipse' : 'rect');
   else if (k === 'l') setSelTool('lasso');
   else if (k === 'w') setSelTool('wand');
@@ -3693,35 +3848,46 @@ $('flow').addEventListener('input', e => { S.opacity = e.target.value / 100; $('
 
 /* brush and eraser each keep their own tip, size and opacity */
 function syncOpacity() { $('flow').value = Math.round(S.opacity * 100); $('flowOut').textContent = Math.round(S.opacity * 100) + '%'; }
-function setErase(on) {
-  if (on !== S.erase) {
-    S.tools[S.erase ? 'erase' : 'brush'] = toolProfile();
-    const p = S.tools[on ? 'erase' : 'brush'];
+const toolName = () => S.smudge ? 'smudge' : S.erase ? 'erase' : 'brush';
+function setTool(name) {
+  const now = toolName();
+  if (name !== now) {
+    S.tools[now] = toolProfile();
+    const p = S.tools[name] || (S.tools[name] = { size: 60, opacity: 0.75, smooth: 0.15, pSize: false, pOpac: true });
     for (const k of TOOL_KEYS) if (p[k] !== undefined) S[k] = p[k];
-    S.brush = clamp(S.brush, 0, brushes.length - 1); S.erase = on;
+    S.brush = clamp(S.brush, 0, brushes.length - 1); S.erase = name === 'erase'; S.smudge = name === 'smudge';
     syncSize(); syncOpacity(); syncDynamics(); selectBrush(S.brush); dirtyOverlay(); saveSettings();
   }
-  $('tErase').classList.toggle('on', on && !selTool); $('tBrush').classList.toggle('on', !on && !selTool);
-  $('tipHead').textContent = on ? 'Eraser tip' : 'Brush tip';
+  syncToolBtns();
+  $('tipHead').textContent = name === 'erase' ? 'Eraser tip' : name === 'smudge' ? 'Smudge (the tip isn’t used; opacity = strength)' : 'Brush tip';
+  $('flowLab').textContent = name === 'smudge' ? 'Strength' : 'Opacity';
+  if (!selTool) $('hint').textContent = name === 'smudge' ? SMUDGE_HINT : HINT;
 }
+function syncToolBtns() { const n = toolName(); for (const [id, t] of [['tBrush', 'brush'], ['tErase', 'erase'], ['tSmudge', 'smudge']]) $(id).classList.toggle('on', n === t && !selTool); }
+const SMUDGE_HINT = 'Smudge: drag to push paint around · Strength (the opacity slider) sets how far it drags · [ ] size · B back to brush';
+function setErase(on) { setTool(on ? 'erase' : 'brush'); }
 $('tBrush').onclick = () => { setSelTool(null); setErase(false); };
 $('tErase').onclick = () => { setSelTool(null); setErase(true); };
+$('tSmudge').onclick = () => { setSelTool(null); setTool('smudge'); };
 for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand']]) $(id).onclick = () => setSelTool(selTool === t ? null : t);
 $('selInv').onclick = () => setSel(invertSel(sel));
 $('selFill').onclick = fillSel;
 $('tFill').onclick = () => setSelTool(selTool === 'fill' ? null : 'fill');
 if (S.fillTol == null) S.fillTol = 24; if (S.fillAll == null) S.fillAll = true; if (S.fillGrow == null) S.fillGrow = 1;
-$('fillTol').value = S.fillTol; $('fillGrow').value = S.fillGrow; $('fillAll').classList.toggle('on', S.fillAll);
+$('fillTol').value = S.fillTol; $('fillGrow').value = S.fillGrow; syncFillAll();
 $('fillTol').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 255) { S.fillTol = v; saveSettings(); } });
 $('fillGrow').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 8) { S.fillGrow = v; saveSettings(); } });
-$('fillAll').onclick = () => { S.fillAll = !S.fillAll; $('fillAll').classList.toggle('on', S.fillAll); saveSettings(); };
+function syncFillAll() { $('fillAll').classList.toggle('on', !!S.fillAll); $('fillOne').classList.toggle('on', !S.fillAll); }
+const setFillAll = on => { S.fillAll = on; syncFillAll(); saveSettings(); toast(on ? 'Fill looks at all visible layers' : 'Fill looks at this layer only'); };
+$('fillAll').onclick = () => setFillAll(true);
+$('fillOne').onclick = () => setFillAll(false);
 $('selNone').onclick = () => setSel(null);
 $('tol').value = S.tol;
 $('tol').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 255) { S.tol = v; saveSettings(); } });
 $('contig').classList.toggle('on', S.contig);
 $('contig').onclick = () => { S.contig = !S.contig; $('contig').classList.toggle('on', S.contig); saveSettings(); };
 
-function setColor(c) { S.color = c; $('color').style.background = c; setErase(false); saveSettings(); if (CP.on === 'brush' && !CP.busy) cpFrom(c); }
+function setColor(c) { S.color = c; $('color').style.background = c; if (S.erase) setErase(false); saveSettings(); if (CP.on === 'brush' && !CP.busy) cpFrom(c); }
 function addRecent(c) { S.recent = [c, ...S.recent.filter(x => x !== c)].slice(0, 12); saveSettings(); if (CP.on) cpSwatches(); }
 
 /* Color menu: a saturation/brightness square, a hue bar, hex, swatches and recent colors. Used for the brush (V or the
@@ -4117,7 +4283,7 @@ function renderTips() {
     el.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectBrush(i); } };
     if (!b.builtin) {
       const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.title = 'Remove ' + b.name; x.setAttribute('aria-label', 'Remove ' + b.name);
-      x.onclick = ev => { ev.stopPropagation(); brushes.splice(i, 1); persistAlphas(); const fix = j => j > i ? j - 1 : j === i ? 0 : j; S.brush = fix(S.brush); S.tools.brush.brush = fix(S.tools.brush.brush); S.tools.erase.brush = fix(S.tools.erase.brush); renderTips(); };
+      x.onclick = ev => { ev.stopPropagation(); brushes.splice(i, 1); persistAlphas(); const fix = j => j > i ? j - 1 : j === i ? 0 : j; S.brush = fix(S.brush); S.tools.brush.brush = fix(S.tools.brush.brush); S.tools.erase.brush = fix(S.tools.erase.brush); if (S.tools.smudge && S.tools.smudge.brush != null) S.tools.smudge.brush = fix(S.tools.smudge.brush); renderTips(); };
       el.appendChild(x);
     }
     box.appendChild(el);
@@ -4212,13 +4378,14 @@ function makeMovable(el, grip, key) {
     addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
   });
   grip.addEventListener('dblclick', () => { delete S.layout[key]; apply(); saveSettings(); });
-  MOVABLE.push(apply); apply();
+  MOVABLE.push(apply); apply(); return apply;
 }
 addEventListener('resize', () => MOVABLE.forEach(f => f()));
 makeMovable($('bar'), $('barGrip'), 'bar');
 makeMovable($('brushPanel'), $('brushPanel').querySelector('.pgrip'), 'brush');
 makeMovable($('layerPanel'), $('layerPanel').querySelector('.pgrip'), 'layers');
 makeMovable($('dock'), $('dock').querySelector('.pgrip'), 'dock');
+const fltPlace = makeMovable($('fltCard'), $('fltGrip'), 'flt');   // the filter sheet
 $('layoutReset').onclick = () => { S.layout = {}; MOVABLE.forEach(f => f()); saveSettings(); toast('Toolbar and panels are back in place'); };
 
 /* the shortcut list: one source for the ? sheet (keep README and CLAUDE.md in step with it) */
@@ -4229,7 +4396,9 @@ const KEYS = [
     [K('Ctrl') + ' + drag', 'Resize the brush (same speed at any zoom)'],
     [K('[') + ' ' + K(']'), 'Smaller / larger brush (or type it in the px box)'],
     [K('B') + ' ' + K('E'), 'Brush / eraser'],
+    [K('F'), 'Smudge: drag to push paint around. The opacity slider becomes Strength (how far the paint drags)'],
     [K('G'), 'Fill: click an area to fill it with the brush color'],
+    [K('Shift') + ' + ' + K('G'), 'Fill samples all layers or only this layer (also in the toolbar)'],
     ['Hold ' + K('Alt'), 'Pick a color: preview, then click or drag'],
     [K('V'), 'Color menu'],
     [K('M'), 'Cycle mirror: off, left/right, top/bottom, both, radial'],
@@ -4268,9 +4437,12 @@ const KEYS = [
     [K('Ctrl') + ' + click', 'In the layers panel: flash that layer’s drawing'],
   ]],
   ['Image and filters', [
-    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('A'), 'Develop: exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance'],
+    [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('A'), 'Develop, like DaVinci Resolve’s primaries: temp, tint, exposure, contrast, pivot, mid/detail, color boost, shadows, highlights, saturation, hue. Drag a field left or right'],
     [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('G'), 'Color wheels: lift, gamma, gain and offset, like Resolve'],
-    [K('Ctrl') + ' + ' + K('U') + ' / ' + K('Ctrl') + ' + ' + K('L'), 'Hue / Saturation / Levels'],
+    [K('Ctrl') + ' + ' + K('U') + ' / ' + K('Ctrl') + ' + ' + K('L') + ' / ' + K('Ctrl') + ' + ' + K('M'), 'Hue / Saturation, Levels, Curves'],
+    [K('Ctrl') + ' + ' + K('B') + ' / ' + K('Ctrl') + ' + ' + K('Alt') + ' + ' + K('Shift') + ' + ' + K('B'), 'Color Balance / Black & White'],
+    [K('Ctrl') + ' + ' + K('I') + ' / ' + K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('U'), 'Invert / Desaturate'],
+    ['Image › Adjustments', 'Also Brightness / Contrast, Photo Filter, Channel Mixer, Posterize and Threshold'],
     [K('Shift') + ' + ' + K('F6'), 'Feather the selection'],
     ['Filter menu', 'Gaussian blur, sharpen, RGB split, add noise, new noise layer. Previews live; Merged copy works on everything visible'],
     ['File → Open EXR', 'Opens an EXR as a document; with Cryptomatte, click an object to select it'],
@@ -4398,10 +4570,23 @@ const CMDS = [
   ['Edit', 'liquify', 'Liquify', 'Ctrl+Shift+X', () => startTransform(true)],
   '-Edit',
   ['Edit', 'keys', 'Keyboard shortcuts…', '', () => openKb()],
-  ['Image', 'develop', 'Develop (exposure, contrast, highlights…)…', 'Ctrl+Shift+A', () => fltStart('develop')],
+  ['Image/Adjustments', 'bc', 'Brightness / Contrast…', '', () => fltStart('bc')],
+  ['Image/Adjustments', 'levels', 'Levels…', 'Ctrl+L', () => fltStart('levels')],
+  ['Image/Adjustments', 'curves', 'Curves…', 'Ctrl+M', () => fltStart('curves')],
+  '-Image/Adjustments',
+  ['Image/Adjustments', 'huesat', 'Hue / Saturation…', 'Ctrl+U', () => fltStart('huesat')],
+  ['Image/Adjustments', 'balance', 'Color Balance…', 'Ctrl+B', () => fltStart('balance')],
+  ['Image/Adjustments', 'bw', 'Black & White…', 'Ctrl+Alt+Shift+B', () => fltStart('bw')],
+  ['Image/Adjustments', 'photo', 'Photo Filter…', '', () => fltStart('photo')],
+  ['Image/Adjustments', 'mixer', 'Channel Mixer…', '', () => fltStart('mixer')],
+  '-Image/Adjustments',
+  ['Image/Adjustments', 'invert', 'Invert', 'Ctrl+I', () => fltStart('invert')],
+  ['Image/Adjustments', 'posterize', 'Posterize…', '', () => fltStart('posterize')],
+  ['Image/Adjustments', 'threshold', 'Threshold…', '', () => fltStart('threshold')],
+  '-Image/Adjustments',
+  ['Image/Adjustments', 'desat', 'Desaturate', 'Ctrl+Shift+U', () => fltStart('desat')],
+  ['Image', 'develop', 'Develop (Resolve primaries: temp, tint, contrast, pivot…)…', 'Ctrl+Shift+A', () => fltStart('develop')],
   ['Image', 'grade', 'Color wheels (lift / gamma / gain / offset)…', 'Ctrl+Shift+G', () => fltStart('grade')],
-  ['Image', 'huesat', 'Hue / Saturation…', 'Ctrl+U', () => fltStart('huesat')],
-  ['Image', 'levels', 'Levels…', 'Ctrl+L', () => fltStart('levels')],
   '-Image',
   ['Image', 'docsize', 'Document size…', '', () => docSizeDialog(), 'doc'],
   ['Image', 'clearlayer', 'Clear layer', '', () => idle() && clearLayer()],
@@ -4479,6 +4664,13 @@ function buildMenubar() {
       const items = [];
       for (const c of CMDS) {
         if (c.sep === name) { if (items.length && items[items.length - 1] !== '-') items.push('-'); continue; }
+        const sub = c.sep ? c.sep.startsWith(name + '/') : c.menu && c.menu.startsWith(name + '/');   // 'Image/Adjustments' entries go in a submenu
+        if (sub) {
+          const sname = (c.sep || c.menu).slice(name.length + 1); let host = items.find(x => x.items && x.label === sname);
+          if (!host) items.push(host = { label: sname, items: [] });
+          if (c.sep) host.items.push('-'); else if (!(c.only === 'doc' && !ws.doc || c.only === 'canvas' && ws.doc)) host.items.push({ label: c.label, sub: keyOf(c), fn: c.run });
+          continue;
+        }
         if (c.menu !== name) continue;
         if (c.only === 'doc' && !ws.doc || c.only === 'canvas' && ws.doc) continue;
         items.push({ label: c.label, sub: keyOf(c), fn: c.run });
@@ -4511,10 +4703,35 @@ const FILTERS = {
   split: { label: 'RGB split', spatial: true, params: [['dist', 'Distance px', 0, 60, 6, 0.5], ['angle', 'Angle °', -180, 180, 0, 1]] },
   huesat: { label: 'Hue / Saturation', params: [['hue', 'Hue °', -180, 180, 0, 1], ['sat', 'Saturation', -100, 100, 0, 1], ['light', 'Lightness', -100, 100, 0, 1]] },
   levels: { label: 'Levels', params: [['inB', 'Input black', 0, 254, 0, 1], ['inW', 'Input white', 1, 255, 255, 1], ['gam', 'Midtones (gamma)', 0.1, 4, 1, 0.01], ['outB', 'Output black', 0, 255, 0, 1], ['outW', 'Output white', 0, 255, 255, 1]] },
-  develop: { label: 'Develop', params: [['exp', 'Exposure', -3, 3, 0, 0.01], ['con', 'Contrast', -100, 100, 0, 1], ['hi', 'Highlights', -100, 100, 0, 1], ['sh', 'Shadows', -100, 100, 0, 1], ['wh', 'Whites', -100, 100, 0, 1], ['bl', 'Blacks', -100, 100, 0, 1], ['temp', 'Temperature', -100, 100, 0, 1], ['tint', 'Tint', -100, 100, 0, 1], ['vib', 'Vibrance', -100, 100, 0, 1], ['sat', 'Saturation', -100, 100, 0, 1]] },
-  grade: { label: 'Color wheels', wheels: ['Lift', 'Gamma', 'Gain', 'Offset'], params: [['sat', 'Saturation', 0, 200, 100, 1], ['mix', 'Mix %', 0, 100, 100, 1]] },
+  /* Develop follows DaVinci Resolve's Primaries adjustments, as scrub fields (drag left / right). The step is the drag resolution. */
+  develop: { label: 'Develop', scrub: true, store: 'develop2', params: [['temp', 'Temp', -4000, 4000, 0, 10], ['tint', 'Tint', -100, 100, 0, 0.5], ['exp', 'Exposure', -4, 4, 0, 0.01],
+    ['con', 'Contrast', 0, 2, 1, 0.001], ['piv', 'Pivot', 0, 1, 0.435, 0.001], ['md', 'Mid/Detail', -100, 100, 0, 0.5],
+    ['boost', 'Color Boost', -100, 100, 0, 0.5], ['sh', 'Shadows', -100, 100, 0, 0.5], ['hi', 'Highlights', -100, 100, 0, 0.5],
+    ['sat', 'Saturation', 0, 100, 50, 0.1], ['hue', 'Hue', 0, 100, 50, 0.1]] },
+  grade: { label: 'Color wheels', scrub: true, store: 'grade2', wheels: ['Lift', 'Gamma', 'Gain', 'Offset'], params: [['sat', 'Saturation', 0, 100, 50, 0.1], ['mix', 'Mix %', 0, 100, 100, 0.1]] },
   noise: { label: 'Add noise', params: [['amount', 'Amount', 0, 100, 12, 1], ['size', 'Grain size px', 1, 8, 1, 0.1], ['color', 'Color %', 0, 100, 0, 1], ['grain', 'Film grain (mids)', 0, 1, 1, 1], ['seed', 'Seed', 0, 999, 1, 1]] },
+  /* Image → Adjustments. A param [key, label, min, max, default, step, heading?]; 0–1 with step 1 shows as a checkbox */
+  bc: { label: 'Brightness / Contrast', params: [['bri', 'Brightness', -150, 150, 0, 1], ['con', 'Contrast', -50, 100, 0, 1]] },
+  curves: { label: 'Curves', curves: true, hist: true, params: [] },
+  balance: { label: 'Color Balance', params: [
+    ['s0', 'Cyan – Red', -100, 100, 0, 1, 'Shadows'], ['s1', 'Magenta – Green', -100, 100, 0, 1], ['s2', 'Yellow – Blue', -100, 100, 0, 1],
+    ['m0', 'Cyan – Red', -100, 100, 0, 1, 'Midtones'], ['m1', 'Magenta – Green', -100, 100, 0, 1], ['m2', 'Yellow – Blue', -100, 100, 0, 1],
+    ['h0', 'Cyan – Red', -100, 100, 0, 1, 'Highlights'], ['h1', 'Magenta – Green', -100, 100, 0, 1], ['h2', 'Yellow – Blue', -100, 100, 0, 1],
+    ['lum', 'Preserve luminosity', 0, 1, 1, 1]] },
+  bw: { label: 'Black & White', params: [['red', 'Reds %', -200, 300, 40, 1], ['yel', 'Yellows %', -200, 300, 60, 1], ['grn', 'Greens %', -200, 300, 40, 1], ['cyn', 'Cyans %', -200, 300, 60, 1], ['blu', 'Blues %', -200, 300, 20, 1], ['mag', 'Magentas %', -200, 300, 80, 1],
+    ['thue', 'Hue °', 0, 360, 35, 1, 'Tint'], ['tsat', 'Amount %', 0, 100, 0, 1]] },
+  photo: { label: 'Photo Filter', params: [['hue', 'Filter hue °', 0, 360, 35, 1], ['dens', 'Density %', 0, 100, 25, 1], ['lum', 'Preserve luminosity', 0, 1, 1, 1]] },
+  mixer: { label: 'Channel Mixer', params: [
+    ['rr', 'Red %', -200, 200, 100, 1, 'Red output'], ['rg', 'Green %', -200, 200, 0, 1], ['rb', 'Blue %', -200, 200, 0, 1],
+    ['gr', 'Red %', -200, 200, 0, 1, 'Green output'], ['gg', 'Green %', -200, 200, 100, 1], ['gb', 'Blue %', -200, 200, 0, 1],
+    ['br', 'Red %', -200, 200, 0, 1, 'Blue output'], ['bg', 'Green %', -200, 200, 0, 1], ['bb', 'Blue %', -200, 200, 100, 1],
+    ['mono', 'Monochrome (all channels use the red output)', 0, 1, 0, 1]] },
+  invert: { label: 'Invert', instant: true, params: [] },
+  desat: { label: 'Desaturate', instant: true, params: [] },
+  posterize: { label: 'Posterize', params: [['n', 'Levels', 2, 64, 4, 1]] },
+  threshold: { label: 'Threshold', hist: true, params: [['lvl', 'Threshold level', 1, 255, 128, 1], ['soft', 'Edge softness', 0, 64, 0, 1]] },
 };
+FILTERS.levels.hist = true;
 const FS_HEAD = `#version 300 es
 precision highp float; uniform sampler2D s; uniform sampler2D s2; uniform vec2 px; uniform vec2 org; uniform float P[12]; uniform vec3 Wh[4]; in vec2 uv; out vec4 o;
 vec3 un(vec4 t) { return t.a > 0.0 ? t.rgb / t.a : vec3(0.0); }
@@ -4533,28 +4750,46 @@ const FS_SRC = {
   usm: `void main() { vec4 a = texture(s, uv), b = texture(s2, uv); vec4 r = a + (a - b) * P[0]; r.a = a.a; o = vec4(clamp(r.rgb, 0.0, r.a), r.a); }`,
   split: `void main() { vec2 d = vec2(cos(P[1]), sin(P[1])) * P[0] * px; vec4 r = texture(s, uv + d), g = texture(s, uv), b = texture(s, uv - d);
     o = vec4(r.r, g.g, b.b, max(r.a, max(g.a, b.a))); }`,
-  color: `uniform int mode;
+  color: `uniform int mode; uniform sampler2D lut;
   void main() { vec4 t = texture(s, uv); if (t.a <= 0.0 && mode != 7) { o = t; return; } vec3 c = un(t);
     if (mode == 3) { vec3 h = rgb2hsl(c); h.x = fract(h.x + P[0] / 360.0); h.y = clamp(h.y * (1.0 + P[1] / 100.0), 0.0, 1.0); c = hsl2rgb(h);
       c = P[2] > 0.0 ? mix(c, vec3(1.0), P[2] / 100.0) : c * (1.0 + P[2] / 100.0); }
     else if (mode == 4) { c = clamp((c * 255.0 - P[0]) / max(P[1] - P[0], 1.0), 0.0, 1.0); c = pow(c, vec3(1.0 / P[2])); c = (P[3] + c * (P[4] - P[3])) / 255.0; }
-    else if (mode == 5) { vec3 l = toLin(c) * exp2(P[0]); c = toSrgb(l);
-      c = (c - 0.5) * (1.0 + P[1] / 100.0) + 0.5;
-      float y = luma(c), hm = smoothstep(0.45, 1.0, y), sm = 1.0 - smoothstep(0.0, 0.55, y);
-      c += c * (P[2] / 100.0) * 0.6 * hm + (P[3] / 100.0) * 0.35 * sm;
-      float b = P[5] / 100.0 * -0.12, w = 1.0 - P[4] / 100.0 * 0.15; c = (c - b) / max(w - b, 0.05);
-      c.r += P[6] / 100.0 * 0.12; c.b -= P[6] / 100.0 * 0.12; c.g -= P[7] / 100.0 * 0.1;
-      float m = luma(c), sat = length(c - vec3(m)); c = mix(vec3(m), c, 1.0 + P[8] / 100.0 * (1.0 - clamp(sat * 2.0, 0.0, 1.0)));
-      c = mix(vec3(luma(c)), c, 1.0 + P[9] / 100.0); }
+    else if (mode == 5) {   // Resolve-style primaries: temp, tint, exposure, contrast about a pivot, mid/detail, color boost, shadows, highlights, sat, hue
+      vec3 det = P[5] != 0.0 ? c - un(texture(s2, uv)) : vec3(0.0);
+      c = toSrgb(toLin(c) * exp2(P[2]));
+      float y0 = luma(c); c *= vec3(1.0 + P[0] / 4000.0 * 0.3, 1.0 - P[1] / 100.0 * 0.25, 1.0 - P[0] / 4000.0 * 0.3); c *= y0 / max(luma(c), 1e-4);
+      c = (c - P[4]) * P[3] + P[4];
+      float y = clamp(luma(c), 0.0, 1.0); c += det * (P[5] / 100.0) * 2.0 * (0.25 + 3.0 * y * (1.0 - y));
+      float hm = smoothstep(0.4, 1.0, y), sm = 1.0 - smoothstep(0.0, 0.6, y); c += vec3(P[7] / 100.0 * 0.3 * sm + P[8] / 100.0 * 0.3 * hm);
+      float m = luma(c), sat = length(c - vec3(m)); c = mix(vec3(m), c, 1.0 + P[6] / 100.0 * (1.0 - clamp(sat * 2.0, 0.0, 1.0)));
+      c = mix(vec3(luma(c)), c, P[9] / 50.0);
+      float a = (P[10] - 50.0) / 50.0 * 3.14159265; if (a != 0.0) { vec3 k = vec3(0.57735027); c = c * cos(a) + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - cos(a)); } }
     else if (mode == 6) { vec3 c0 = c, lift = Wh[0], gm = Wh[1], gain = Wh[2], off = Wh[3];
       c = (1.0 + gain) * (c + lift * (1.0 - c)); c = pow(max(c, 0.0), exp(-gm)); c += off;
-      c = mix(vec3(luma(c)), c, P[0] / 100.0); c = mix(c0, c, P[1] / 100.0); }
+      c = mix(vec3(luma(c)), c, P[0] / 50.0); c = mix(c0, c, P[1] / 100.0); }
     else if (mode == 7) { vec2 q = floor((gl_FragCoord.xy + org) / max(P[1], 1.0)) + P[4] * 17.0;
       float u1 = max(hash(q), 1e-4), u2 = hash(q + 31.7), n = sqrt(-2.0 * log(u1)) * cos(6.2831853 * u2);
       vec3 nc = vec3(n, sqrt(-2.0 * log(max(hash(q + 7.1), 1e-4))) * cos(6.2831853 * hash(q + 3.3)), sqrt(-2.0 * log(max(hash(q + 9.9), 1e-4))) * cos(6.2831853 * hash(q + 5.5)));
       vec3 nv = mix(vec3(n), nc, P[2] / 100.0) * P[0] / 100.0 * 0.35;
       if (t.a <= 0.0) { if (P[5] < 0.5) { o = t; return; } float a = clamp(abs(n) * P[0] / 100.0 * 0.6, 0.0, 1.0); o = vec4(vec3(n > 0.0 ? a : 0.0), a); return; }
       float y = luma(c), w = P[3] > 0.5 ? 4.0 * y * (1.0 - y) + 0.15 : 1.0; c += nv * w; }
+    else if (mode == 8) { c += P[0] / 255.0 * (P[0] > 0.0 ? 1.0 - c : c); float k = P[1] >= 0.0 ? 1.0 / max(1.0 - P[1] / 100.0 * 0.95, 0.05) : 1.0 + P[1] / 100.0; c = (c - 0.5) * k + 0.5; }
+    else if (mode == 9) { float y = luma(c), sw = 1.0 - smoothstep(0.0, 0.5, y), hw = smoothstep(0.5, 1.0, y), mw = max(1.0 - sw - hw, 0.0);
+      vec3 d = (vec3(P[0], P[1], P[2]) * sw + vec3(P[3], P[4], P[5]) * mw + vec3(P[6], P[7], P[8]) * hw) / 100.0 * 0.35;
+      c += d - vec3(dot(d, vec3(1.0 / 3.0))) * 0.5;   // pushing toward red also pulls a little from green and blue, as in Photoshop
+      if (P[9] > 0.5) c += vec3(y - luma(c)); }
+    else if (mode == 10) { float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), md = c.r + c.g + c.b - mx - mn;
+      float wp = mx == c.r ? P[0] : mx == c.g ? P[2] : P[4], ws = mn == c.b ? P[1] : mn == c.r ? P[3] : P[5];   // primary from the top channel, secondary from the two top ones
+      float y = clamp(mn + (mx - md) * wp / 100.0 + (md - mn) * ws / 100.0, 0.0, 1.0);
+      c = hsl2rgb(vec3(P[6] / 360.0, P[7] / 100.0, y)); }
+    else if (mode == 11) { float y = luma(c); vec3 f = hsl2rgb(vec3(P[0] / 360.0, 1.0, 0.5)); c = mix(c, c * f, P[1] / 100.0); if (P[2] > 0.5) c += vec3(y - luma(c)); }
+    else if (mode == 12) { vec3 R = vec3(P[0], P[1], P[2]) / 100.0; c = P[9] > 0.5 ? vec3(dot(c, R)) : vec3(dot(c, R), dot(c, vec3(P[3], P[4], P[5]) / 100.0), dot(c, vec3(P[6], P[7], P[8]) / 100.0)); }
+    else if (mode == 13) c = 1.0 - c;
+    else if (mode == 14) { float n = max(P[0], 2.0); c = min(floor(clamp(c, 0.0, 1.0) * n), n - 1.0) / (n - 1.0); }
+    else if (mode == 15) { float y = luma(c) * 255.0; c = vec3(clamp((y - P[0] + 0.5) / max(P[1], 0.02) + 0.5, 0.0, 1.0)); }
+    else if (mode == 16) { vec3 q = (clamp(c, 0.0, 1.0) * 255.0 + 0.5) / 256.0; c = vec3(texture(lut, vec2(q.r, 0.5)).r, texture(lut, vec2(q.g, 0.5)).g, texture(lut, vec2(q.b, 0.5)).b); }
+    else if (mode == 17) c = vec3(luma(c));
     c = clamp(c, 0.0, 1.0); o = vec4(c * t.a, t.a); }`,
 };
 FS_SRC.mixm = `uniform sampler2D m; void main() { o = mix(texture(s2, uv), texture(s, uv), texture(m, uv).a); }`;
@@ -4574,7 +4809,7 @@ function fprog(name) {
   gl.attachShader(p, sh(gl.VERTEX_SHADER, '#version 300 es\nin vec2 a; out vec2 uv; void main() { uv = a; gl_Position = vec4(a * 2.0 - 1.0, 0.0, 1.0); }'));
   gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS_HEAD + FS_SRC[name])); gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p);
   const u = n => gl.getUniformLocation(p, n);
-  return FG.progs[name] = { p, s: u('s'), s2: u('s2'), m: u('m'), px: u('px'), org: u('org'), P: u('P'), Wh: u('Wh'), mode: u('mode') };
+  return FG.progs[name] = { p, s: u('s'), s2: u('s2'), m: u('m'), px: u('px'), org: u('org'), P: u('P'), Wh: u('Wh'), mode: u('mode'), lut: u('lut') };
 }
 function ftex(w, h, img) {
   const gl = FG.gl, t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
@@ -4592,7 +4827,8 @@ function fpass(name, src, dst, P, extra) {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.t); gl.uniform1i(pr.s, 0);
   if (extra && extra.s2) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, extra.s2.t); gl.uniform1i(pr.s2, 1); }
   if (extra && extra.m) { gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, extra.m.t); gl.uniform1i(pr.m, 2); }
-  gl.uniform2f(pr.px, 1 / F2.w, 1 / F2.h); gl.uniform2f(pr.org, F2.r.x0, -F2.r.y1);
+  gl.uniform2f(pr.px, 1 / F2.w, 1 / F2.h); gl.uniform2f(pr.org, F2.r.x0, F2.r.y0);   // gl_FragCoord.y counts image rows from the top here
+  if (extra && extra.lut) { gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, extra.lut); gl.uniform1i(pr.lut, 3); }
   const a = new Float32Array(12); (P || []).forEach((v, i) => a[i] = v); gl.uniform1fv(pr.P, a);
   if (pr.Wh) gl.uniform3fv(pr.Wh, new Float32Array(extra && extra.wh || 12));
   if (pr.mode) gl.uniform1i(pr.mode, extra && extra.mode || 0);
@@ -4612,18 +4848,22 @@ function fltRun() {
   else if (K === 'sharpen') { fpass('blur', X.src, T.a, [p.radius, 1, 0]); fpass('blur', T.a, T.b, [p.radius, 0, 1]); fpass('usm', X.src, T.a, [p.amount / 100], { s2: T.b }); }
   else if (K === 'split') fpass('split', X.src, T.a, [p.dist, p.angle * Math.PI / 180]);
   else {
-    const mode = { huesat: 3, levels: 4, develop: 5, grade: 6, noise: 7 }[K], P = X.spec.params.map(q => p[q[0]]);
+    const mode = { huesat: 3, levels: 4, develop: 5, grade: 6, noise: 7, bc: 8, balance: 9, bw: 10, photo: 11, mixer: 12, invert: 13, posterize: 14, threshold: 15, curves: 16, desat: 17 }[K], P = X.spec.params.map(q => p[q[0]]);
     if (K === 'noise') P[5] = X.empty ? 1 : 0;
     const wh = K === 'grade' ? [...wheelVec(p.w0x, p.w0y, 0.3).map(v => v + p.l0 * 0.5), ...wheelVec(p.w1x, p.w1y, 0.8).map(v => v + p.l1), ...wheelVec(p.w2x, p.w2y, 0.6).map(v => v + p.l2), ...wheelVec(p.w3x, p.w3y, 0.25).map(v => v + p.l3 * 0.3)] : null;
-    fpass('color', X.src, T.a, P, { mode, wh });
+    let s2 = null;
+    if (K === 'develop' && p.md) { fpass('blur', X.src, T.a, [12, 1, 0]); fpass('blur', T.a, T.b, [12, 0, 1]); s2 = T.b; }   // Mid/Detail: local contrast against a 12 px blur
+    if (K === 'curves') curveLut(X);
+    fpass('color', X.src, T.a, P, { mode, wh, s2, lut: X.lut });
   }
   if (X.mtex && out !== X.src) { fpass('mixm', out, out === T.a ? T.b : T.a, [], { s2: X.src, m: X.mtex }); out = out === T.a ? T.b : T.a; }
-  // read back (bottom-up, premultiplied) into an ImageData (top-down, straight alpha) and write it into the tiles
+  // read back (premultiplied) into an ImageData (straight alpha) and write it into the tiles. No row flip: the source
+  // canvas was uploaded with its top row as texture row 0, the passes keep that order, and readPixels returns row 0 first.
   const w = X.w, h = X.h, buf = X.buf || (X.buf = new Uint8Array(w * h * 4)), im = X.im || (X.im = new ImageData(w, h)), d = im.data;
   if (out === X.src) { fpass('mixm', X.src, T.a, [], { s2: X.src, m: X.mtex || X.src }); out = T.a; }
   gl.bindFramebuffer(gl.FRAMEBUFFER, out.fb); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
   for (let y = 0; y < h; y++) {
-    const si = (h - 1 - y) * w * 4, di = y * w * 4;
+    const si = y * w * 4, di = y * w * 4;
     for (let x = 0; x < w * 4; x += 4) { const a = buf[si + x + 3]; d[di + x + 3] = a; if (a) { const k = 255 / a; d[di + x] = buf[si + x] * k; d[di + x + 1] = buf[si + x + 1] * k; d[di + x + 2] = buf[si + x + 2] * k; } else d[di + x] = d[di + x + 1] = d[di + x + 2] = 0; }
   }
   const L = X.L;
@@ -4643,6 +4883,7 @@ function fltStart(kind, opts) {
   if (!filterGL()) { toast('Filters need WebGL 2, which this browser doesn’t have'); return; }
   settle();
   const spec = FILTERS[kind]; opts = opts || {};
+  if (spec.instant) opts.noMerge = true;
   let L = paintL();
   if (!opts.noMerge && $('fltMerged').checked && !(maskEdit && cur.mask)) {   // a new layer from everything visible
     const vis = layers.filter(shown).map(maskedLayer); if (!vis.length) { toast('Nothing visible'); return; }
@@ -4675,7 +4916,11 @@ function fltStart(kind, opts) {
   flt = { kind, spec, L, r, w, h, hist, empty: !!opts.empty, P: {}, merged: L !== cur || (!opts.noMerge && $('fltMerged').checked) };
   flt.src = ftex(w, h, src); flt.tx = { a: ftex(w, h), b: ftex(w, h) };
   flt.mtex = sel ? ftex(w, h, maskCanvas(sel, r.x0, r.y0, w, h)) : null;
-  for (const q of spec.params) flt.P[q[0]] = S.flt && S.flt[kind] && S.flt[kind][q[0]] != null ? S.flt[kind][q[0]] : q[4];
+  const st = S.flt && S.flt[spec.store || kind];
+  for (const q of spec.params) flt.P[q[0]] = st && st[q[0]] != null ? st[q[0]] : q[4];
+  if (spec.curves) { flt.curves = st && st.pts ? JSON.parse(JSON.stringify(st.pts)) : curveDefault(); flt.chan = 'rgb'; flt.lut = curveTex(); }
+  if (spec.hist) flt.histo = histOf(src);
+  if (spec.instant) { fltRun(); fltEnd(true); toast(spec.label); return; }
   if (spec.wheels) for (let i = 0; i < 4; i++) for (const k of ['w' + i + 'x', 'w' + i + 'y', 'l' + i]) flt.P[k] = 0;
   if (opts.P) Object.assign(flt.P, opts.P);
   fltUI(); fltRun();
@@ -4684,29 +4929,195 @@ function fltEnd(apply) {
   const X = flt; if (!X) return;
   flt = null; $('fltDlg').hidden = true;
   if (!apply && X.merged) { restoreTiles(X.L, X.hist.map); applyEntry(undoStack.pop()); syncHistory(); X.merged = false; }   // Cancel also removes the merged copy
-  if (apply) { pushUndo(X.hist); markSave(X.L, X.hist.map.keys()); S.flt = S.flt || {}; S.flt[X.kind] = {}; for (const q of X.spec.params) S.flt[X.kind][q[0]] = X.P[q[0]]; saveSettings(); }
+  if (apply) { pushUndo(X.hist); markSave(X.L, X.hist.map.keys()); S.flt = S.flt || {}; const st = S.flt[X.spec.store || X.kind] = {}; for (const q of X.spec.params) st[q[0]] = X.P[q[0]]; if (X.curves) st.pts = X.curves; saveSettings(); }
   else restoreTiles(X.L, X.hist.map);
   const gl = FG.gl; for (const o of [X.src, X.tx.a, X.tx.b, X.mtex]) if (o) { gl.deleteTexture(o.t); if (o.fb) gl.deleteFramebuffer(o.fb); }
+  if (X.lut) gl.deleteTexture(X.lut);
   dirtyScene();
+}
+/* a DaVinci Resolve-style scrub field: drag left / right to change (Shift: fine), click to type, double-click to reset,
+   arrow keys step. The thin bar shows how far the value sits from its default. */
+function scrubField(label, v, min, max, def, step, set) {
+  const el = document.createElement('div'); el.className = 'scrub'; el.tabIndex = 0; el.title = label + ': drag left or right (Shift: fine), click to type, double-click to reset';
+  el.innerHTML = '<span class="lab"></span><span class="val"></span><span class="bar"><i></i></span>'; el.firstChild.textContent = label;
+  const val = el.children[1], fill = el.querySelector('.bar i'), dec = step >= 10 ? 1 : step >= 1 ? 0 : step < 0.01 ? 3 : 2;
+  const show = () => {
+    val.textContent = v.toFixed(dec); el.classList.toggle('changed', Math.abs(v - def) > step / 2);
+    const f = x => clamp((x - min) / (max - min), 0, 1) * 100, A = f(def), B = f(v);
+    fill.style.left = Math.min(A, B) + '%'; fill.style.width = Math.max(Math.abs(B - A), 0.0001) + '%';
+  };
+  const put = x => { if (!isFinite(x)) return; v = +(Math.round(x / step) * step).toFixed(6); show(); set(v); };
+  let editT = 0;
+  el.addEventListener('pointerdown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    e.preventDefault(); el.focus(); try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    const x0 = e.clientX; let moved = false, last = x0, acc = v; el.classList.add('drag');
+    el.onpointermove = ev => {
+      if (!moved && Math.abs(ev.clientX - x0) < 3) return;
+      moved = true; acc = clamp(acc + (ev.clientX - last) * (max - min) / 320 * (ev.shiftKey ? 0.1 : 1), min, max); last = ev.clientX;
+      put(acc);
+    };
+    el.onpointerup = el.onpointercancel = () => {
+      el.onpointermove = el.onpointerup = el.onpointercancel = null; el.classList.remove('drag');
+      if (!moved) { clearTimeout(editT); editT = setTimeout(edit, 260); }
+    };
+  });
+  el.addEventListener('dblclick', () => { clearTimeout(editT); put(def); });
+  el.addEventListener('keydown', e => {
+    if (e.target !== el) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); put(clamp(v + (e.key === 'ArrowRight' ? 1 : -1) * step * (e.shiftKey ? 10 : 1), min, max)); }
+  });
+  function edit() {
+    const inp = document.createElement('input'); inp.type = 'number'; inp.className = 'num'; inp.step = step; inp.value = v.toFixed(dec);
+    val.replaceWith(inp); inp.focus(); inp.select();
+    const done = ok => { if (!inp.isConnected) return; inp.replaceWith(val); if (ok) put(parseFloat(inp.value)); el.focus(); };
+    inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); };
+    inp.onblur = () => done(true);
+  }
+  show(); return el;
+}
+/* histogram of the filter's source pixels (luma and RGB, alpha-weighted, from a copy at most 384 px across) */
+function histOf(src) {
+  const k = Math.min(1, 384 / Math.max(src.width, src.height)), w = Math.max(1, Math.round(src.width * k)), h = Math.max(1, Math.round(src.height * k));
+  const c = mk(w, h), g = c.getContext('2d'); g.drawImage(src, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data, H = { l: new Float32Array(256), r: new Float32Array(256), g: new Float32Array(256), b: new Float32Array(256) };
+  for (let i = 0; i < d.length; i += 4) { const a = d[i + 3] / 255; if (a < 0.03) continue; H.r[d[i]] += a; H.g[d[i + 1]] += a; H.b[d[i + 2]] += a; H.l[Math.round(0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2])] += a; }
+  return H;
+}
+function drawHist(g, H, ch, W, Ht, color) {
+  const a = H[ch]; let m = 0; for (let i = 0; i < 256; i++) m = Math.max(m, Math.sqrt(a[i]));
+  if (!m) return; g.fillStyle = color; g.beginPath(); g.moveTo(0, Ht);
+  for (let i = 0; i < 256; i++) g.lineTo((i + 0.5) / 256 * W, Ht - Math.sqrt(a[i]) / m * Ht * 0.95);
+  g.lineTo(W, Ht); g.closePath(); g.fill();
+}
+function fltHisto() {
+  const X = flt, c = $('fltHisto'); c.hidden = !(X.histo && !X.curves); if (c.hidden) return;
+  const g = c.getContext('2d'), W = c.width, H = c.height, css = getComputedStyle(document.body); g.clearRect(0, 0, W, H);
+  drawHist(g, X.histo, 'l', W, H, css.getPropertyValue('--muted').trim() || '#888');
+  const mark = (v, col) => { g.fillStyle = col; g.fillRect(Math.round(v / 255 * W) - 1, 0, 2, H); };
+  const acc = css.getPropertyValue('--accent').trim() || '#3a7bd5';
+  if (X.kind === 'threshold') mark(X.P.lvl, acc);
+  if (X.kind === 'levels') { mark(X.P.inB, '#000'); mark(X.P.inW, '#fff'); mark(X.P.inB + (X.P.inW - X.P.inB) * Math.pow(0.5, X.P.gam), acc); }
+}
+/* Curves: points per channel, 0–255, joined by a monotone cubic (it never overshoots, so the curve can't fold back) */
+const curveDefault = () => ({ rgb: [[0, 0], [255, 255]], r: [[0, 0], [255, 255]], g: [[0, 0], [255, 255]], b: [[0, 0], [255, 255]] });
+function curveEval(pts) {
+  const n = pts.length, out = new Float32Array(256), xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+  const d = [], m = new Array(n).fill(0);
+  for (let i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / Math.max(xs[i + 1] - xs[i], 1e-6));
+  if (n === 2) m[0] = m[1] = d[0];
+  else {
+    m[0] = d[0]; m[n - 1] = d[n - 2]; for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+    for (let i = 0; i < n - 1; i++) { if (!d[i]) { m[i] = m[i + 1] = 0; continue; } const a = m[i] / d[i], b = m[i + 1] / d[i], h = a * a + b * b; if (h > 9) { const t = 3 / Math.sqrt(h); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; } }
+  }
+  for (let x = 0; x < 256; x++) {
+    let y;
+    if (x <= xs[0]) y = ys[0]; else if (x >= xs[n - 1]) y = ys[n - 1];
+    else {
+      let i = 0; while (x > xs[i + 1]) i++; const h = xs[i + 1] - xs[i], t = (x - xs[i]) / h, t2 = t * t, t3 = t2 * t;
+      y = (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h * m[i] + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * m[i + 1];
+    }
+    out[x] = clamp(y, 0, 255);
+  }
+  return out;
+}
+function curveTex() {
+  const gl = FG.gl, t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); return t;
+}
+function curveLut(X) {   // each channel's curve first, then the RGB master
+  const M = curveEval(X.curves.rgb), C = ['r', 'g', 'b'].map(k => curveEval(X.curves[k])), d = new Uint8Array(1024);
+  for (let i = 0; i < 256; i++) { for (let j = 0; j < 3; j++) d[i * 4 + j] = Math.round(M[Math.round(C[j][i])]); d[i * 4 + 3] = 255; }
+  const gl = FG.gl; gl.bindTexture(gl.TEXTURE_2D, X.lut); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 1, gl.RGBA, gl.UNSIGNED_BYTE, d);
+}
+function curvesUI(box) {
+  const X = flt; box.innerHTML = '';
+  const chans = document.createElement('div'); chans.className = 'chans';
+  const c = document.createElement('canvas'); c.className = 'curves'; c.width = c.height = 512;
+  c.title = 'Click to add a point, drag to bend, drag a point out of the box to remove it. Double-click resets this channel';
+  const COL = { rgb: null, r: '#e5484d', g: '#30a46c', b: '#3e8ef7' };
+  let drag = -1, gone = false;
+  const draw = () => {
+    const g = c.getContext('2d'), Z = 512, css = getComputedStyle(document.body), ink = css.getPropertyValue('--ink').trim() || '#222', mu = css.getPropertyValue('--muted').trim() || '#888';
+    const line = v => { g.beginPath(); for (let x = 0; x < 256; x++) g.lineTo(x / 255 * Z, Z - v[x] / 255 * Z); g.stroke(); };
+    g.clearRect(0, 0, Z, Z);
+    g.globalAlpha = 0.28; drawHist(g, X.histo, X.chan === 'rgb' ? 'l' : X.chan, Z, Z, COL[X.chan] || mu); g.globalAlpha = 1;
+    g.strokeStyle = mu; g.globalAlpha = 0.35; g.lineWidth = 1; g.beginPath();
+    for (let i = 1; i < 4; i++) { g.moveTo(i * Z / 4, 0); g.lineTo(i * Z / 4, Z); g.moveTo(0, i * Z / 4); g.lineTo(Z, i * Z / 4); }
+    g.moveTo(0, Z); g.lineTo(Z, 0); g.stroke(); g.globalAlpha = 1;
+    for (const k of ['r', 'g', 'b', 'rgb']) {   // the other channels' curves, faint, when they've been changed
+      const p = X.curves[k]; if (k === X.chan || p.length === 2 && !p[0][0] && !p[0][1] && p[1][0] === 255 && p[1][1] === 255) continue;
+      g.strokeStyle = COL[k] || ink; g.globalAlpha = 0.4; g.lineWidth = 2; line(curveEval(p)); g.globalAlpha = 1;
+    }
+    const pts = X.curves[X.chan];
+    g.strokeStyle = COL[X.chan] || ink; g.lineWidth = 3; line(curveEval(pts));
+    pts.forEach((q, i) => {
+      if (i === drag && gone) return;
+      g.fillStyle = i === drag ? (COL[X.chan] || ink) : css.getPropertyValue('--chrome').trim() || '#fff'; g.strokeStyle = COL[X.chan] || ink; g.lineWidth = 2.5;
+      g.beginPath(); g.rect(q[0] / 255 * Z - 7, Z - q[1] / 255 * Z - 7, 14, 14); g.fill(); g.stroke();
+    });
+  };
+  for (const [k, n] of [['rgb', 'RGB'], ['r', 'Red'], ['g', 'Green'], ['b', 'Blue']]) {
+    const b = document.createElement('button'); b.className = 'btn' + (X.chan === k ? ' on' : ''); b.textContent = n;
+    b.onclick = () => { X.chan = k; chans.querySelectorAll('.btn').forEach(x => x.classList.toggle('on', x === b)); draw(); }; chans.appendChild(b);
+  }
+  const at = e => { const b = c.getBoundingClientRect(); return [(e.clientX - b.left) / b.width * 255, (1 - (e.clientY - b.top) / b.height) * 255, b]; };
+  c.addEventListener('pointerdown', e => {
+    e.preventDefault(); try { c.setPointerCapture(e.pointerId); } catch (_) {}
+    const [x, y, b] = at(e), pts = X.curves[X.chan], tol = 12 / b.width * 255;
+    drag = pts.findIndex(q => Math.hypot(q[0] - x, q[1] - y) < tol);
+    if (drag < 0) {
+      const xi = clamp(Math.round(x), 0, 255); if (pts.some(q => Math.abs(q[0] - xi) < 3)) return;
+      pts.push([xi, clamp(Math.round(y), 0, 255)]); pts.sort((p1, p2) => p1[0] - p2[0]); drag = pts.findIndex(q => q[0] === xi);
+    }
+    gone = false;
+    const q = pts[drag];
+    const mv = ev => {
+      const [x2, y2, b2] = at(ev), out = 24 / b2.width * 255, i = pts.indexOf(q), end = i === 0 || i === pts.length - 1;
+      gone = !end && (x2 < -out || x2 > 255 + out || y2 < -out || y2 > 255 + out);
+      const lo = i > 0 ? pts[i - 1][0] + 1 : 0, hi = i < pts.length - 1 ? pts[i + 1][0] - 1 : 255;
+      q[0] = Math.round(clamp(x2, lo, hi)); q[1] = Math.round(clamp(y2, 0, 255));
+      if (gone) pts.splice(i, 1); draw(); fltKick(); if (gone) pts.splice(i, 0, q);
+    };
+    mv(e); c.onpointermove = mv;
+    c.onpointerup = c.onpointercancel = () => { c.onpointermove = c.onpointerup = c.onpointercancel = null; if (gone) pts.splice(pts.indexOf(q), 1); drag = -1; gone = false; draw(); fltKick(); };
+  });
+  c.ondblclick = () => { X.curves[X.chan] = [[0, 0], [255, 255]]; draw(); fltKick(); };
+  box.append(chans, c); draw();
 }
 function fltUI() {
   const X = flt, box = $('fltParams'); box.innerHTML = '';
   $('fltTitle').textContent = X.spec.label; $('fltDlg').hidden = false;
-  for (const [k, label, min, max, def, step] of X.spec.params) {
+  let grid = null;
+  for (const [k, label, min, max, def, step, head] of X.spec.params) {
     if (X.kind === 'noise' && k === 'seed') continue;
+    if (head) { const h = document.createElement('h4'); h.textContent = head; box.appendChild(h); grid = null; }
+    const set = v => { X.P[k] = v; fltKick(); if (X.histo) fltHisto(); };
+    if (min === 0 && max === 1 && step === 1) {   // an on / off switch
+      const row = document.createElement('label'); row.className = 'prop chk check';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!X.P[k]; cb.onchange = () => set(cb.checked ? 1 : 0);
+      row.append(cb, label); box.appendChild(row); grid = null; continue;
+    }
+    if (X.spec.scrub) {
+      if (!grid) { grid = document.createElement('div'); grid.className = 'scrubs'; box.appendChild(grid); }
+      grid.appendChild(scrubField(label, X.P[k], min, max, def, step, set)); continue;
+    }
     const row = document.createElement('label'); row.className = 'prop';
     const rg = document.createElement('input'); rg.type = 'range'; rg.min = min; rg.max = max; rg.step = step; rg.value = X.P[k];
     const nb = document.createElement('input'); nb.type = 'number'; nb.className = 'num'; nb.step = step; nb.value = X.P[k];
-    const set = (v, from) => { if (!isFinite(v)) return; X.P[k] = v; if (from !== rg) rg.value = v; if (from !== nb) nb.value = v; fltKick(); };
-    rg.oninput = () => set(+rg.value, rg); nb.oninput = () => set(parseFloat(nb.value), nb);
-    rg.ondblclick = () => set(def);
+    const put = (v, from) => { if (!isFinite(v)) return; if (from !== rg) rg.value = v; if (from !== nb) nb.value = v; set(v); };
+    rg.oninput = () => put(+rg.value, rg); nb.oninput = () => put(parseFloat(nb.value), nb);
+    rg.ondblclick = () => put(def);
     row.append(label, rg, nb); box.appendChild(row);
   }
+  const cv = $('fltCurves'); cv.hidden = !X.curves; if (X.curves) curvesUI(cv); else cv.innerHTML = '';
+  fltHisto();
   const wb = $('fltWheels'); wb.hidden = !X.spec.wheels; wb.innerHTML = '';
   if (X.spec.wheels) X.spec.wheels.forEach((name, i) => {
     const el = document.createElement('div'); el.className = 'wheel';
     const c = document.createElement('canvas'); c.width = c.height = 208; c.title = name + ': drag to tint, double-click to reset';
-    const lum = document.createElement('input'); lum.type = 'range'; lum.min = -1; lum.max = 1; lum.step = 0.01; lum.value = X.P['l' + i]; lum.title = name + ' brightness (double-click to reset)';
     const draw = () => {
       const g = c.getContext('2d'), R = 100; g.clearRect(0, 0, 208, 208);
       const cg = g.createConicGradient ? g.createConicGradient(0, 104, 104) : null;
@@ -4723,15 +5134,15 @@ function fltUI() {
       go(e); c.onpointermove = go; c.onpointerup = c.onpointercancel = () => { c.onpointermove = null; };
     });
     c.ondblclick = () => { X.P['w' + i + 'x'] = X.P['w' + i + 'y'] = 0; draw(); fltKick(); };
-    lum.oninput = () => { X.P['l' + i] = +lum.value; fltKick(); }; lum.ondblclick = () => { lum.value = X.P['l' + i] = 0; fltKick(); };
-    const lab = document.createElement('span'); lab.textContent = name;
-    el.append(c, lum, lab); wb.appendChild(el); draw();
+    el.append(c, scrubField(name, X.P['l' + i], -1, 1, 0, 0.005, v => { X.P['l' + i] = v; fltKick(); })); wb.appendChild(el); draw();
   });
-  $('fltInfo').textContent = (X.L.name) + ' · ' + X.w + ' × ' + X.h + ' px' + (sel ? ' · inside the selection' : '') + ' · double-click a slider to reset it' + (X.spec.wheels ? '. Shift-drag a wheel for fine control' : '');
+  $('fltInfo').textContent = X.L.name + ' · ' + X.w + ' × ' + X.h + ' px' + (sel ? ' · inside the selection' : '') +
+    (X.spec.scrub ? ' · drag a field left or right (Shift: fine), click to type, double-click to reset' : X.curves ? '' : ' · double-click a slider to reset it') + (X.spec.wheels ? '. Shift-drag a wheel for fine control' : '');
+  fltPlace();
 }
 $('fltOk').onclick = () => fltEnd(true);
 $('fltCancel').onclick = () => fltEnd(false);
-$('fltReset').onclick = () => { if (!flt) return; for (const q of flt.spec.params) flt.P[q[0]] = q[4]; if (flt.spec.wheels) for (const k in flt.P) if (/^[wl]\d/.test(k)) flt.P[k] = 0; fltUI(); fltRun(); };
+$('fltReset').onclick = () => { if (!flt) return; for (const q of flt.spec.params) flt.P[q[0]] = q[4]; if (flt.spec.wheels) for (const k in flt.P) if (/^[wl]\d/.test(k)) flt.P[k] = 0; if (flt.curves) flt.curves = curveDefault(); fltUI(); fltRun(); };
 $('fltMerged').onchange = () => { if (!flt) return; const k = flt.kind; fltEnd(false); fltStart(k); };
 $('fltDlg').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fltEnd(true); if (e.key === 'Escape') fltEnd(false); });
 /* a noise layer: on a document, 50% grey set to Overlay; on the canvas, black and white grain on a clear layer */
@@ -4775,7 +5186,7 @@ async function featherSel() {
   fpass('blur', src, A, [rad * 2, 1, 0], { F }); fpass('blur', A, B, [rad * 2, 0, 1], { F });
   const gl = FG.gl, px = new Uint8Array(w * h * 4); gl.bindFramebuffer(gl.FRAMEBUFFER, B.fb); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
   const ms = new Map();
-  for (let y = 0; y < h; y++) { const Y = r.y0 + y, ty = Math.floor(Y / TILE), row = (h - 1 - y) * w;
+  for (let y = 0; y < h; y++) { const Y = r.y0 + y, ty = Math.floor(Y / TILE), row = y * w;   // rows come back top first (see fltRun)
     for (let x = 0; x < w; x++) { const a = px[(row + x) * 4 + 3]; if (!a) continue; const X2 = r.x0 + x, tx = Math.floor(X2 / TILE), k = tkey(tx, ty); let v = ms.get(k); if (!v) ms.set(k, v = new Uint8Array(TILE * TILE)); v[(Y - ty * TILE) * TILE + X2 - tx * TILE] = a; } }
   for (const o of [src, A, B]) { gl.deleteTexture(o.t); if (o.fb) gl.deleteFramebuffer(o.fb); }
   const m = new Map(); for (const [k, v] of ms) putNorm(m, k, v, 0);
@@ -4934,7 +5345,7 @@ function renderKb() {
   const q = $('kbQ').value.trim().toLowerCase(), box = $('kbList'); box.innerHTML = ''; let last = '';
   for (const c of CMDS) {
     if (!c.id || q && !(c.label + ' ' + c.menu + ' ' + keyOf(c)).toLowerCase().includes(q)) continue;
-    if (c.menu !== last) { const g = document.createElement('div'); g.className = 'grp'; g.textContent = c.menu; box.appendChild(g); last = c.menu; }
+    if (c.menu !== last) { const g = document.createElement('div'); g.className = 'grp'; g.textContent = c.menu.replace('/', ' › '); box.appendChild(g); last = c.menu; }
     const n = document.createElement('span'); n.textContent = c.label;
     const b = document.createElement('button'); b.className = 'btn sm bind' + (S.keys && S.keys[c.id] != null ? ' custom' : ''); b.textContent = keyOf(c) || '—';
     b.onclick = () => { kbWait = c.id; renderKb(); };

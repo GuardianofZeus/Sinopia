@@ -13,7 +13,8 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Free transform (Ctrl+T), Photoshop-style.** Scale from corners (Shift for free proportions, Alt from the center), rotate by dragging outside (Shift for 15° steps), Ctrl+drag a corner to distort or add perspective, Ctrl+drag an edge to skew, flip, or switch to **Warp** to bend the image with a 4×4 mesh. Works on the selection, or the whole layer. Enter applies, Esc cancels, and it's one undo step.
 - **Modifier stack, Blender-style.** In the layers panel, **+ Array** repeats the layer. **Linear** sets the count, X/Y offset, rotation and scale per copy; **Radial** spreads the copies evenly around a pivot. Everything is on sliders, and you can drag the pivot ring and the offset arrow right on the canvas. Stack two arrays for a grid. The copies are live: they follow whatever you paint. **Apply** bakes them into pixels. Export, merge and documents use the result.
 - **Documents with blend modes.** Press **New doc** (its ▾ menu has presets: HD, 4K, square, 4:5, A4, iPad) (or **Open as document** with a selection) and that area of the canvas, or what’s on screen with no selection, is copied into its own tab. Change the page size afterwards with **Doc size**, which keeps the drawing centered. Each document is a fixed-size page, Photoshop-style, where each layer can use Normal, Multiply, Screen, Overlay, Darken, Lighten, Add or Soft light. Open several at once and switch with the tabs. The canvas is never changed. Documents aren’t saved yet, so export anything you want to keep.
-- **Fill (G).** Click an area to fill it with the brush color. By default it looks at all visible layers, so line art on its own layer works, and it grows a pixel under soft edges. Alt+Backspace fills a selection.
+- **Smudge (F).** Drag to push and blend paint like a finger, with its own size, strength and pressure settings. Strength (the opacity slider) sets how far the paint drags; the smears stay crisp instead of going blurry. It stays inside a selection and works on layer masks.
+- **Fill (G).** Click an area to fill it with the brush color. **Sample** in the toolbar picks what bounds the fill: **All layers** (line art on its own layer works) or **This layer**; Shift+G switches. It grows a pixel under soft edges. Alt+Backspace fills a selection.
 - **Ellipse guide (O)**, like Leonardo's. Strokes that start on the ellipse follow it exactly, with your own pressure. Drag its handles to move it, size it, squash it into perspective and turn it.
 - **Rotate the canvas.** Hold R and drag, or twist two fingers on a touch screen. It snaps straight near 0°, and the ° readout beside the zoom resets it.
 - **Liquify (Ctrl+Shift+X).** Push, twirl, bloat and restore the selection (or the layer) with a brush, then Enter to apply.
@@ -22,7 +23,7 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Home page and multiple drawings.** The house button (or File → Home) lists every drawing in this browser with a thumbnail. Make a new one, open, rename, duplicate or delete. Each drawing keeps its own layers, notes, view and paper.
 - **Draw together on your network.** One PC double-clicks `Start collab server.bat`. Everyone on the same Wi-Fi opens the address it prints, then File → Draw together → Connect. You see each other's strokes, cursors, layers and notes live. See below.
 - **Images.** Ctrl+V pastes an image from any app, and File → Place image (Ctrl+Shift+P) adds one from disk. Either way it lands on its own layer with the transform handles ready.
-- **Filters and grading (App edition).** Develop (exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance; Ctrl+Shift+A), Resolve-style lift / gamma / gain / offset color wheels (Ctrl+Shift+G), Hue/Saturation (Ctrl+U), Levels (Ctrl+L), and a Filter menu with Gaussian blur, sharpen, RGB split and noise. Everything previews live, stays inside the selection, and can run on a merged copy of everything visible.
+- **Filters and grading (App edition).** Develop works like DaVinci Resolve's primaries (temp, tint, exposure, contrast, pivot, mid/detail, color boost, shadows, highlights, saturation, hue; Ctrl+Shift+A): drag a field left or right to change it, Shift for fine control, click to type, double-click to reset. Resolve-style lift / gamma / gain / offset color wheels (Ctrl+Shift+G). **Image → Adjustments** has Brightness/Contrast, Levels (Ctrl+L), Curves (Ctrl+M), Hue/Saturation (Ctrl+U), Color Balance (Ctrl+B), Black & White (Ctrl+Alt+Shift+B), Photo Filter, Channel Mixer, Invert (Ctrl+I), Posterize, Threshold and Desaturate (Ctrl+Shift+U). The Filter menu has Gaussian blur, sharpen, RGB split and noise. Everything previews live, stays inside the selection, and can run on a merged copy of everything visible. Drag the panel's dotted grip to move it out of the way.
 - **Layer masks.** The ◐ button in the layers panel adds a mask (from the selection, if there is one). Press \ to paint on it: the brush hides, the eraser reveals. Shift+F6 feathers a selection.
 - **Cryptomatte.** File → Open EXR (or drop an .exr) opens a render with its Cryptomatte. Click an object to select it with clean edges, ready to mask, grade or paint over.
 - **Flip view (Shift+H)** mirrors the view to check proportions, without changing the drawing.
@@ -65,7 +66,8 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 | Smaller / larger brush | [ / ] (or type a size in the px box) |
 | Color menu | V |
 | Undo / redo on iPad | Two-finger tap / three-finger tap |
-| Fill / fill selection | G / Alt + Backspace |
+| Smudge | F |
+| Fill / fill selection | G / Alt + Backspace (Shift + G: sample all layers or this layer) |
 | Ellipse guide | O |
 | Rotate canvas | Hold R + drag (R + click straightens) |
 | Liquify | Ctrl + Shift + X |
@@ -74,7 +76,9 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 | Place image | Ctrl + Shift + P (or paste with Ctrl + V) |
 | Fit / flip view | Ctrl + 0 / Shift + H |
 | Develop / color wheels | Ctrl + Shift + A / Ctrl + Shift + G |
-| Hue/Saturation / Levels | Ctrl + U / Ctrl + L |
+| Hue/Saturation / Levels / Curves | Ctrl + U / Ctrl + L / Ctrl + M |
+| Color Balance / Black & White | Ctrl + B / Ctrl + Alt + Shift + B |
+| Invert / Desaturate | Ctrl + I / Ctrl + Shift + U |
 | Paint on the layer mask | \ |
 | Feather selection | Shift + F6 |
 | Cycle mirror mode | M |

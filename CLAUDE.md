@@ -88,8 +88,12 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - `#pressBtn`: a click toggles pen pressure for the current tool (remembering which of size and opacity were on, in `S.pPrev`). A long-press or right-click opens the brush panel at Dynamics.
 - `#sizePx`: brush diameter in px beside the ? button, and you can type in it.
 
+**Smudge** (F; added 2026-11-07, Ben asked for "a GOOD smudge tool"). A third tool profile beside brush and eraser (`setTool('brush'|'erase'|'smudge')`, `toolName()`, `S.smudge`; `setErase` wraps `setTool`), so size, opacity (shown as **Strength**, `#flowLab`), smoothing and pressure are its own. Not on the stroke engine: `startSmudge` / `smudgeTo` / `smDab` / `smFlush` / `endSmudge` work straight on the layer tiles' ImageData (`SM.tiles`, read once per tile per stroke, written back per frame as dirty rects, `t.v++`).
+- The brush carries a premultiplied float patch (`SM.C`, brush-local). Each dab: canvas → carry by weight (smoothstep falloff × pressure × selection), then carry picks up `0.015 + 0.6·(1−strength)²` of the result. Dabs sit on whole pixels (step ≤ 6 px), so the carried patch is never resampled and smears stay sharp.
+- Pen-down only picks up. Empty tiles are created only when carried paint lands there. One tiles undo step; `markSave` sends it to collab. The pen's eraser end still erases. No mirror symmetry. About 2 ms per move at 400 px.
+
 **Fill** (G; added 2026-11-06). `fillAt` takes a contiguous `wandSel` and then grows it under anti-aliased edges (`growMask`, 4-neighbour dilation, `S.fillGrow` px, default 1). The selection is intersected in, and `fillBound()` clips it to the page, or to the screen on the canvas, because an open area would be endless. `fillMask` paints the brush color at brush opacity; it's one tiles undo step.
-- The wand takes options (`{tol, contig, all}`). `all` samples the composite of all visible layers, drawn per tile into a scratch canvas (`S.fillAll`, default on), so line art on another layer bounds the fill.
+- The wand takes options (`{tol, contig, all}`). `all` samples the composite of all visible layers, drawn per tile into a scratch canvas (`S.fillAll`, default on), so line art on another layer bounds the fill. The toolbar shows it as **Sample: All layers | This layer** (`setFillAll`, Shift+G toggles; Ben wanted it to be clearly an option).
 - Fill selection: Alt+Backspace, Shift+Backspace, or the Fill button.
 
 **Ellipse guide** (O; `guide`, saved in `S.guide`; added 2026-11-06, Ben asked for "a circle guide tool like in Leonardo").
@@ -135,9 +139,14 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 **Filters and adjustments** (Phase 4, 2026-11-06). `FILTERS` lists each one's sliders; `fltStart(kind)` opens the sheet (`#fltDlg`).
 - The target (the active layer, or the mask while painting on it, or a new **Merged copy** layer of everything visible) is read over its content bounds, clipped to the selection's bounds, into one region image. Spatial filters pad it by 96 px.
-- `filterGL()` is a separate small WebGL 2 canvas. `fpass` runs one fragment shader (`FS_HEAD` + `FS_SRC`): `blur` (separable Gaussian, two passes), `usm`, `split`, `color` (modes 3–7: hue/sat, levels, develop, color wheels, noise) and `mixm` (mixes with the original through the selection mask).
+- `filterGL()` is a separate small WebGL 2 canvas. `fpass` runs one fragment shader (`FS_HEAD` + `FS_SRC`): `blur` (separable Gaussian, two passes), `usm`, `split`, `color` (modes 3–17: hue/sat, levels, develop, color wheels, noise, brightness/contrast, color balance, black & white, photo filter, channel mixer, invert, posterize, threshold, curves, desaturate) and `mixm` (mixes with the original through the selection mask).
 - Every slider change re-renders from the untouched original and writes straight into the layer tiles, so the preview is in place in the stack. Cancel restores the tiles (and removes a merged copy); Apply is one tiles undo step and remembers the sliders in `S.flt`.
 - While a filter is open, only pan and zoom reach the canvas, Enter/Esc apply/cancel, and Ctrl+Z cancels. Up to 8192 px a side.
+- **No row flip on read-back** (fixed 2026-11-07; filters used to turn the layer upside down). The source canvas is uploaded with its top row as texture row 0, the passes keep that order, and `readPixels` returns row 0 first. So `fltRun` and `featherSel` copy rows straight, and the noise `org` is `(x0, y0)`.
+- `FILTERS` params are `[key, label, min, max, default, step, heading?]`. A 0–1 param with step 1 shows as a checkbox. `spec.scrub` shows the params as **Resolve-style scrub fields** (`scrubField`: drag left/right, Shift fine, click to type, double-click resets, arrows step). `spec.instant` (Invert, Desaturate) applies at once. `spec.store` renames the `S.flt` key when a filter's params changed meaning (Develop → `develop2`, wheels → `grade2`).
+- **Develop** follows Resolve's primaries: temp (±4000), tint, exposure, contrast about a pivot (1.000 / 0.435), mid/detail (local contrast against a 12 px blur, passed as `s2`), color boost, shadows, highlights, saturation and hue (50 = neutral; hue rotates about the gray axis).
+- **Image → Adjustments** is a submenu: a CMDS menu of `'Image/Adjustments'` is grouped by `buildMenubar`, and `showMenu` items with `items` open a child menu on hover. Curves (`curvesUI`, `curveEval` monotone cubic, `curveLut` → a 256×1 LUT on texture unit 3; channel curve first, then the RGB master; points saved as `S.flt.curves.pts`). Levels, Curves and Threshold show a histogram (`histOf`, from a ≤384 px copy).
+- The panel card is movable (`makeMovable` on `#fltCard`, key `flt`). `.dialog.flt` has `pointer-events: none`, so the canvas around the card still pans and zooms.
 - Color wheels (`wheelVec`): the puck's hue becomes a balanced RGB offset (no brightness change), plus each wheel's brightness slider. Lift = c + lift·(1−c), gain = c·(1+gain), gamma = pow(c, e^−gamma), then offset.
 - `noiseLayer()`: a 50% grey Overlay layer of the page in documents, or clear black-and-white grain over the screen on the canvas.
 - **Feather** (Shift+F6, `featherSel`): blurs the selection mask with the same blur shader. `askNum` is a themed number prompt (`#numDlg`).
@@ -242,7 +251,8 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Flash a layer's drawing | Ctrl + click a layer or group row: accent-tinted silhouette plus dashed bounds, fading over 1.6 s (`highlight`). It doesn't change the active layer. |
 | Size | [ / ], or type it in the px box beside ? |
 | Color menu | V (at the cursor), or click the color swatch |
-| Fill | G (Tolerance, All layers and Grow show in the toolbar). Alt+Backspace or Shift+Backspace fills the selection |
+| Smudge | F (opacity slider = Strength) |
+| Fill | G (Tolerance, Sample: All layers / This layer, and Grow show in the toolbar; Shift+G switches sampling). Alt+Backspace or Shift+Backspace fills the selection |
 | Ellipse guide | O. Strokes that start on it follow it; drag the center, the square (size and turn) and the round handle (squash; Shift for a circle) |
 | Rotate canvas | Hold R + drag (Shift: 15°; it snaps straight near 0°), R + click straightens, two-finger twist on touch, click the ° pill to reset |
 | Liquify | Ctrl+Shift+X: Push / Twirl / Bloat / Restore, Alt reverses, brush size and opacity set size and strength, Enter applies |
@@ -252,7 +262,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Draw together | Start collab server.bat on one PC, then File → Draw together → Connect (the ● pill at the bottom shows who's in) |
 | Project | Ctrl+S save (.sinopia), Ctrl+Shift+S save as, Ctrl+O open (as a new drawing), Ctrl+Shift+P place image, Ctrl+Shift+E export, Ctrl+V pastes images from other apps |
 | View | Ctrl+0 fit, Ctrl+= / Ctrl+− zoom, Shift+H flip view |
-| Filters | Ctrl+Shift+A develop, Ctrl+Shift+G color wheels, Ctrl+U hue/saturation, Ctrl+L levels; Filter menu: blur, sharpen, RGB split, noise, noise layer. Enter applies, Esc cancels |
+| Filters | Ctrl+Shift+A develop (Resolve scrub fields), Ctrl+Shift+G color wheels. Image → Adjustments: Ctrl+L levels, Ctrl+M curves, Ctrl+U hue/saturation, Ctrl+B color balance, Ctrl+Alt+Shift+B black & white, Ctrl+I invert, Ctrl+Shift+U desaturate, plus brightness/contrast, photo filter, channel mixer, posterize, threshold. Filter menu: blur, sharpen, RGB split, noise, noise layer. Enter applies, Esc cancels |
 | Layer mask | ◐ button in the layers panel (Shift+click toggles). \ paints on the mask: brush hides, eraser reveals |
 | Feather | Shift+F6 |
 | Cryptomatte | File → Open EXR (or drop an .exr), then click objects; Shift adds, Alt subtracts |
@@ -297,7 +307,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 3. **Canvas rotation** (Leonardo has it). This is now easy in the WebGL vertex shader.
 4. Optional "build-up" mode for soft brushes (MAX blending means a single stroke never darkens over itself).
 5. More modifiers (radial array as its own type, mirror, offset/jitter), transform options typed as numbers, polygonal lasso, and layer thumbnails. Selection basics and feather are in.
-9. **Phase 4 follow-ups:** Curves, Perlin/value noise, adjustment *layers* (filters are destructive today, with live preview), PIZ/DWA EXR compression, and checking Cryptomatte against a real Blender EXR.
+9. **Phase 4 follow-ups:** Perlin/value noise, adjustment *layers* (filters are destructive today, with live preview), PIZ/DWA EXR compression, and checking Cryptomatte against a real Blender EXR.
 6. **Documents next:** saving (IndexedDB, keyed per document), “Place back” onto the canvas, new blank documents of a chosen size, layer thumbnails, and more blend modes. Ben wants many documents open at once in the full app.
 7. Save and load a project file (currently it lives only in browser storage plus PNG export).
 8. **Straight lines:** now a rubber band with a hard 10° snap and a 4-line guide, per Ben. Tune `LINE_STEP` or the guide alpha if he asks.
