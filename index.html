@@ -298,6 +298,32 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   .btn{height:38px; min-width:38px} .btn.sm{height:30px; min-width:30px} .slider{height:38px}
   .sw{width:24px; height:24px} .layer{height:38px} .cswatch{width:36px; height:36px}
 }
+/* home: the drawings in this browser */
+.home{position:fixed; inset:0; z-index:4; background:var(--chrome-2); overflow:auto; overscroll-behavior:contain;
+  padding:calc(22px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px))}
+.home .hhead, .home .hgrid, .home .hfoot{max-width:1200px; margin:0 auto}
+.home .hhead{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px}
+.home h1{margin:0; font-size:24px; font-weight:700; letter-spacing:-.01em; color:var(--accent)}
+.home .hhead .btn{border:1px solid var(--line); background:var(--chrome)}
+.home .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.hgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap:16px}
+.fcard{background:var(--chrome); border:1px solid var(--line); border-radius:6px; overflow:hidden; cursor:pointer; box-shadow:var(--shadow); display:flex; flex-direction:column; padding:0; font:inherit; color:inherit; text-align:left}
+.fcard:hover{border-color:var(--accent)}
+.fcard.on{outline:2px solid var(--accent); outline-offset:-1px}
+.fcard:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.fcard .th{aspect-ratio:3/2; background:#808080 center/cover no-repeat; border-bottom:1px solid var(--line)}
+.fcard .meta{display:flex; align-items:center; gap:6px; padding:8px 6px 9px 11px}
+.fcard .nm{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+.fcard .nm b{font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.fcard .nm span{font-size:11.5px; color:var(--muted)}
+.fcard .nm input{width:100%; text-align:left; font-size:13px}
+.fcard.new{border-style:dashed; box-shadow:none; background:transparent; align-items:center; justify-content:center; gap:6px; min-height:170px; color:var(--muted); font-size:13.5px}
+.fcard.new svg{width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round}
+.fcard.new:hover{color:var(--accent)}
+.home .hfoot{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:20px}
+body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility:hidden}
+.field .num.wide{flex:1; width:auto; min-width:0; text-align:left}
+.collab::before{content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:#1f9d68; margin-right:6px; vertical-align:1px}
 @media (max-width:700px){ .hint{display:none} .slider input[type=range]{width:78px} }
 @media (prefers-reduced-motion:reduce){ .welcome{transition:none} }
 </style>
@@ -313,6 +339,8 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   <div class="bar" role="toolbar" aria-label="Tools" id="bar">
     <div class="group">
       <div class="bgrip" id="barGrip" title="Drag to move the toolbar. Double-click to put it back"></div>
+      <button class="btn" id="tHome" title="Home: all your drawings" aria-label="Home"><svg viewBox="0 0 18 18"><path d="M2.5 8.5L9 3l6.5 5.5"/><path d="M4.5 7.2V15h9V7.2"/><path d="M7.5 15v-4h3v4"/></svg></button>
+      <span class="sep"></span>
       <button class="btn on" id="tBrush" title="Brush (B)" aria-label="Brush"><svg viewBox="0 0 18 18"><path d="M3 15c2.2 0 3.4-1 3.6-3.2L13.5 4.9l-.4-.4L6.2 11.4C4 11.6 3 12.8 3 15z"/><path d="M11.6 3l3.4 3.4"/></svg></button>
       <button class="btn" id="tErase" title="Eraser (E)" aria-label="Eraser"><svg viewBox="0 0 18 18"><path d="M7 15h8"/><path d="M3.5 11.5l7-7 4 4-6.5 6.5H6.5z"/><path d="M7 8l4 4"/></svg></button>
       <button class="btn" id="tFill" title="Fill (G): fills the area of similar color you click, with the brush color" aria-label="Fill"><svg viewBox="0 0 18 18"><path d="M8 2.5l6 6-5.5 5.5a1.5 1.5 0 01-2.1 0L2.5 10.1a1.5 1.5 0 010-2.1z"/><path d="M3 8.5h10.5"/><path d="M15.5 11.5s1.2 1.6 1.2 2.5a1.2 1.2 0 01-2.4 0c0-.9 1.2-2.5 1.2-2.5z" fill="currentColor"/></svg></button>
@@ -471,6 +499,22 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   </div>
 </div>
 
+<div class="home" id="home" hidden role="dialog" aria-label="Your drawings">
+  <div class="hhead">
+    <h1>Sinopia</h1>
+    <span class="row" style="gap:6px;flex-wrap:wrap">
+      <button class="btn" id="homeOpen" title="Open a .sinopia project file as a new drawing">Open file…</button>
+      <button class="btn" id="homeCollab" title="Draw on the same drawing with someone on your network">Draw together…</button>
+      <button class="btn primary" id="homeClose" title="Back to the drawing that's open (Esc)">Back to drawing</button>
+    </span>
+  </div>
+  <div class="hgrid" id="homeGrid" aria-label="Drawings"></div>
+  <div class="hfoot">
+    <label class="check"><input type="checkbox" id="homeStart"> Show this page when Sinopia starts</label>
+    <span class="note">Drawings are kept in this browser. File → Save project makes a .sinopia copy you can move or back up.</span>
+  </div>
+</div>
+
 <div class="cpop" id="cpop" hidden role="dialog" aria-label="Color">
   <canvas id="cpSV" aria-label="Saturation and brightness"></canvas>
   <canvas id="cpHue" aria-label="Hue"></canvas>
@@ -486,6 +530,7 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   <button class="pill" id="zoomOut" title="Reset zoom to 100%">100%</button>
   <button class="pill" id="rotOut" title="Canvas rotation: click to straighten" hidden>0°</button>
   <span class="pill hint" id="hint">Hold Shift while drawing for straight lines · V opens colors · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
+  <button class="pill collab" id="collabOut" title="Drawing together: click for details" hidden></button>
   <span class="pill toast" id="toast" hidden></span>
 </div>
 
@@ -535,6 +580,17 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
     <label class="field" id="numMsg" style="font-size:13px;color:var(--ink)"></label>
     <input class="num" type="number" id="numVal" style="width:100%;height:32px">
     <div class="row" style="justify-content:flex-end"><button class="btn" id="numNo">Cancel</button><button class="btn primary" id="numYes">OK</button></div>
+  </div>
+</div>
+
+<div class="dialog" id="collabDlg" hidden>
+  <div class="card" role="dialog" aria-labelledby="collabTitle" style="width:min(460px,100%)">
+    <h2 id="collabTitle">Draw together</h2>
+    <p class="note" style="font-size:12.5px">One PC runs <b>Start collab server</b> from the Sinopia folder. Everyone on the same network opens the address it shows, then connects here. The first one in shares the drawing they have open; anyone who joins gets it as a new drawing on their Home page.</p>
+    <label class="field">Server <input class="num wide" id="collabAddr" type="text" spellcheck="false" autocomplete="off" placeholder="192.168.1.20:8080"></label>
+    <label class="field">Your name <input class="num wide" id="collabName" type="text" maxlength="24" autocomplete="nickname"></label>
+    <p class="note" id="collabState" aria-live="polite"></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn" id="collabClose">Close</button><button class="btn" id="collabLeave" hidden>Leave session</button><button class="btn primary" id="collabGo">Connect</button></div>
   </div>
 </div>
 
@@ -794,6 +850,23 @@ const LS = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
 };
+/* ---------- files (drawings) ----------
+   Each drawing is a file with its own layer list, notes and view in localStorage, and its tiles under "<id>/" in
+   IndexedDB. The first file ('main') keeps the original unprefixed keys, so a drawing from before files existed just
+   shows up as "Drawing 1". Opening another file saves this one and reloads the page into it, so nothing leaks across. */
+let files = LS.get('sinopia.files');
+if (!Array.isArray(files) || !files.length) files = [{ id: 'main', name: 'Drawing 1', created: Date.now(), modified: Date.now() }];
+let fileId = LS.get('sinopia.file'); if (!files.some(f => f.id === fileId)) fileId = files[0].id;
+const curFile = () => files.find(f => f.id === fileId) || { id: fileId, name: 'Drawing' };
+const fkeyOf = (id, k) => id === 'main' ? 'sinopia.' + k : 'sinopia.' + k + '.' + id;   // k: 'layers', 'notes' or 'fv' (view and paper)
+const fkey = k => fkeyOf(fileId, k);
+const preOf = id => id === 'main' ? '' : id + '/';
+const TPRE = preOf(fileId);   // this file's IndexedDB tile key prefix
+let fileGone = false;          // the open file was deleted: nothing may write it back
+let C = null;                  // the drawing-together session, when connected
+function saveFiles() { LS.set('sinopia.files', files); }
+function updFiles(fn) { const fl = LS.get('sinopia.files'); if (Array.isArray(fl) && fl.length) files = fl; fn(files); saveFiles(); }   // re-read first: another tab may have changed the list
+saveFiles(); LS.set('sinopia.file', fileId);
 const saved = LS.get('sinopia.settings');
 if (saved) {
   Object.assign(S, saved.S || {}); Object.assign(sym, saved.sym || {});
@@ -802,20 +875,28 @@ if (saved) {
   if (S.color === '#2a2220') S.color = '#1b2532';
   if (saved.view && saved.v2) { Object.assign(view, saved.view); hadView = true; }
   S.erase = false;
-}let settingsTimer = 0;
-const writeSettings = () => { settingsTimer = 0; LS.set('sinopia.settings', { v2: 1, S, sym, view: ws.doc ? canvasWS.view : normV(view) }); };
+}
+{ const fv = LS.get(fkey('fv'));   // each file has its own view and paper
+  if (fv) { if (fv.view) { Object.assign(view, fv.view); hadView = true; } if (fv.paper) S.paper = fv.paper; }
+  else if (fileId !== 'main') { hadView = false; view.r = 0; view.flip = false; S.paper = '#808080'; } }
+let settingsTimer = 0;
+const writeSettings = () => { settingsTimer = 0; const v = ws.doc ? canvasWS.view : normV(view); LS.set('sinopia.settings', { v2: 1, S, sym, view: v }); if (!fileGone) LS.set(fkey('fv'), { view: v, paper: S.paper }); };
 function saveSettings() { clearTimeout(settingsTimer); settingsTimer = setTimeout(writeSettings, 400); }
 function flushSettings() { if (settingsTimer) { clearTimeout(settingsTimer); writeSettings(); } }   // on close / app switch, so the last color change isn't lost
 if (!Array.isArray(S.recent)) S.recent = [];
 
 /* ---------- layers ---------- */
+/* new ids; in a drawing session each person takes ids from their own residue mod 64, so two people never pick the same one */
+function collabId(n) { return C && C.ready ? n + (((C.slot - n % 64) % 64) + 64) % 64 : n; }
+function allocId() { const id = collabId(nextId); nextId = id + 1; return id; }
+function allocGid() { const id = collabId(nextGid); nextGid = id + 1; return id; }
 function newLayer(name) {
-  const L = { id: nextId++, name: name || 'Layer ' + (layers.length + 1), visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [] };
+  const L = { id: allocId(), name: name || 'Layer ' + (layers.length + 1), visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [] };
   if (ws.doc) L.doc = true;   // document layers are never saved
   allLayers.set(L.id, L); return L;
 }
 function mkMask(L, id) {
-  const M = { id: id || nextId++, name: L.name + ' mask', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', isMask: true, owner: L, on: true, get mods() { return this.owner.mods; } };
+  const M = { id: id || allocId(), name: L.name + ' mask', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', isMask: true, owner: L, on: true, get mods() { return this.owner.mods; } };
   if (L.doc) M.doc = true;
   allLayers.set(M.id, M); nextId = Math.max(nextId, M.id + 1); return M;
 }
@@ -833,10 +914,11 @@ function maskedLayer(L) {   // a stand-in with the mask applied to its pixels (e
 }
 function saveLayers() {
   const G = cur && groupOf(cur); if (G) G.active = cur.id;   // each group remembers its last active layer
-  if (ws.doc) return;
-  LS.set('sinopia.layers', { nextId, nextGid, active: cur && cur.id,
+  if (ws.doc || fileGone) return;
+  LS.set(fkey('layers'), { nextId, nextGid, active: cur && cur.id,
     groups: groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
     layers: layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) });
+  collabMetaSoon();
 }
 const groupOf = L => L.g ? groups.find(G => G.id === L.g) || null : null;
 const shown = L => L.visible && L.opacity > 0 && (!L.g || !groupOf(L) || groupOf(L).visible);
@@ -1224,7 +1306,7 @@ function finishStroke() {
       else { dropEntry(e); if (st.hist.map.get(e.k) === PENDING) st.hist.map.delete(e.k); }
     }
   } else flushStroke();
-  if (st.hist.map.size) pushUndo(st.hist), markSave(st.layer, st.hist.map.keys());
+  if (st.hist.map.size) { pushUndo(st.hist); markSave(st.layer, st.hist.map.keys(), true); if (C && C.ready) collabStroke(st); }   // the session gets the stroke itself, not the tiles
   stroke = null; schedule();
   replayQueued();
 }
@@ -1393,7 +1475,7 @@ function moveLayer(d) {
 function newGroup() {
   layerOp(() => {
     const used = new Set(groups.map(G => G.key)), key = [1, 2, 3, 4, 5, 6, 7, 8, 9].find(k => !used.has(k)) || null;
-    const G = { id: nextGid++, name: 'Group ' + (groups.length + 1), visible: true, open: true, key, active: null };
+    const G = { id: allocGid(), name: 'Group ' + (groups.length + 1), visible: true, open: true, key, active: null };
     groups.push(G);
     const jump = key ? ' Ctrl+' + key + ' jumps to it.' : ' All 9 hotkeys are in use.';
     if (!cur.g) { cur.g = G.id; toast(cur.name + ' is now in ' + G.name + '.' + jump); return; }   // wrap the active layer, like Photoshop
@@ -2704,19 +2786,35 @@ function idbOpen() {
 function idb(mode, fn) {
   return new Promise(res => { try { const tx = db.transaction('tiles', mode); fn(tx.objectStore('tiles')); tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => res(false); } catch (e) { res(false); } });
 }
-function markSave(layer, keys) { if (layer.doc) return; for (const k of keys) saveSet.add(layer.id + ':' + k); clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 1000); }
+/* quiet: the change came from the drawing session, or it's a stroke the session gets on its own */
+function markSave(layer, keys, quiet) {
+  if (layer.doc) return;
+  const ks = [...keys];
+  for (const k of ks) saveSet.add(layer.id + ':' + k);
+  clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 1000);
+  if (C && C.ready && !quiet && !C.applying) collabTiles(layer, ks);
+}
+let dbP = null;
+const getDB = () => dbP || (dbP = idbOpen().then(d => (db = d)));
+const rangeOf = id => id === 'main' ? IDBKeyRange.upperBound('f', true) : IDBKeyRange.bound(id + '/', id + '/￿');   // main's keys all start with a digit or '-'
+function idbGet(key) { return new Promise(res => { try { const q = db.transaction('tiles', 'readonly').objectStore('tiles').get(key); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); } catch (e) { res(null); } }); }
 async function flushSave() {
-  if (!db || saving) return; settle(); saving = true;
+  if (!db || saving || fileGone) return; settle(); saving = true;
   const ks = [...saveSet]; saveSet.clear();
   for (const key of ks) {
     const [id, k] = key.split(':'); const L = allLayers.get(+id); const t = L && L.tiles.get(k);
-    if (t) { const b = await new Promise(r => t.c.toBlob(r)); if (b) await idb('readwrite', s => s.put(b, key)); }
-    else await idb('readwrite', s => s.delete(key));
+    if (t) { const b = await new Promise(r => t.c.toBlob(r)); if (fileGone) break; if (b) await idb('readwrite', s => s.put(b, TPRE + key)); }
+    else await idb('readwrite', s => s.delete(TPRE + key));
   }
   saving = false; if (saveSet.size) { clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 300); }
+  if (ks.length && !fileGone) { updFiles(fl => { const f = fl.find(x => x.id === fileId); if (f) f.modified = Date.now(); }); thumbSoon(); }
+}
+async function saveNow() {   // before leaving the file: wait until every pending tile is written
+  clearTimeout(saveTimer);
+  for (let i = 0; i < 400 && db && (saving || saveSet.size); i++) { if (saving) await sleep(25); else await flushSave(); }
 }
 function initLayers() {
-  const meta = LS.get('sinopia.layers');
+  const meta = LS.get(fkey('layers'));
   if (meta && meta.layers && meta.layers.length) {
     nextId = meta.nextId || 1; nextGid = meta.nextGid || 1;
     groups = (meta.groups || []).map(G => ({ id: G.id, name: G.name, visible: G.visible !== false, open: G.open !== false, key: G.key || null, active: G.active }));
@@ -2727,14 +2825,14 @@ function initLayers() {
   } else { const L = newLayer('Layer 1'); layers.push(L); cur = L; saveLayers(); }
 }
 async function loadTiles() {
-  db = await idbOpen(); if (!db) return 0;
+  await getDB(); if (!db) return 0;
   const entries = [];
-  await idb('readonly', s => { const req = s.openCursor(); req.onsuccess = () => { const c = req.result; if (c) { entries.push([c.key, c.value]); c.continue(); } }; });
+  await idb('readonly', s => { const req = s.openCursor(rangeOf(fileId)); req.onsuccess = () => { const c = req.result; if (c) { entries.push([c.key, c.value]); c.continue(); } }; });
   let n = 0;
   for (const [key, b] of entries) {
-    let L, k;
-    if (String(key).includes(':')) { const [id, kk] = String(key).split(':'); L = allLayers.get(+id); k = kk; }
-    else { L = layers[0]; k = key; idb('readwrite', s => s.delete(key)); if (L) saveSet.add(L.id + ':' + k); }   // migrate v1 tiles
+    let L, k; const sk = String(key).slice(TPRE.length);
+    if (sk.includes(':')) { const [id, kk] = sk.split(':'); L = allLayers.get(+id); k = kk; }
+    else { L = layers[0]; k = sk; idb('readwrite', s => s.delete(key)); if (L) saveSet.add(L.id + ':' + k); }   // migrate v1 tiles
     if (!L) { idb('readwrite', s => s.delete(key)); continue; }
     try { const bm = await createImageBitmap(b); const c = mk(TILE, TILE); c.getContext('2d').drawImage(bm, 0, 0); L.tiles.set(k, mkTile(c)); n++; } catch (e) {}
   }
@@ -3148,6 +3246,7 @@ function drawOverlay() {
   if (guide.on && !xf) drawGuide();
   if (modHandlesOn()) drawModHandles();
   if (docArea) drawDocArea();
+  if (C && C.ready && !ws.doc) drawPeers();
   if (act && act.type === 'resize') { ring(act.ax, act.ay, S.size / 2 * view.z, 1); return; }
   if (hover && hover.type !== 'touch' && !spaceHeld && (act ? act.type === 'pick' : altHeld && !selTool && !xf)) { drawPicker(hover.x, hover.y, act ? act.prev : S.color); return; }
   if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode && !selTool && !xf) {
@@ -3417,7 +3516,9 @@ ov.addEventListener('wheel', onWheel, { passive: false });
    They're only repositioned when the view changes, never during a stroke. Not part of the PNG export. */
 const notesEl = $('notes');
 let notes = [], noteMode = false, noteSeq = 0, notesTimer = 0, noteView = '';
-function saveNotes() { clearTimeout(notesTimer); notesTimer = setTimeout(() => LS.set('sinopia.notes', notes.filter(n => n.text.trim()).map(n => ({ id: n.id, x: n.x, y: n.y, text: n.text }))), 300); }
+function writeNotes() { notesTimer = 0; if (fileGone) return; LS.set(fkey('notes'), notes.filter(n => n.text.trim()).map(n => ({ id: n.id, x: n.x, y: n.y, text: n.text }))); collabNotes(); }
+function saveNotes() { clearTimeout(notesTimer); notesTimer = setTimeout(writeNotes, 300); }
+function flushNotes() { if (notesTimer) { clearTimeout(notesTimer); writeNotes(); } }
 function placeNote(n) { n.el.style.transform = `translate(${n.x * view.z + view.x}px, ${n.y * view.z + view.y}px) scale(${view.z * dpr})`; }
 function layoutNotes() {
   const v = view.x + ',' + view.y + ',' + view.z + ',' + dpr;
@@ -3432,10 +3533,7 @@ function mountNote(n) {
   const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
   ta.addEventListener('input', () => { n.text = ta.value; fit(); saveNotes(); });
   ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur(); });
-  ta.addEventListener('pagehide', () => { flushSettings(); flushSave(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSettings(); flushSave(); } });
-document.addEventListener('gesturestart', e => e.preventDefault());   // Safari: no page pinch-zoom over the toolbar
-addEventListener('blur', () => { if (!n.text.trim()) removeNote(n); });   // empty notes disappear
+  ta.addEventListener('blur', () => { if (!n.text.trim()) removeNote(n); });   // empty notes disappear
   grip.addEventListener('pointerdown', e => {
     if (e.target.closest('.nx')) return;
     e.preventDefault(); grip.setPointerCapture(e.pointerId);
@@ -3448,16 +3546,19 @@ addEventListener('blur', () => { if (!n.text.trim()) removeNote(n); });   // emp
   n.el = el; notesEl.appendChild(el); placeNote(n); fit();
   return ta;
 }
+addEventListener('pagehide', () => { flushSettings(); flushNotes(); flushSave(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSettings(); flushNotes(); flushSave(); saveThumb(); } });
+document.addEventListener('gesturestart', e => e.preventDefault());   // Safari: no page pinch-zoom over the toolbar
 function removeNote(n) { if (!notes.includes(n)) return; n.el.remove(); notes = notes.filter(o => o !== n); saveNotes(); }
 function addNote(sx, sy) {
-  const w = toWorld(sx, sy), n = { id: ++noteSeq, x: w.x, y: w.y, text: '' };
+  const w = toWorld(sx, sy), n = { id: (noteSeq = collabId(noteSeq + 1)), x: w.x, y: w.y, text: '' };
   notes.push(n); const ta = mountNote(n);
   setNoteMode(false); hideWelcome();
   setTimeout(() => ta.focus());
 }
 function setNoteMode(on) { if (on && ws.doc) { toast('Notes live on the canvas tab'); return; } if (on && selTool) { selTool = null; syncSelUI(); } noteMode = on; $('tNote').classList.toggle('on', on); ov.classList.toggle('text', on); dirtyOverlay(); }
 function loadNotes() {
-  for (const m of LS.get('sinopia.notes') || []) { const n = { id: m.id, x: m.x, y: m.y, text: m.text || '' }; noteSeq = Math.max(noteSeq, n.id); notes.push(n); mountNote(n); }
+  for (const m of LS.get(fkey('notes')) || []) { const n = { id: m.id, x: m.x, y: m.y, text: m.text || '' }; noteSeq = Math.max(noteSeq, n.id); notes.push(n); mountNote(n); }
 }
 $('tNote').onclick = () => setNoteMode(!noteMode);
 
@@ -3575,7 +3676,7 @@ addEventListener('keyup', e => {
 addEventListener('blur', () => { spaceHeld = false; altHeld = false; rHeld = false; notesEl.classList.remove('pass'); setCursorMode(null); dirtyOverlay(); });
 addEventListener('resize', () => { if (rotD) { rotD = -1; rotLayout(); } else resize(); });
 addEventListener('dragover', e => e.preventDefault());
-addEventListener('drop', e => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (!fs || !fs.length) return; if (/\.exr$/i.test(fs[0].name)) { openEXR(fs[0]); return; } if (/\.sinopia$/i.test(fs[0].name)) { ask('Open this project? It replaces what’s on the canvas.', 'Open').then(y => y && loadProject(fs[0])); return; } if (e.shiftKey || isApp()) placeFile(fs[0]); else importFiles(fs); });
+addEventListener('drop', e => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (!fs || !fs.length) return; if (/\.exr$/i.test(fs[0].name)) { openEXR(fs[0]); return; } if (/\.sinopia$/i.test(fs[0].name)) { importProject(fs[0]); return; } if (e.shiftKey || isApp()) placeFile(fs[0]); else importFiles(fs); });
 
 /* ---------- UI wiring ---------- */
 const LOGMAX = Math.log(1500);
@@ -3663,7 +3764,7 @@ function openCP(which, anchor, at) {
   if (CP.on) closeCP();
   CP.on = which;
   if (which === 'brush') { CP.get = () => S.color; CP.set = c => setColor(c); }
-  else { CP.get = paperColor; CP.set = c => { if (ws.doc) ws.paper = c; else { S.paper = c; saveSettings(); } $('paper').style.background = c; dirtyScene(); }; }
+  else { CP.get = paperColor; CP.set = c => { if (ws.doc) ws.paper = c; else { S.paper = c; saveSettings(); collabMetaSoon(); } $('paper').style.background = c; dirtyScene(); }; }
   CP.start = CP.get();
   const el = $('cpop'); el.hidden = false; cpSwatches();
   const w = el.offsetWidth, h = el.offsetHeight, a = anchor.getBoundingClientRect();
@@ -4176,6 +4277,8 @@ const KEYS = [
   ]],
   ['File', [
     [K('Ctrl') + ' + ' + K('S'), 'Save the project (.sinopia: every layer, group, document and note). Ctrl+Shift+S saves as'],
+    ['Home (house button)', 'Every drawing in this browser: open, new, rename, duplicate, delete. Opening a .sinopia file adds it as a new drawing'],
+    ['File → Draw together', 'Draw on the same drawing with someone on your network (run Start collab server on one PC)'],
     [K('Ctrl') + ' + ' + K('O'), 'Open a project'],
     [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('P'), 'Place an image on a new layer (then size it with the transform). Ctrl+V pastes images from other apps'],
     [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('E'), 'Export PNG'],
@@ -4267,10 +4370,14 @@ const idle = () => !act && !stroke && !xf;
 /* the command list: menus, the shortcut editor and custom keys all come from here. key = the built-in shortcut
    (handled by the main keydown code unless the user rebinds it). */
 const CMDS = [
+  ['File', 'home', 'Home: all drawings…', '', () => openHome()],
+  ['File', 'newfile', 'New drawing', '', () => newDrawing()],
+  ['File', 'collab', 'Draw together…', '', () => openCollab()],
+  '-File',
   ['File', 'newdoc', 'New document from selection / screen', '', () => idle() && (ws.doc ? toast('Switch to the Canvas tab to make a new document') : newDoc())],
   ['File', 'newpreset', 'New document at a preset size…', '', () => ws.doc ? toast('Switch to the Canvas tab to make a new document') : newDocMenu(), 'canvas'],
   '-File',
-  ['File', 'open', 'Open project…', 'Ctrl+O', () => openProject()],
+  ['File', 'open', 'Open project (as a new drawing)…', 'Ctrl+O', () => openProject()],
   ['File', 'save', 'Save project', 'Ctrl+S', () => saveProject(false)],
   ['File', 'saveas', 'Save project as…', 'Ctrl+Shift+S', () => saveProject(true)],
   '-File',
@@ -4856,7 +4963,8 @@ $('kbReset').onclick = () => { S.keys = {}; saveSettings(); renderKb(); buildMen
 /* ---- project files (.sinopia) ----
    "SINOPIA1", a uint32 header length, a JSON header, then the tiles as PNGs back to back. The header holds the canvas
    (layers, groups, paper, notes, view) and every open document; each tile entry points at its PNG by offset. */
-let fileHandle = null, fileName = 'drawing.sinopia';
+const safeName = s => String(s).replace(/[\\/:*?"<>|]+/g, '-').trim() || 'drawing';
+let fileHandle = null, fileName = safeName(curFile().name) + '.sinopia';
 const wsData = W0 => W0 === ws ? { layers, groups, cur, view: normV(view), paper: W0.doc ? W0.paper : S.paper } : { layers: W0.layers, groups: W0.groups, cur: W0.cur, view: W0.view, paper: W0.doc ? W0.paper : S.paper };
 async function buildProject() {
   settle();
@@ -4877,30 +4985,57 @@ async function buildProject() {
 }
 async function saveProject(asNew) {
   if (!idle()) return;
+  let pick = !!(window.showSaveFilePicker && standalone);
+  if (pick) {   // ask for the file (or the permission to rewrite it) first, while the key press still counts as a user action
+    try {
+      if (fileHandle && !asNew && fileHandle.queryPermission && (await fileHandle.queryPermission({ mode: 'readwrite' })) !== 'granted' && (await fileHandle.requestPermission({ mode: 'readwrite' })) !== 'granted') fileHandle = null;
+      if (!fileHandle || asNew) {
+        fileHandle = await showSaveFilePicker({ suggestedName: fileName, types: [{ description: 'Sinopia project', accept: { 'application/octet-stream': ['.sinopia'] } }] });
+        const h = fileHandle; getDB().then(() => db && idb('readwrite', s => s.put(h, 'handle/' + fileId)));   // Ctrl+S finds the same file next time
+      }
+    } catch (e) { if (e && e.name === 'AbortError') { toast('Not saved'); return; } pick = false; }
+  }
   toast('Saving…');
   const blob = await buildProject();
-  try {
-    if (window.showSaveFilePicker && standalone) {
-      if (!fileHandle || asNew) fileHandle = await showSaveFilePicker({ suggestedName: fileName, types: [{ description: 'Sinopia project', accept: { 'application/octet-stream': ['.sinopia'] } }] });
+  if (pick && fileHandle) {
+    try {
       const w = await fileHandle.createWritable(); await w.write(blob); await w.close();
       fileName = fileHandle.name; toast('Saved ' + fileName + ' (' + (blob.size / 1048576).toFixed(1) + ' MB)'); return;
-    }
-  } catch (e) { if (e && e.name === 'AbortError') { toast('Not saved'); return; } }
+    } catch (e) {}
+  }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast('Downloaded ' + fileName + '. Open it again with File → Open project');
 }
 async function openProject() {
   if (!idle()) return;
-  if (!(await ask('Open a project? It replaces what’s on the canvas and closes open documents. Save first if you want to keep this drawing.', 'Choose file…'))) return;
   if (window.showOpenFilePicker && standalone) {
-    try { const [h] = await showOpenFilePicker({ types: [{ description: 'Sinopia project', accept: { 'application/octet-stream': ['.sinopia'] } }] }); fileHandle = h; await loadProject(await h.getFile()); } catch (e) { if (e && e.name !== 'AbortError') toast('Couldn’t open that file'); }
+    try { const [h] = await showOpenFilePicker({ types: [{ description: 'Sinopia project', accept: { 'application/octet-stream': ['.sinopia'] } }] }); await importProject(await h.getFile(), h); } catch (e) { if (e && e.name !== 'AbortError') toast('Couldn’t open that file'); }
     return;
   }
   $('openFile').value = ''; $('openFile').click();
 }
 $('exrFile').onchange = e => { const f = e.target.files[0]; if (f) openEXR(f); };
-$('openFile').onchange = e => { const f = e.target.files[0]; if (f) { fileHandle = null; loadProject(f); } };
+$('openFile').onchange = e => { const f = e.target.files[0]; if (f) importProject(f); };
+/* a .sinopia file opens as a new drawing in the Home list; the one that's open now is kept. The file waits in
+   IndexedDB while the page reloads into the new drawing, then loads there (bootFile). */
+async function importProject(file, handle) {
+  const head = new TextDecoder().decode(new Uint8Array(await file.slice(0, 8).arrayBuffer()));
+  if (head !== 'SINOPIA1') { toast('That isn’t a Sinopia project file'); return; }
+  await getDB(); if (!db) { toast('This browser won’t store drawings, so the project can’t open here'); return; }
+  if (!(await canLeave())) return;
+  const f = newFileRec(String(file.name || 'Project').replace(/\.sinopia$/i, '') || 'Project');
+  const blob = new Blob([await file.arrayBuffer()]);
+  await idb('readwrite', s => s.put(blob, 'import/' + f.id));
+  if (handle) await idb('readwrite', s => s.put(handle, 'handle/' + f.id));
+  await switchFile(f.id, true);
+}
+async function bootFile() {
+  await getDB(); if (!db) return;
+  const imp = await idbGet('import/' + fileId);
+  if (imp) { await idb('readwrite', s => s.delete('import/' + fileId)); await loadProject(imp); }
+  const h = await idbGet('handle/' + fileId); if (h && h.kind === 'file') { fileHandle = h; fileName = h.name; }
+}
 async function loadProject(file) {
   const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf);
   if (new TextDecoder().decode(u8.slice(0, 8)) !== 'SINOPIA1') { toast('That isn’t a Sinopia project file'); return; }
@@ -4982,6 +5117,495 @@ document.addEventListener('paste', e => {
   if (f && !(clip && ownClipFresh)) placeFile(f); else pasteClip();
 });
 
+/* ---------- home: every drawing in this browser ----------
+   Cards with a thumbnail (a small JPEG in IndexedDB under "thumb/<id>", refreshed a few seconds after saving),
+   name and last edit. Opening one saves this drawing and reloads into it. */
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+let thumbT = 0, booted = false, thumbUrls = [];
+function thumbSoon() { clearTimeout(thumbT); thumbT = setTimeout(saveThumb, 5000); }
+async function saveThumb() {
+  clearTimeout(thumbT); if (!booted || !db || fileGone) return;
+  settle();
+  const d = wsData(canvasWS), vis = d.layers.filter(shown).map(maskedLayer), bb = contentBounds(vis);
+  const TW = 360, TH = 240, c = mk(TW, TH), g = c.getContext('2d');
+  g.fillStyle = S.paper; g.fillRect(0, 0, TW, TH);
+  if (bb) {
+    const pad = 24, w = bb.maxX - bb.minX + pad * 2, h = bb.maxY - bb.minY + pad * 2, s = Math.min(TW / w, TH / h, 1);
+    g.translate((TW - w * s) / 2, (TH - h * s) / 2); g.scale(s, s); g.translate(pad - bb.minX, pad - bb.minY);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    for (const L of vis) { g.globalAlpha = L.opacity; for (const [k, t] of L.tiles) { if (t.blank) continue; const [tx, ty] = k.split(',').map(Number); g.drawImage(lodOf(t, TILE * s), tx * TILE, ty * TILE, TILE, TILE); } }
+  }
+  const b = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+  if (b && !fileGone) await idb('readwrite', s => s.put(b, 'thumb/' + fileId));
+}
+const agoText = t => { const s = (Date.now() - t) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : s < 604800 ? Math.round(s / 86400) + ' d ago' : new Date(t).toLocaleDateString(); };
+function nextName() { let n = files.length + 1; while (files.some(f => f.name === 'Drawing ' + n)) n++; return 'Drawing ' + n; }
+function newFileRec(name, extra) {
+  const f = Object.assign({ id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, created: Date.now(), modified: Date.now() }, extra);
+  updFiles(fl => fl.push(f)); return f;
+}
+async function openHome() {
+  if (flt) { toast('Apply or cancel the filter first'); return; }
+  if (xf) { toast('Apply or cancel the transform first'); return; }
+  closeMenu(); if (CP.on) closeCP(); hideWelcome();
+  $('home').hidden = false; document.body.classList.add('homeopen');
+  $('homeStart').checked = S.homeStart ?? isApp();
+  updFiles(() => {}); renderHome();
+  setTimeout(() => { const b = $('homeGrid').querySelector('.fcard.on') || $('homeClose'); b.focus(); });
+  await saveThumb(); if (!$('home').hidden) renderHome();   // with this drawing's latest look
+}
+function closeHome() { $('home').hidden = true; document.body.classList.remove('homeopen'); }
+function renderHome() {
+  const g = $('homeGrid'), focusId = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.id : null;
+  g.innerHTML = ''; for (const u of thumbUrls) URL.revokeObjectURL(u); thumbUrls = [];
+  const nw = document.createElement('button'); nw.className = 'fcard new'; nw.innerHTML = '<svg viewBox="0 0 18 18"><path d="M9 3v12M3 9h12"/></svg>New drawing'; nw.onclick = () => newDrawing(); g.appendChild(nw);
+  for (const f of files.slice().sort((a, b) => b.modified - a.modified)) {
+    const el = document.createElement('div'); el.className = 'fcard' + (f.id === fileId ? ' on' : ''); el.tabIndex = 0; el.setAttribute('role', 'button'); el.dataset.id = f.id;
+    el.innerHTML = '<div class="th"></div><div class="meta"><div class="nm"><b></b><span></span></div><button class="btn sm fmore" title="Rename, duplicate or delete" aria-label="Drawing options"><svg viewBox="0 0 18 18"><circle cx="4" cy="9" r="1.1" fill="currentColor"/><circle cx="9" cy="9" r="1.1" fill="currentColor"/><circle cx="14" cy="9" r="1.1" fill="currentColor"/></svg></button></div>';
+    el.querySelector('b').textContent = f.name;
+    el.querySelector('.nm span').textContent = (f.id === fileId ? 'Open now · ' : '') + agoText(f.modified) + (f.shared ? ' · shared' : '');
+    el.setAttribute('aria-label', f.name + ', ' + agoText(f.modified));
+    const fv = f.id === fileId ? { paper: S.paper } : LS.get(fkeyOf(f.id, 'fv')) || {};
+    el.querySelector('.th').style.backgroundColor = fv.paper || '#808080';
+    el.onclick = e => { if (e.target.closest('.fmore, input')) return; switchFile(f.id); };
+    el.onkeydown = e => { if (e.key === 'Enter' && e.target === el) switchFile(f.id); };
+    el.querySelector('.fmore').onclick = e => { e.stopPropagation(); showMenu(e.currentTarget, [
+      { label: 'Rename', fn: () => renameFile(f, el) },
+      { label: 'Duplicate', fn: () => dupFile(f) }, '-',
+      { label: 'Delete…', fn: () => delFile(f) }]); };
+    g.appendChild(el);
+    if (f.id === focusId) el.focus();
+    getDB().then(() => db && idbGet('thumb/' + f.id)).then(b => { if (!b || !el.isConnected) return; const u = URL.createObjectURL(b); thumbUrls.push(u); el.querySelector('.th').style.backgroundImage = 'url("' + u + '")'; });
+  }
+}
+function renameFile(f, el) {
+  const b = el.querySelector('b'), inp = document.createElement('input'); inp.className = 'num'; inp.value = f.name; inp.maxLength = 60; inp.setAttribute('aria-label', 'Drawing name');
+  b.replaceWith(inp); inp.focus(); inp.select();
+  let done = false;
+  const fin = ok => {
+    if (done) return; done = true; const v = inp.value.trim();
+    if (ok && v && v !== f.name) { updFiles(fl => { const x = fl.find(y => y.id === f.id); if (x) x.name = v; }); if (f.id === fileId) { document.title = v + ' · Sinopia'; if (!fileHandle) fileName = safeName(v) + '.sinopia'; } }
+    renderHome();
+  };
+  inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fin(true); if (e.key === 'Escape') fin(false); };
+  inp.onblur = () => fin(true);
+  inp.onclick = e => e.stopPropagation();
+}
+async function dupFile(f) {
+  if (f.id === fileId) { settle(); flushSettings(); flushNotes(); await saveNow(); await saveThumb(); }
+  await getDB();
+  const nf = newFileRec(f.name + ' copy');
+  for (const k of ['layers', 'notes', 'fv']) { const v = LS.get(fkeyOf(f.id, k)); if (v != null) LS.set(fkeyOf(nf.id, k), v); }
+  if (db) {
+    const all = [], pre = preOf(f.id);
+    await idb('readonly', s => { const q = s.openCursor(rangeOf(f.id)); q.onsuccess = () => { const c = q.result; if (c) { all.push([String(c.key).slice(pre.length), c.value]); c.continue(); } }; });
+    await idb('readwrite', s => { for (const [k, v] of all) s.put(v, nf.id + '/' + k); });
+    const th = await idbGet('thumb/' + f.id); if (th) await idb('readwrite', s => s.put(th, 'thumb/' + nf.id));
+  }
+  renderHome(); toast('Duplicated “' + f.name + '”');
+}
+async function delFile(f) {
+  if (!(await ask('Delete “' + f.name + '”? Its layers and notes are removed from this browser. This can’t be undone.', 'Delete'))) return;
+  await getDB();
+  if (db) await idb('readwrite', s => { s.delete(rangeOf(f.id)); for (const p of ['thumb/', 'handle/', 'import/']) s.delete(p + f.id); });
+  for (const k of ['layers', 'notes', 'fv']) try { localStorage.removeItem(fkeyOf(f.id, k)); } catch (e) {}
+  updFiles(fl => { const i = fl.findIndex(x => x.id === f.id); if (i >= 0) fl.splice(i, 1); });
+  if (f.id !== fileId) { renderHome(); toast('Deleted “' + f.name + '”'); return; }
+  fileGone = true; saveSet.clear(); clearTimeout(saveTimer); collabEnd();
+  if (!files.length) newFileRec('Drawing 1');
+  LS.set('sinopia.file', files.slice().sort((a, b) => b.modified - a.modified)[0].id);
+  location.reload();
+}
+async function canLeave() {
+  if (!idle() || flt) { toast('Finish what you’re doing first'); return false; }
+  const why = [];
+  if (C) why.push('you’ll leave the drawing session');
+  if (docs.length) why.push('open documents will close (they aren’t saved with the drawing)');
+  return !why.length || ask('Switch drawings? ' + why.join(', and ').replace(/^./, c => c.toUpperCase()) + '.', 'Switch');
+}
+async function switchFile(id, asked) {
+  if (id === fileId) { closeHome(); return; }
+  if (!asked && !(await canLeave())) return;
+  toast('Opening…');
+  collabEnd(); settle(); flushSettings(); flushNotes();
+  await saveNow(); await saveThumb();
+  LS.set('sinopia.file', id); location.reload();
+}
+async function newDrawing() { if (!(await canLeave())) return; const f = newFileRec(nextName()); await switchFile(f.id, true); }
+$('tHome').onclick = () => openHome();
+$('homeClose').onclick = closeHome;
+$('homeOpen').onclick = () => openProject();
+$('homeCollab').onclick = () => openCollab();
+$('homeStart').onchange = e => { S.homeStart = e.target.checked; saveSettings(); };
+document.addEventListener('keydown', e => {   // while Home is open, keys don't reach the canvas
+  if ($('home').hidden || !$('askDlg').hidden || !$('collabDlg').hidden || menuEl) return;
+  if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeHome(); }
+  e.stopImmediatePropagation();
+}, true);
+
+/* ---------- drawing together (local network) ----------
+   tools/collab-server.js serves Sinopia on the network and relays messages between everyone connected; it keeps no
+   drawing itself. The first person in shares their open drawing, and each newcomer gets a snapshot from someone
+   already there, as a new file.
+   - A finished stroke travels as its alpha buffer (deflated) and is baked exactly like a local one (bake), so two
+     people can draw on the same tile at once and both strokes stay.
+   - Anything else that changes pixels (fill, filters, transform, undo, paste…) goes through markSave and sends
+     whole tiles, as PNGs.
+   - The layer list, groups, masks, modifiers and paper sync as metadata; notes sync one by one.
+   - Cursors and strokes in progress show as a light overlay.
+   Nothing runs on the drawing hot path: sending happens at pen-up or on timers, and incoming changes wait until
+   you're between strokes (and on the Canvas tab). Each op carries a per-sender number, so a newcomer can drop the
+   ops its snapshot already includes. Undo only undoes your own steps, but undoing restores whole tiles, so it can
+   also take back what someone else drew on those tiles since. */
+const PEER_COLORS = ['#e0561b', '#1f9d68', '#8a4fd3', '#c9930c', '#d43a7a', '#1e95b8', '#6b8e23', '#b5523b'];
+const ZOK = typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
+const deflate = u8 => ZOK ? new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer() : Promise.resolve(u8);
+const inflate = u8 => new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer().then(b => new Uint8Array(b));
+const pngOf = c => new Promise(r => c.toBlob(b => b ? b.arrayBuffer().then(r, () => r(null)) : r(null), 'image/png'));
+const canApply = () => idle() && !flt && ws === canvasWS;
+const noteMap = () => new Map(notes.filter(n => n.text.trim()).map(n => [n.id, JSON.stringify([n.x, n.y, n.text])]));
+const idsOf = m => { const s = new Set(); for (const d of m.layers) { s.add(d.id); if (d.mask) s.add(d.mask.id); } return s; };
+function metaNow() {
+  const d = wsData(canvasWS);
+  return { layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })),
+    groups: d.groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, key: G.key })), paper: S.paper };
+}
+function openCollab() {
+  if (!C) { $('collabAddr').value = S.collabAddr || (location.protocol === 'http:' && location.host ? location.host : 'localhost:8080'); $('collabName').value = S.collabName || ''; }
+  collabUI(); $('collabDlg').hidden = false;
+  setTimeout(() => (C ? $('collabClose') : $('collabName').value ? $('collabGo') : $('collabName')).focus());
+}
+function collabUI(msg) {
+  const on = !!C, ready = on && C.ready, names = on ? [...C.peers.values()].map(P => P.name) : [];
+  $('collabAddr').disabled = $('collabName').disabled = on;
+  $('collabGo').hidden = on; $('collabLeave').hidden = !on;
+  $('collabState').textContent = msg || (!on ? '' : !ready ? (C.id ? 'Getting the drawing from ' + (names.join(', ') || 'the others') + '…' : 'Connecting…')
+    : names.length ? 'Drawing with ' + names.join(', ') + '.' : 'Connected. You’re the first one here, so anyone who connects now gets a copy of “' + curFile().name + '”.');
+  const pill = $('collabOut'); pill.hidden = !ready; pill.textContent = names.length ? 'With ' + names.join(', ') : 'Session open';
+}
+function collabConnect(addr, name, join) {
+  if (C) return;
+  addr = String(addr || '').trim().replace(/^(https?|wss?):\/\//, '').replace(/\/.*$/, '');
+  if (!addr) { collabUI('Type the address the collab server shows, like 192.168.1.20:8080.'); return; }
+  S.collabAddr = addr; S.collabName = name; saveSettings();
+  let sock;
+  try { sock = new WebSocket('ws://' + addr + '/collab'); } catch (e) { collabFail(addr); return; }
+  sock.binaryType = 'arraybuffer';
+  const me = C = { sock, addr, name, join: !!join, id: 0, slot: 0, ready: false, applying: false, pumping: false, peers: new Map(), seq: 0, seen: new Map(),
+    q: [], buffer: [], known: new Set(), tileSet: new Set(), out: Promise.resolve(), noteSnap: new Map(), orphans: new Map(), ptrT: 0, ptrD: 0, tileT: 0, metaT: 0 };
+  sock.onopen = () => sock.send(JSON.stringify({ t: 'hello', name: name || 'Guest', join: !!join }));
+  sock.onmessage = ev => { if (C === me) collabMsg(ev.data); };
+  sock.onerror = () => { if (C === me && !me.id) collabFail(addr); };
+  sock.onclose = () => { if (C !== me) return; const was = me.ready; collabEnd(); if (was) { toast('The drawing session ended. Your copy of the drawing is kept'); collabUI('The session ended (the server was closed, or the network dropped).'); } };
+  collabUI();
+}
+function collabFail(addr) {
+  collabEnd();
+  const msg = location.protocol === 'https:' && !/^(localhost|127\.)/.test(addr)
+    ? 'This https page can only reach a server on this same PC. Open http://' + addr + ' in the browser instead, and connect from there.'
+    : 'Couldn’t reach ' + addr + '. Is Start collab server running on that PC, and are you both on the same network?';
+  collabUI(msg); toast(msg);
+}
+function collabEnd() {
+  const c = C; if (!c) return; C = null;
+  try { c.sock.close(); } catch (e) {}
+  clearTimeout(c.tileT); clearTimeout(c.metaT);
+  for (const t of ['pointermove', 'pointerdown', 'pointerup']) ov.removeEventListener(t, collabPtr);
+  collabUI(); dirtyOverlay();
+}
+function collabBoot() {
+  let j = null; try { j = JSON.parse(joining); sessionStorage.removeItem('sinopia.join'); } catch (e) {}
+  if (j && j.addr) { toast('Joining the drawing…'); collabConnect(j.addr, j.name, true); }
+}
+function peerRec(id, name) { return { id, name: name || 'Guest', color: PEER_COLORS[id % PEER_COLORS.length], x: 0, y: 0, d: 0, s: 0, c: null, trail: [], at: 0, tt: 0 }; }
+function collabReady() {
+  C.ready = true; C.known = idsOf(metaNow()); C.noteSnap = noteMap();
+  C.sock.send(JSON.stringify({ t: 'ready' }));
+  for (const t of ['pointermove', 'pointerdown', 'pointerup']) ov.addEventListener(t, collabPtr, { passive: true });
+  collabUI();
+}
+function collabMsg(data) {
+  if (typeof data === 'string') {
+    let m; try { m = JSON.parse(data); } catch (e) { return; }
+    if (m.t === 'welcome') collabWelcome(m);
+    else if (m.t === 'peer') { C.peers.set(m.id, peerRec(m.id, m.name)); toast(m.name + ' joined the drawing'); collabUI(); }
+    else if (m.t === 'leave') { const P = C.peers.get(m.id); C.peers.delete(m.id); if (P) toast(P.name + ' left the drawing'); collabUI(); dirtyOverlay(); }
+    else if (m.t === 'snapreq') { if (C.ready) collabSendSnap(m.from); }
+    else if (m.t === 'nosnap') { if (!C.ready) { collabReady(); toast('Nobody could send their drawing, so you’re sharing this one'); } }
+    else if (m.t === 'cur') { const P = C.peers.get(m.from); if (P) peerCursor(P, m); }
+    return;
+  }
+  const u8 = new Uint8Array(data), dv = new DataView(data), from = dv.getUint32(0, true), hl = dv.getUint32(4, true);
+  let head; try { head = JSON.parse(new TextDecoder().decode(u8.subarray(8, 8 + hl))); } catch (e) { return; }
+  const parts = []; let o = 8 + hl;
+  for (const n of head.lens || []) { if (n < 0) parts.push(null); else { parts.push(u8.subarray(o, o + n)); o += n; } }
+  const op = { from, seq: head.seq, head, parts };
+  if (head.t === 'snap') { if (!C.ready) collabApplySnap(op); return; }
+  if (!C.ready) { C.buffer.push(op); return; }
+  C.q.push(op); collabPump();
+}
+async function collabWelcome(m) {
+  C.id = m.id; C.slot = m.id % 64;
+  for (const p of m.peers) C.peers.set(p.id, peerRec(p.id, p.name));
+  if (!m.peers.length) { collabReady(); toast('Session open. Anyone who connects now gets a copy of “' + curFile().name + '”'); return; }
+  if (C.join) { C.sock.send(JSON.stringify({ t: 'snapreq' })); collabUI(); return; }
+  const c = C, who = m.peers.map(p => p.name).join(', ');   // someone is already drawing: their drawing opens here as a new file
+  collabEnd(); $('collabDlg').hidden = true;
+  if (!(await ask(who + (m.peers.length > 1 ? ' are' : ' is') + ' already drawing in this session. Join? Their drawing opens as a new drawing on your Home page, and “' + curFile().name + '” stays as it is.', 'Join'))) return;
+  if (!(await canLeave())) return;
+  const f = newFileRec('Shared drawing', { shared: true });
+  try { sessionStorage.setItem('sinopia.join', JSON.stringify({ addr: c.addr, name: c.name })); } catch (e) {}
+  await switchFile(f.id, true);
+}
+/* ---- sending ---- binary frames: [uint32 to][uint32 header length][JSON header][parts…]; header.lens gives each part's
+   length (-1 = none). Sends go out in order through one promise chain, since PNG encoding and deflate are async. */
+function sendOp(head, parts = [], o = {}) {
+  const c = C; if (!c || !c.ready) return;
+  if (!o.noSeq) head.seq = ++c.seq;
+  c.out = c.out.then(async () => {
+    const bufs = [];
+    for (const p of parts) bufs.push(p == null ? null : p instanceof HTMLCanvasElement ? await pngOf(p) : o.z ? await deflate(p) : p);
+    if (o.z) head.z = ZOK;
+    head.lens = bufs.map(b => b ? b.byteLength : -1);
+    const hj = new TextEncoder().encode(JSON.stringify(head));
+    let n = 8 + hj.length; for (const b of bufs) if (b) n += b.byteLength;
+    const out = new Uint8Array(n), dv = new DataView(out.buffer);
+    dv.setUint32(0, o.to || 0, true); dv.setUint32(4, hj.length, true); out.set(hj, 8);
+    let off = 8 + hj.length; for (const b of bufs) if (b) { out.set(b instanceof Uint8Array ? b : new Uint8Array(b), off); off += b.byteLength; }
+    if (c.sock.readyState === 1) c.sock.send(out.buffer);
+  }).catch(e => console.warn('collab send', e));
+}
+function collabStroke(st) {   // at pen-up: the stroke's coverage per tile, cropped to what it touched
+  if (st.layer.doc) return;
+  if (C.metaT) collabMeta();
+  const list = [], parts = [];
+  for (const e of st.T.entries.values()) {
+    if (e.ex1 < 0) continue;
+    const x0 = e.ex0, y0 = e.ey0, w = e.ex1 - x0 + 1, h = e.ey1 - y0 + 1, d = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) { const o = (y0 + y) * TILE + x0; d.set(e.buf.subarray(o, o + w), y * w); }
+    list.push([e.k, x0, y0, w, h]); parts.push(d);
+  }
+  if (list.length) sendOp({ t: 'stroke', L: st.layer.id, rgb: st.rgb, erase: !!st.erase, list }, parts, { z: true });
+}
+function collabTiles(L, ks) { for (const k of ks) C.tileSet.add(L.id + ':' + k); clearTimeout(C.tileT); C.tileT = setTimeout(collabFlushTiles, 120); }
+function collabFlushTiles() {
+  const c = C; if (!c || !c.ready) return; c.tileT = 0;
+  if (xf || flt || (act && act.type === 'move')) { c.tileT = setTimeout(collabFlushTiles, 250); return; }   // lifted pixels aren't the final state yet
+  if (c.metaT) collabMeta();
+  settle();
+  const list = [], cans = [];
+  for (const key of c.tileSet) {
+    const i = key.indexOf(':'), id = +key.slice(0, i), k = key.slice(i + 1), L = allLayers.get(id);
+    if (!L || L.doc) continue;
+    const t = L.tiles.get(k); list.push([id, k]); cans.push(t && !t.blank ? cloneCanvas(t.c) : null);   // copied now, so the PNG matches this moment
+  }
+  c.tileSet.clear();
+  if (list.length) sendOp({ t: 'tiles', list }, cans);
+}
+function collabMetaSoon() { if (!C || !C.ready || C.applying) return; clearTimeout(C.metaT); C.metaT = setTimeout(collabMeta, 80); }
+function collabMeta() {
+  if (!C || !C.ready) return; clearTimeout(C.metaT); C.metaT = 0;
+  const m = metaNow(), ids = idsOf(m), fresh = [...ids].filter(id => !C.known.has(id));
+  C.known = ids;
+  sendOp(Object.assign({ t: 'meta' }, m));
+  for (const id of fresh) { const L = allLayers.get(id); if (L && L.tiles.size) collabTiles(L, [...L.tiles.keys()]); }   // a layer the others don't have yet (undo of a delete, say)
+}
+function collabNotes() {
+  if (!C || !C.ready) return;
+  const now = noteMap(), up = [], del = [];
+  for (const [id, j] of now) if (C.noteSnap.get(id) !== j) { const [x, y, text] = JSON.parse(j); up.push({ id, x, y, text }); }
+  for (const id of C.noteSnap.keys()) if (!now.has(id)) del.push(id);
+  C.noteSnap = now;
+  if (up.length || del.length) sendOp({ t: 'notes', up, del });
+}
+function collabPtr(e) {
+  const c = C; if (!c || !c.ready || ws.doc) return;
+  const now = performance.now(), d = stroke ? 1 : 0;
+  if (now - c.ptrT < 33 && d === c.ptrD) return;
+  c.ptrT = now; c.ptrD = d;
+  const w = stroke && stroke.cursor ? stroke.cursor : toWorld(e.clientX, e.clientY);
+  if (c.sock.readyState === 1) c.sock.send(JSON.stringify({ t: 'cur', x: Math.round(w.x), y: Math.round(w.y), d, c: stroke && stroke.erase ? S.paper : S.color, s: Math.round((stroke ? stroke.opts.size : S.size) * 10) / 10 }));
+}
+async function collabSendSnap(to) {   // someone joined: send them the canvas as it is now
+  const c = C;
+  while (c === C && (!canApply() || c.q.length || c.pumping)) await sleep(50);   // a state that includes everything received so far
+  if (c !== C) return;
+  settle(); if (c.metaT) collabMeta(); if (c.tileT) { clearTimeout(c.tileT); collabFlushTiles(); } flushNotes();
+  const d = wsData(canvasWS), list = [], cans = [];
+  for (const L of d.layers) for (const X of L.mask ? [L, L.mask] : [L]) for (const [k, t] of X.tiles) if (!t.blank) { list.push([X.id, k]); cans.push(cloneCanvas(t.c)); }
+  const meta = metaNow(), seen = Object.fromEntries(c.seen); seen[c.id] = c.seq;
+  c.known = idsOf(meta);
+  sendOp({ t: 'snap', meta, list, seen, nextId, nextGid, noteSeq, name: curFile().name, from: c.name,
+    notes: notes.filter(n => n.text.trim()).map(n => ({ id: n.id, x: n.x, y: n.y, text: n.text })) }, cans, { to, noSeq: true });
+}
+async function collabApplySnap(op) {
+  const c = C, h = op.head;
+  collabUI('Receiving the drawing…');
+  const bms = await Promise.all(op.parts.map(p => p ? createImageBitmap(new Blob([p], { type: 'image/png' })).catch(() => null) : null));
+  if (c !== C) return;
+  while (c === C && !canApply()) await sleep(40);
+  if (c !== C) return;
+  settle(); setSel(null, true);
+  for (const L of layers) for (const X of L.mask ? [L, L.mask] : [L]) { for (const k of X.tiles.keys()) saveSet.add(X.id + ':' + k); allLayers.delete(X.id); }   // whatever was here is replaced
+  layers = []; groups = []; undoStack.length = redoStack.length = 0; syncHistory();
+  c.applying = true;
+  nextId = Math.max(nextId, h.nextId || 1); nextGid = Math.max(nextGid, h.nextGid || 1); noteSeq = Math.max(noteSeq, h.noteSeq || 0);
+  applyMeta(h.meta);
+  h.list.forEach(([id, k], i) => { const L = allLayers.get(id); if (L && bms[i]) putTile(L, k, bms[i]); });
+  for (const n of [...notes]) n.el.remove(); notes = [];
+  for (const m of h.notes || []) { const n = { id: m.id, x: m.x, y: m.y, text: m.text }; notes.push(n); mountNote(n); }
+  saveNotes(); noteView = '';
+  c.applying = false;
+  updFiles(fl => { const f = fl.find(x => x.id === fileId); if (f) f.name = (h.name || 'Shared drawing') + ' (with ' + (h.from || 'a friend') + ')'; });
+  document.title = curFile().name + ' · Sinopia'; if (!fileHandle) fileName = safeName(curFile().name) + '.sinopia';
+  for (const [id, s] of Object.entries(h.seen || {})) c.seen.set(+id, s);
+  collabReady();
+  const buf = c.buffer; c.buffer = [];
+  for (const o of buf) if (!(o.seq <= (c.seen.get(o.from) || 0))) c.q.push(o);   // the snapshot already has the older ones
+  collabPump();
+  hideWelcome(); renderLayers(); fitView(); dirtyScene();
+  toast('Drawing together with ' + [...c.peers.values()].map(P => P.name).join(', '));
+}
+/* ---- receiving ---- ops are decoded as they arrive, then applied in order once you're between strokes */
+async function collabPump() {
+  const c = C; if (!c || c.pumping) return; c.pumping = true;
+  try {
+    while (c === C && c.q.length) {
+      const op = c.q[0], data = await collabPrep(op);
+      while (c === C && !canApply()) await sleep(40);
+      if (c !== C) break;
+      c.q.shift();
+      c.applying = true;
+      try { collabCommit(op, data); } catch (e) { console.warn('collab apply', e); }
+      c.applying = false;
+      c.seen.set(op.from, op.seq);
+    }
+  } finally { c.pumping = false; }
+}
+function collabPrep(op) {
+  const h = op.head;
+  if (h.t === 'tiles') return Promise.all(op.parts.map(p => p ? createImageBitmap(new Blob([p], { type: 'image/png' })).catch(() => false) : null));   // false: couldn't decode, leave the tile alone
+  if (h.t === 'stroke') return Promise.all(op.parts.map(p => p && h.z ? inflate(p) : p));
+  return Promise.resolve(null);
+}
+function putTile(L, k, bm) {
+  if (!bm) { if (L.tiles.delete(k)) markSave(L, [k], true); return; }
+  let t = L.tiles.get(k); if (!t) { t = mkTile(); L.tiles.set(k, t); }
+  if (t.ov) bake(t.ov);
+  const g = t.c.getContext('2d'); g.clearRect(0, 0, TILE, TILE); g.drawImage(bm, 0, 0); t.v++; t.blank = false;
+  markSave(L, [k], true);
+}
+function collabCommit(op, data) {
+  const h = op.head, P = C.peers.get(op.from);
+  settle();
+  if (h.t === 'meta') { applyMeta(h); return; }
+  if (h.t === 'notes') { applyNotes(h); return; }
+  if (h.t === 'tiles') {
+    h.list.forEach(([id, k], i) => {
+      const bm = data[i]; if (bm === false) return;
+      const L = allLayers.get(id);
+      if (!L || L.doc) { if (!C.orphans.has(id)) C.orphans.set(id, []); C.orphans.get(id).push([k, bm]); return; }   // its layer arrives with the next meta
+      putTile(L, k, bm);
+    });
+    dirtyScene(); return;
+  }
+  if (h.t === 'stroke') {
+    if (P) { P.trail = []; dirtyOverlay(); }
+    const L = allLayers.get(h.L); if (!L || L.doc) return;
+    const keys = [];
+    h.list.forEach(([k, x0, y0, w, hh], i) => {
+      const d = data[i]; if (!d) return;
+      let t = L.tiles.get(k);
+      if (!t) { if (h.erase) return; t = mkTile(); t.blank = true; L.tiles.set(k, t); }
+      if (t.ov) bake(t.ov);
+      const buf = new Uint8Array(TILE * TILE);
+      for (let y = 0; y < hh; y++) buf.set(d.subarray(y * w, (y + 1) * w), (y0 + y) * TILE + x0);
+      bake({ t, k, buf, ex0: x0, ey0: y0, ex1: x0 + w - 1, ey1: y0 + hh - 1, rgb: h.rgb, erase: h.erase, hist: new Map() });   // the same composite as a local stroke
+      keys.push(k);
+    });
+    markSave(L, keys, true); dirtyScene();
+  }
+}
+function applyMeta(m) {
+  const old = layers.slice(), list = [];
+  for (const d of m.layers) {
+    let L = allLayers.get(d.id);
+    if (!L || L.isMask || L.doc) { L = { id: d.id, tiles: new Map(), mods: [] }; allLayers.set(L.id, L); }
+    L.name = d.name; L.visible = d.visible !== false; L.opacity = d.opacity == null ? 1 : d.opacity; L.g = d.g || null; L.blend = d.blend || 'normal'; L.mods = Array.isArray(d.mods) ? d.mods : [];
+    nextId = Math.max(nextId, d.id + 1);
+    if (d.mask) {
+      if (!L.mask || L.mask.id !== d.mask.id) { const M = allLayers.get(d.mask.id); if (M && M.isMask) { M.owner = L; L.mask = M; } else L.mask = mkMask(L, d.mask.id); }
+      L.mask.on = d.mask.on !== false; nextId = Math.max(nextId, d.mask.id + 1);
+    } else if (L.mask) { L.mask = null; if (cur === L) maskEdit = false; }
+    list.push(L);
+  }
+  let extra = false;   // keep layers made here that the others haven't heard about yet
+  old.forEach((L, i) => { if (list.includes(L) || C.known.has(L.id)) return; extra = true; const below = old.slice(0, i).reverse().find(x => list.includes(x)); list.splice(below ? list.indexOf(below) + 1 : 0, 0, L); });
+  const gs = (m.groups || []).map(d => { const G = groups.find(x => x.id === d.id) || { id: d.id, open: true, active: null }; nextGid = Math.max(nextGid, d.id + 1); return Object.assign(G, { name: d.name, visible: d.visible !== false, key: d.key || null }); });
+  for (const G of groups) if (!gs.includes(G) && list.some(L => L.g === G.id && !C.known.has(L.id))) gs.push(G);
+  layers = list; groups = gs;
+  for (const L of layers) if (L.g && !groups.some(G => G.id === L.g)) L.g = null;
+  tidyGroups();
+  if (!layers.length) { layers.push(newLayer('Layer 1')); extra = true; }
+  if (!layers.includes(cur)) { cur = layers[layers.length - 1]; maskEdit = false; }
+  C.known = idsOf(m);
+  if (m.paper && m.paper !== S.paper) { S.paper = m.paper; $('paper').style.background = S.paper; saveSettings(); }
+  saveLayers(); renderLayers(); dirtyScene();
+  for (const [id, ts] of C.orphans) { const L = allLayers.get(id); if (L && !L.doc) { for (const [k, bm] of ts) putTile(L, k, bm); C.orphans.delete(id); } }
+  if (extra) { clearTimeout(C.metaT); C.metaT = setTimeout(collabMeta, 80); }
+}
+function applyNotes(m) {
+  for (const u of m.up || []) {
+    let n = notes.find(x => x.id === u.id);
+    if (!n) { n = { id: u.id, x: u.x, y: u.y, text: u.text }; notes.push(n); mountNote(n); noteSeq = Math.max(noteSeq, n.id); }
+    else if (!n.el.contains(document.activeElement)) {   // a note you're typing in keeps your text
+      n.x = u.x; n.y = u.y; const ta = n.el.querySelector('textarea'); ta.value = u.text; ta.dispatchEvent(new Event('input')); placeNote(n);
+    }
+    C.noteSnap.set(u.id, JSON.stringify([u.x, u.y, u.text]));
+  }
+  for (const id of m.del || []) { const n = notes.find(x => x.id === id); if (n) { n.el.remove(); notes = notes.filter(o => o !== n); } C.noteSnap.delete(id); }
+  saveNotes();
+}
+function peerCursor(P, m) {
+  if (m.d) { if (!P.d) P.trail = []; P.trail.push(m.x, m.y); if (P.trail.length > 8000) P.trail.splice(0, 2); clearTimeout(P.tt); }
+  else if (P.d) { clearTimeout(P.tt); P.tt = setTimeout(() => { P.trail = []; dirtyOverlay(); }, 5000); }   // until their stroke arrives
+  P.x = m.x; P.y = m.y; P.d = m.d; P.c = m.c; P.s = m.s || 0; P.at = performance.now();
+  dirtyOverlay();
+}
+function drawPeers() {
+  const z = view.z, now = performance.now();
+  for (const P of C.peers.values()) {
+    if (!P.at) continue;
+    if (P.trail.length >= 4) {
+      octx.save(); octx.globalAlpha = 0.5; octx.strokeStyle = P.c || P.color; octx.lineWidth = Math.max(1, P.s * z); octx.lineCap = octx.lineJoin = 'round';
+      octx.beginPath(); octx.moveTo(P.trail[0] * z + view.x, P.trail[1] * z + view.y);
+      for (let i = 2; i < P.trail.length; i += 2) octx.lineTo(P.trail[i] * z + view.x, P.trail[i + 1] * z + view.y);
+      octx.stroke(); octx.restore();
+    }
+    if (now - P.at > 20000) continue;   // gone quiet: hide the cursor
+    const x = P.x * z + view.x, y = P.y * z + view.y;
+    if (x < -60 || y < -60 || x > W + 60 || y > H + 60) continue;
+    octx.save(); octx.strokeStyle = P.color; octx.lineWidth = 1.5;
+    octx.beginPath(); octx.arc(x, y, Math.max(3, P.s * z / 2), 0, Math.PI * 2); octx.stroke();
+    octx.font = '600 11px "Libre Franklin", "Franklin Gothic Medium", Arial, sans-serif';
+    const tw = octx.measureText(P.name).width;
+    octx.fillStyle = P.color; octx.fillRect(x + 7, y + 7, tw + 10, 17);
+    octx.fillStyle = '#fff'; octx.fillText(P.name, x + 12, y + 19.5);
+    octx.restore();
+  }
+}
+$('collabGo').onclick = () => {
+  const n = $('collabName').value.trim();
+  if (!n) { collabUI('Type your name, so the others can see who’s drawing.'); $('collabName').focus(); return; }
+  collabConnect($('collabAddr').value, n, false);
+};
+$('collabLeave').onclick = () => { collabEnd(); toast('You left the session. Your copy of the drawing is kept'); };
+$('collabClose').onclick = () => { $('collabDlg').hidden = true; };
+$('collabDlg').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') $('collabDlg').hidden = true; if (e.key === 'Enter' && !C) $('collabGo').click(); });
+$('collabDlg').addEventListener('pointerdown', e => { if (e.target === $('collabDlg')) $('collabDlg').hidden = true; });
+$('collabOut').onclick = () => openCollab();
+
 /* ---------- boot ---------- */
 R = makeGL() || make2D(); GL = R.gl;
 startWorker();
@@ -5004,8 +5628,11 @@ setSym(sym.mode); syncHistory();
 S.brush = clamp(S.brush, 0, brushes.length - 1);
 renderTips();
 loadAlphas().then(() => { S.brush = clamp(S.brush, 0, brushes.length - 1); renderTips(); });
-loadTiles().then(n => { if (n) hideWelcome(); });
+const joining = (() => { try { return sessionStorage.getItem('sinopia.join'); } catch (e) { return null; } })();
+loadTiles().then(async n => { booted = true; if (n) hideWelcome(); await bootFile(); collabBoot(); });
 buildMenubar(); $('menubar').hidden = !isApp(); $('appToggle').classList.toggle('on', isApp());
+document.title = curFile().name + ' · Sinopia';
+if (!joining && (S.homeStart ?? isApp())) openHome();
 // offline + installable (Add to Home Screen on iPad). Only over https, so local testing never serves a stale cached copy.
 if ('serviceWorker' in navigator && location.protocol === 'https:' && standalone) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

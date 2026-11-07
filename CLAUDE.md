@@ -154,6 +154,27 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - The pick tool (`selTool === 'crypto'`, `cryptoSel`) takes the clicked pixel's highest-coverage id and sums every rank's coverage for it into an anti-aliased selection. `cryptoNext` switches between Object, Material and Asset mattes.
 - Tested with a synthetic ZIP EXR (two objects, half and float channels). Not yet with a real Blender file.
 
+**Files and Home** (2026-11-07, Ben asked for "a home page that displays your files" and different files).
+- `files` (localStorage `sinopia.files`: `{id, name, created, modified, shared?}`) and `fileId` (`sinopia.file`). Per-file keys come from `fkey(k)`: `sinopia.layers.<id>`, `sinopia.notes.<id>`, `sinopia.fv.<id>` (view and paper). Tiles are under `<id>/<layerId>:<tx>,<ty>` in IndexedDB (`TPRE`, `rangeOf`).
+- The first file, `'main'`, keeps the old unprefixed keys (`sinopia.layers`, tile keys starting with a digit or `-`; its range is everything below `'f'`), so older drawings just appear. New ids start with `f`. Thumbnails are `thumb/<id>` (JPEG, `saveThumb`, 5 s after a save), Ctrl+S file handles `handle/<id>`, pending imports `import/<id>`.
+- **Switching files reloads the page** (`switchFile`: `saveNow`, `saveThumb`, set `sinopia.file`, reload). That way no state leaks between drawings. `canLeave` asks first if documents are open or a session is on.
+- Opening a .sinopia (Ctrl+O, drop, Home → Open file) now makes a new file: `importProject` stores the blob as `import/<id>`, reloads, and `bootFile` runs `loadProject` there.
+- Deleting the open file sets `fileGone`, which stops every writer (`saveLayers`, `flushSave`, `writeNotes`, `writeSettings`' fv), then reloads into the newest file.
+- `#home` is a full-screen page (z-index 4, under dialogs). A capture keydown listener keeps keys from the canvas while it's open; Esc closes it. `S.homeStart` (default: on in the App edition) shows it at launch.
+- `updFiles(fn)` re-reads the list before writing, because another tab may have changed it.
+
+**Drawing together** (2026-11-07, Ben asked for peer-to-peer through a local host). `tools/collab-server.js` (no dependencies; `Start collab server.bat` runs it) serves only index.html, the manifest, `sw.js` and `icons/`, and relays WebSocket messages at `/collab`. It keeps no drawing. The client is `C` (null when off).
+- **Join:** the first peer shares its open file. A later one gets `welcome` with ready peers, asks, creates a new file (`shared: true`), stores the address in sessionStorage `sinopia.join`, reloads, reconnects with `join`, and sends `snapreq`. The longest-connected ready peer waits until it's idle with an empty queue, then sends a `snap` (meta, tile PNGs cloned synchronously, notes, `nextId`/`nextGid`/`noteSeq`, and `seen` = the last op number it applied from each sender). The joiner drops buffered ops the snapshot already has.
+- **Ops** are binary frames `[u32 to][u32 header length][JSON header][parts]`, numbered per sender (`seq`). They go out in order through one promise chain (`sendOp`), because PNG encoding and deflate are async.
+  - `stroke`: at pen-up, `finishStroke` calls `collabStroke`, which sends each tile's stroke buffer cropped to `ex0..ey1`, deflated, with rgb and erase. The receiver composites it with the real `bake()`, so concurrent strokes on one tile both survive. Its own tiles are saved with `markSave(..., quiet)`.
+  - `tiles`: any other `markSave` (fill, filters, transform, undo, paste…) queues whole tiles (`collabTiles`, 120 ms). They're cloned at flush time, held back while `xf`, `flt` or a selection move is active.
+  - `meta`: `saveLayers` (and the paper color) call `collabMetaSoon`. `applyMeta` keeps local layers the sender didn't know yet (`C.known`). A layer id that's new to the peers also sends its tiles. Tiles for an unknown layer wait in `C.orphans`.
+  - `notes`: `writeNotes` diffs against `C.noteSnap` and sends upserts and deletes. A note being typed in keeps its local text.
+- Incoming ops are decoded right away (`collabPrep`), then applied in order by `collabPump` only when `canApply()` (idle, no filter, Canvas tab), with `C.applying` set so nothing echoes back.
+- **Ids:** during a session `allocId` / `allocGid` / note ids take the next number ≡ `C.slot` (peer id mod 64), so two people never pick the same id. Remote ids bump `nextId` and `nextGid`.
+- **Presence:** `collabPtr` (passive listeners on `#ov`, added only while connected) sends `cur` at most every 33 ms, plus on pen down and up. `drawPeers` draws each peer's ring, name tag and in-progress trail (cleared when their stroke arrives).
+- Documents aren't shared. An https page can only reach `ws://localhost`, so other machines use the `http://<LAN IP>:<port>` page the server prints (an insecure context: no service worker or save picker, which is fine).
+
 **Paper color.** The default paper (background) is neutral gray `#808080` (Ben's request). Saved papers still on an old default (`#f7f9fb`, `#fbfaf6`) move to it; a paper color he picked himself is kept. The brush color persists between sessions as before.
 
 **Resize readout.** Ctrl+drag shows only the ring. The px label and the toast were removed at Ben's request.
@@ -193,8 +214,9 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 **Undo.** Entries are `{kind:'tiles', layer, map: key→canvas-before|null}`, `{kind:'layers', list, active}` or `{kind:'sel', sel}`. Any of them can carry an `extra` entry (merge-down, and a selection move's old selection). Redo stores the inverse.
 
 **Persistence.**
-- Tiles go to IndexedDB `sinopia/tiles`, keyed `"<layerId>:<tx>,<ty>"`, with debounced saves.
-- Settings, layer metadata and imported alphas go to localStorage (`sinopia.settings`, `sinopia.layers`, `sinopia.alphas`).
+- Tiles go to IndexedDB `sinopia/tiles`, keyed `"<layerId>:<tx>,<ty>"` (prefixed `<fileId>/` for every file but `main`), with debounced saves.
+- Settings and imported alphas are global in localStorage (`sinopia.settings`, `sinopia.alphas`). Layer metadata, notes and view/paper are per file (see Files and Home).
+- `pagehide` and `visibilitychange` flush settings, notes and tiles. (These were accidentally inside `mountNote` until 2026-11-07, so they only ran once a note existed; also, a window blur used to delete empty notes.)
 - Old v1 keys without a layer id migrate into the first layer.
 
 **Brush / eraser.**
@@ -226,7 +248,9 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Liquify | Ctrl+Shift+X: Push / Twirl / Bloat / Restore, Alt reverses, brush size and opacity set size and strength, Enter applies |
 | Move panels | Drag the dotted grip on the toolbar, a panel or the dock. Double-click to reset |
 | Shortcut sheet | ? (searchable). App edition: Edit → Keyboard shortcuts to rebind |
-| Project | Ctrl+S save (.sinopia), Ctrl+Shift+S save as, Ctrl+O open, Ctrl+Shift+P place image, Ctrl+Shift+E export, Ctrl+V pastes images from other apps |
+| Home / files | House button at the left of the toolbar, or File → Home. Cards: click opens, ⋯ renames, duplicates, deletes. Esc goes back |
+| Draw together | Start collab server.bat on one PC, then File → Draw together → Connect (the ● pill at the bottom shows who's in) |
+| Project | Ctrl+S save (.sinopia), Ctrl+Shift+S save as, Ctrl+O open (as a new drawing), Ctrl+Shift+P place image, Ctrl+Shift+E export, Ctrl+V pastes images from other apps |
 | View | Ctrl+0 fit, Ctrl+= / Ctrl+− zoom, Shift+H flip view |
 | Filters | Ctrl+Shift+A develop, Ctrl+Shift+G color wheels, Ctrl+U hue/saturation, Ctrl+L levels; Filter menu: blur, sharpen, RGB split, noise, noise layer. Enter applies, Esc cancels |
 | Layer mask | ◐ button in the layers panel (Shift+click toggles). \ paints on the mask: brush hides, eraser reveals |
@@ -242,7 +266,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 ## UI layout
 
 - **Tabs row** (only when a document is open): Canvas, then each document with its size, and a two-click × to close it (closing discards it).
-- **Toolbar groups** (in order): brush, eraser, note, the four select tools, free transform (with its Warp / Flip / Cancel / Apply bar while active; wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
+- **Toolbar groups** (in order): Home, brush, eraser, note, the four select tools, free transform (with its Warp / Flip / Cancel / Apply bar while active; wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
 - **Brush panel** opens on the left: tips, import alpha, dynamics, stroke test.
 - **Layers panel** opens on the right: layer list and actions, then paper color.
 - **Theme:** cool blue-greys with a blueprint-blue accent, tight corner radii (2–6px). It follows the system light or dark setting through CSS tokens on `:root`.
@@ -260,6 +284,10 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
   - Live screen output is within 2/255 during and after strokes. Zoomed far out, thin lines differ slightly, because the GPU's trilinear mips blend levels where 2D's `lodOf` picks one.
   - To re-check, load both variants in same-origin iframes and diff the export images.
 - **Documents (checked 2026-10-31):** Multiply over orange and gray paper gives exact values in WebGL (picker) and `?gl=0` (stage pixels): #2a461a and #183868. Live strokes blend as drawn. Tab switching keeps each workspace’s undo, selection and view, and storage holds only canvas layers afterwards.
+- **Files and drawing together (checked 2026-11-07)** with the collab server on port 8091 (the `collab` entry in `.claude/launch.json`):
+  - Two files keep separate strokes across switches. Rename, duplicate (tiles copied under the new prefix) and delete (only that file's keys removed) all work, and the thumbnails render.
+  - Sessions were tested between a `?gl=0&worker=0` tab and a WebGL tab. Join made a new file with the host's drawing. Strokes went both ways, along with a new layer (id 65, from the host's residue), its tiles, an undo and a note.
+  - Simultaneous strokes on one tile gave identical export hashes in both tabs. Leave works, and a fake peer's cursor and trail render.
 - **Selection (checked 2026-10-31)** with synthetic pointer events in `?gl=0&worker=0` (reading `#stage` pixels) and in WebGL with `?worker=1` (reading through the Alt picker). Covered: clipped painting, Delete, Ctrl+drag move, undo of each, the wand (contiguous, on empty paper, with invert), ellipse, lasso, and copy/paste.
 
 ## Known gaps / candidate next steps

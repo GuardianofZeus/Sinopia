@@ -18,7 +18,9 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 - **Rotate the canvas.** Hold R and drag, or twist two fingers on a touch screen. It snaps straight near 0°, and the ° readout beside the zoom resets it.
 - **Liquify (Ctrl+Shift+X).** Push, twirl, bloat and restore the selection (or the layer) with a brush, then Enter to apply.
 - **App edition.** Installed (or with `?app` in the address), Sinopia gets a File / Edit / Image / Layer / Select / Filter / View / Help menu bar, and you can change any shortcut (Edit → Keyboard shortcuts). You can also turn the menus on from the ? sheet.
-- **Project files.** Ctrl+S saves everything (every layer, group, open document and note) to one `.sinopia` file; Ctrl+O or dropping the file opens it again.
+- **Project files.** Ctrl+S saves everything (every layer, group, open document and note) to one `.sinopia` file; Ctrl+O or dropping the file opens it again, as a new drawing.
+- **Home page and multiple drawings.** The house button (or File → Home) lists every drawing in this browser with a thumbnail. Make a new one, open, rename, duplicate or delete. Each drawing keeps its own layers, notes, view and paper.
+- **Draw together on your network.** One PC double-clicks `Start collab server.bat`. Everyone on the same Wi-Fi opens the address it prints, then File → Draw together → Connect. You see each other's strokes, cursors, layers and notes live. See below.
 - **Images.** Ctrl+V pastes an image from any app, and File → Place image (Ctrl+Shift+P) adds one from disk. Either way it lands on its own layer with the transform handles ready.
 - **Filters and grading (App edition).** Develop (exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance; Ctrl+Shift+A), Resolve-style lift / gamma / gain / offset color wheels (Ctrl+Shift+G), Hue/Saturation (Ctrl+U), Levels (Ctrl+L), and a Filter menu with Gaussian blur, sharpen, RGB split and noise. Everything previews live, stays inside the selection, and can run on a merged copy of everything visible.
 - **Layer masks.** The ◐ button in the layers panel adds a mask (from the selection, if there is one). Press \ to paint on it: the brush hides, the eraser reveals. Shift+F6 feathers a selection.
@@ -80,6 +82,14 @@ An infinite-canvas sketching app that runs in the browser. No install, no accoun
 | New layer | Ctrl + Shift + N |
 | Hide panels | Tab |
 | Reset zoom | 0 |
+
+## Drawing together
+
+1. On one PC, double-click **Start collab server.bat** in the Sinopia folder (it needs [Node.js](https://nodejs.org)). If Windows asks about the firewall, allow **Private networks**. Leave the window open.
+2. The window shows two addresses. On that PC open `http://localhost:8080`; on the other PC or iPad open the `http://192.168.…:8080` one.
+3. In Sinopia: File → Draw together (or Draw together on the Home page), type your name, press **Connect**. The first person in shares the drawing they have open. Whoever joins gets it as a new drawing on their Home page.
+
+Each finished stroke is sent as soon as you lift the pen, and both people's strokes on the same spot are kept. Fills, filters, transforms and undo send the tiles they changed. Undo only undoes your own steps, but because it restores whole tiles it can also take back what the other person drew on those tiles in the meantime. Documents (the tabs) aren't shared. Over the internet it needs a VPN such as Tailscale, so both PCs look like they're on one network.
 
 ## Notes
 

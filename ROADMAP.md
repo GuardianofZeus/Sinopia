@@ -53,6 +53,13 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] **Noise generator**: gaussian film grain (midtone-weighted or flat), grain size, mono or color, as a filter or a new noise layer (an Overlay layer in documents). Value and Perlin noise are still to come.
 - [x] **Cryptomatte**: File → Open EXR (or drop one) makes a document with the beauty pass and a false-color ID layer. The Cryptomatte pick tool selects an object with anti-aliased edges; Shift adds, Alt subtracts. Scanline EXRs with ZIP, ZIPS, RLE or no compression (not PIZ / DWA yet).
 
+## Phase 5: files and drawing together (done, 2026-11-07)
+
+- [x] **Home page**: every drawing in this browser as a card with a thumbnail; new, open, rename, duplicate, delete. Optional "show at start" (on by default in the App edition)
+- [x] **Multiple drawings**: each has its own layers, notes, view and paper. Opening a .sinopia file adds it as a new drawing
+- [x] **Draw together on a local network**: `Start collab server.bat` (no dependencies, Node.js) serves the app and relays live strokes, tiles, layers and notes between everyone connected
+- [ ] Later: share documents too; per-user undo that doesn't take back the other person's strokes on the same tiles; internet sessions without a VPN (needs a hosted relay)
+
 ## From Leonardo, worth borrowing
 
 I couldn't open Leonardo itself: this session has no desktop-control tools, only the browser. These come from its store listing and reviews, plus what it's known for:
