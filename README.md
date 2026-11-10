@@ -2,7 +2,7 @@
 
 An infinite-canvas sketching app that runs in the browser. No install, no account. Built for fast, clean sketching with a pen tablet.
 
-**Try it:** https://YOUR-USERNAME.github.io/sinopia/
+**Try it:** https://guardianofzeus.github.io/Sinopia/
 
 ## Features
 
