@@ -7,5 +7,5 @@ if errorlevel 1 (
   pause
   exit /b
 )
-node tools\collab-server.js
+node tools\collab-server.cjs
 pause

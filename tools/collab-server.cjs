@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* Sinopia "draw together" server for the local network. No dependencies: run it with Node.js.
 
-     node tools/collab-server.js [port]      (or double-click "Start collab server.bat")
+     node tools/collab-server.cjs [port]      (or double-click "Start collab server.bat". Not the .cjs itself: Windows would
+                                             open a .js with Windows Script Host, which is why this isn't a .js)
 
    It serves the app (index.html, the manifest, the service worker and icons, nothing else from the folder) and relays
    messages between everyone connected at ws://<this PC>:<port>/collab. It keeps no drawing of its own: when someone

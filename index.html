@@ -6099,7 +6099,7 @@ document.addEventListener('keydown', e => {   // while Home is open, keys don't 
 }, true);
 
 /* ---------- drawing together (local network) ----------
-   tools/collab-server.js serves Sinopia on the network and relays messages between everyone connected; it keeps no
+   tools/collab-server.cjs serves Sinopia on the network and relays messages between everyone connected; it keeps no
    drawing itself. The first person in shares their open drawing, and each newcomer gets a snapshot from someone
    already there, as a new file.
    - A finished stroke travels as its alpha buffer (deflated) and is baked exactly like a local one (bake), so two
