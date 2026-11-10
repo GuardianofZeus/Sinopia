@@ -68,6 +68,9 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] The filter panel can be dragged anywhere
 - [x] **Smudge tool** (F): finger-paint smearing with its own size, strength and pressure
 - [x] Fill sampling is a clear toolbar option: All layers or This layer (Shift+G)
+- [x] Smudge **Blend** mode (default) for blending two colors; the old pull is **Smear**
+- [x] **Documents are saved** and live on the canvas as boards: double-click to open, drag to move, right-click to delete
+- [x] Hover tooltips on every control; Shift+M mirror on/off; uniform-scale handle on the ellipse guide
 - [ ] Later: adjustment *layers* (non-destructive), Selective Color, Gradient Map, Match Color
 
 ## From Leonardo, worth borrowing

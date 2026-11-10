@@ -50,18 +50,25 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - UI is in the layers panel: + Array, Apply, and per-modifier cards. Each card has an eye, move up/down, remove, a Linear/Radial switch, and **sliders**, each with a number box that can type past the slider's range. Offset sliders span ±3× the drawing's size. There's also Center pivot.
 - **On-canvas handles** (`modHandles` / `modHit` / `dragModHandle`), shown while the layers panel is open: a pivot ring (both modes) and, for Linear, a dashed arrow from the pivot whose square end sets the offset (Shift snaps it to 45°). They take priority over drawing within 11 px, like the mirror center handle. Adding, removing and reordering are undoable; editing the numbers isn't (like opacity). Modifiers are saved with the layer metadata.
 
-**Workspaces and documents** (added 2026-10-31; Ben’s spec: copy, not a live link; core blend modes; several open at once; not saved for now).
+**Workspaces and documents** (added 2026-10-31; Ben’s spec: copy, not a live link; core blend modes; several open at once. Saved with the drawing since 2026-11-07, see Document boards).
 - `ws` is the active workspace: `canvasWS` or one of `docs`. The globals (`layers`, `cur`, `groups`, the undo stacks, `view`, `sel`) always hold the active one; `switchWS` stashes them on the old workspace and loads the new one. Everything else (engine, worker, tools, selection) works unchanged on either.
 - **New doc** (toolbar, beside Export) and **Open as document** (with a selection) create the document right away (`newDoc`), from the selection’s bounds, or from what’s on screen with no selection. Ben wants sizing to happen afterwards, not in a dialog first.
 - **Doc size** (the same toolbar button inside a document, `docSizeDialog`), like Photoshop’s Canvas Size. You type a width and height, or use the presets (HD, 4K, Square, A4 300 dpi) and the swap button. The new page is previewed on the overlay, centered on the old one (`docArea`, `drawDocArea`), with everything outside dimmed. The dialog is a transparent sheet at the bottom, so the preview stays visible.
   - Applying (`applyResize`) shifts every layer and the selection so the page starts at (0,0) again, and moves the view so the content doesn’t jump. Pixels outside the page are kept.
   - It’s one undo step (`{kind:'resize', w, h, dx, dy}`, which returns its own inverse).
 - `openDoc(area)` copies that rectangle of every visible canvas layer (`copyRegion`) into a document whose page is world (0,0)–(w,h). Groups are flattened, the paper color is copied, and the view fits the page (at most 100%).
-- Document layers have `L.doc`. `markSave` and `saveLayers` skip them, and `saveSettings` stores the canvas view, so nothing about documents reaches storage.
+- Document layers have `L.doc`: they save like any layer (tiles in IndexedDB under their own ids), but collab never sends them. `saveLayers` inside a document calls `saveDocs` instead, and `saveSettings` stores the canvas view.
+- **Document boards** (2026-11-07; Ben: documents were "having a hard time saving" and should be "integrated into the infinite canvas … double clicking to open it").
+  - `writeDocs` stores every document in `fkey('docs')`: `{nextId, seq, list: [{id, name, w, h, paper, at, view, active, groups, layers}]}`. `initDocs` runs before `loadTiles`, registering doc layers in `allLayers` so their tiles load, and bumps `nextId` past them. Flushed with settings (`flushDocs`). Files duplicate and delete the key with the others.
+  - Each document sits on the canvas at `D.at` (world px, 1:1). `openDoc` puts it beside the source area (`freeSpot` slides it right past other boards). `makeThumb` composites the page (≤1536 px, blend modes, masks, modifiers) when you leave its tab and after boot.
+  - `#boards` is its own canvas between `#stage` and `#ov` (rotated with them). `drawBoards` runs after a scene render but returns at once unless `boardKey` (view, `boardGen`, hover) changed, so strokes don't pay for it.
+  - Input (`boardHit` in the `#ov` pointerdown, before tools, canvas tab only, not with Alt/Ctrl): drag moves (`boardMove`, saved on release), two clicks within 450 ms open (`openBoard`, which fits the view the first time), right-click shows Open / Delete (`deleteBoard`: asks, then queues its tiles for deletion). Hovering hides the brush ring (`overBoard`).
+  - Tabs list only open documents (`D.open`); the tab × (and File → Close document) just closes the tab. Project files store `at` per space; loading one places boards right of the drawing.
 - **Blend modes** (`L.blend`, `BLENDS`), documents only. In WebGL, a document renders into screen-sized buffers (`screenBuf`), scissored to the page. Normal layers draw straight in; a blended layer draws into its own buffer, then `FS_BLEND` mixes it with the buffers below (W3C separable formulas, premultiplied). The page is then copied onto the `PASTEBOARD`. Canvas 2D uses the same modes as `globalCompositeOperation` (`blend2D`). The picker (`blendCh`), export and merge-down also blend. Live strokes on a blended layer blend as you draw.
 - `texClear` keeps the bound framebuffer and turns off the scissor while it clears, because it can run mid-render.
 
-**Notes.** `#notes` holds DOM cards above `#ov`. Each note is `{id, x, y, text}` in world units, saved to localStorage `sinopia.notes`.
+**Notes.** `#notes` holds DOM cards above `#ov`. Each note is `{id, x, y, text}` in world units plus optional `w`, `h` (card px at 100%), `bg` (hex; none = clear), `a` (opacity), `fs` (text px), always read and written through `noteIn` / `noteOut` (storage, projects, collab). Saved to localStorage `sinopia.notes`.
+- **Style (2026-11-07, Ben: "Houdini notes, minus the ugly yellow").** The ● button opens `#notePop` (`openNotePop`): clear + `NOTE_COLORS`, opacity, text size, Use for new notes (`S.noteStyle`), Reset size. The corner `.nrs` resizes. `styleNote(n)` applies it: a filled note moves to `#notes2` (normal blend, auto light/dark text); a clear one stays in the multiply layer `#notes`. Both layers are handled together for rotation, `patchEv`, Space pass-through and documents.
 - `layoutNotes()` runs after a scene render only when the view has changed, so notes add no work during strokes. A card is a `translate` + `scale(view.z × dpr)`, so it's 220 px wide at 100% zoom.
 - An empty note is removed on blur.
 - Look (Ben's request): transparent cards with a dark #2a3442 border and text. The whole `#notes` layer has `mix-blend-mode: multiply`, so the ink multiplies into the drawing. `position: fixed` makes the container its own stacking context, so the blend has to sit on the container, not on the cards.
@@ -89,7 +96,8 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - `#sizePx`: brush diameter in px beside the ? button, and you can type in it.
 
 **Smudge** (F; added 2026-11-07, Ben asked for "a GOOD smudge tool"). A third tool profile beside brush and eraser (`setTool('brush'|'erase'|'smudge')`, `toolName()`, `S.smudge`; `setErase` wraps `setTool`), so size, opacity (shown as **Strength**, `#flowLab`), smoothing and pressure are its own. Not on the stroke engine: `startSmudge` / `smudgeTo` / `smDab` / `smFlush` / `endSmudge` work straight on the layer tiles' ImageData (`SM.tiles`, read once per tile per stroke, written back per frame as dirty rects, `t.v++`).
-- The brush carries a premultiplied float patch (`SM.C`, brush-local). Each dab: canvas → carry by weight (smoothstep falloff × pressure × selection), then carry picks up `0.015 + 0.6·(1−strength)²` of the result. Dabs sit on whole pixels (step ≤ 6 px), so the carried patch is never resampled and smears stay sharp.
+- **Modes** (`S.smMode`, toolbar `#smOpts` Blend | Smear, shown with the smudge tool). Ben found the first version (now Smear) pulled paint far too strongly and wanted "a method to blend between two colors", so **Blend** is the default. In Blend, each dab moves pixels toward the carry leaned 60% toward the previous dab's falloff-weighted average color (`SM.mean`). The per-dab share `dep = 1 − (1−T)^(step/2r)`, with T = 0.15 + 0.82·strength, makes one pass move a pixel about T of the way whatever the speed or size. The carry refreshes with `1 − exp(−step / (Rm·(0.15 + 0.35·strength)))`, so paint travels a fraction of the radius. On a red|blue edge at 100%, one back-and-forth gives an even 0.73 → 0.20 gradient; Smear carries solid red about 90 px.
+- Smear: the brush carries a premultiplied float patch (`SM.C`, brush-local). Each dab: canvas → carry by weight (smoothstep falloff × pressure × selection), then carry picks up `0.015 + 0.6·(1−strength)²` of the result. Dabs sit on whole pixels (step ≤ 6 px), so the carried patch is never resampled and smears stay sharp.
 - Pen-down only picks up. Empty tiles are created only when carried paint lands there. One tiles undo step; `markSave` sends it to collab. The pen's eraser end still erases. No mirror symmetry. About 2 ms per move at 400 px.
 
 **Fill** (G; added 2026-11-06). `fillAt` takes a contiguous `wandSel` and then grows it under anti-aliased edges (`growMask`, 4-neighbour dilation, `S.fillGrow` px, default 1). The selection is intersected in, and `fillBound()` clips it to the page, or to the screen on the canvas, because an open area would be endless. `fillMask` paints the brush color at brush opacity; it's one tiles undo step.
@@ -102,6 +110,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
   - center: move
   - square: size and turn (Shift: 15° steps)
   - round: squash (Shift: back to a circle)
+  - diamond (45°, lower right): uniform scale about the center, keeping the ratio and the angle (Ben, 2026-11-07)
 
 **Canvas rotation** (hold R and drag, two-finger twist, `#rotOut` pill to reset; added 2026-11-06).
 - **CSS rotation, not renderer math:** `#stage`, `#ov` and `#notes` are rotated about the screen center (`rotLayout`). While rotated, they're squares the size of the screen's diagonal (`rotD`). `keepRot` holds that layout through a drag, so crossing 0° doesn't reallocate the canvases.
@@ -117,11 +126,12 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - In liquify, [ and ] resize the brush.
 
 **Panels and menus (2026-11-06).**
-- `makeMovable`: the toolbar (`#barGrip`), the brush and layers panels and the touch dock (`.pgrip`) drag anywhere. Positions go in `S.layout`, and a moved element gets `.moved` (fixed). Double-clicking a grip resets it, and so does Reset panel positions in the shortcut sheet.
+- **Workspace (2026-11-07, Ben: "the file–help bar needs to be permanent along with the home button; the rest should be dockable and movable, with a Window menu to remove any").** `#menubar` is a fixed full-width bar (Home `#tHome`, brand, menus incl. **Window**), always shown, outside `#ui` so Tab doesn't hide it. `#ui` is a grid of dock zones: `#zTop` (row, wraps), `#tabs`, `#zLeft` / `#zRight` (columns; toolbar groups turn vertical there), `#zBottom`, plus `#zFloat` (fixed-position floaters). Panes (`PANES`: the toolbar groups `#tbTools` `#tbSize` `#tbColor` `#tbMirror` `#tbActions`, `#brushPanel`, `#layerPanel`, `#dock`) each have `data-pane` and a grip; `makeDockable` drags them, `dropZone` picks a zone within 64 px of an edge (or over the top row), `dockPane` inserts by pointer position. State: `S.ws2 = {zones, float, off}`, applied by `applyWorkspace()`. Window items toggle panes (`winToggle` / `winOn`; brush and layers still go through `showPanel`, the touch dock through `S.touchDock`); `resetWorkspace()`. CMDS entries may carry a 7th field, an `on()` checkmark.
+- `makeMovable` is now only used for the filter sheet (`S.layout.flt`). Double-clicking a grip resets it, and so does Reset panel positions in the shortcut sheet.
 - `showMenu(anchor, items)` is a small pop-up menu, used by the New doc ▾ presets (`DOC_PRESETS`, shared with the Doc size dialog; `presetDoc` centers on the selection or screen; `S.docBlank` makes blank pages), and meant for the App edition's menu bar.
 - **Shortcut sheet** (`?`, `#keysDlg`): searchable, built from `KEYS`. **That array is now the source for the in-app shortcut list**, and the welcome card only lists the basics.
 
-**App edition** (Phase 3, 2026-11-06). The menu bar (`#menubar`) shows when installed (`display-mode` standalone or fullscreen), with `?app`, or with the App menus toggle in the ? sheet (`S.app`).
+**App edition** (Phase 3, 2026-11-06). The menu bar is now always shown (2026-11-07); `isApp()` (installed, `?app`, or `S.app`) only decides Home-at-start and image drops.
 - `CMDS` is the command list: `[menu, id, label, default key, run, only:'doc'|'canvas']`. Menus, the shortcut editor and custom keys are all built from it.
 - **Custom shortcuts** (`S.keys`, id → combo such as `Ctrl+Shift+N`, from `comboOf`):
   - `customKey(e)` runs first in keydown (after the transform guard). A custom combo runs its command, and the old default of a rebound command does nothing.
@@ -186,6 +196,12 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 **Paper color.** The default paper (background) is neutral gray `#808080` (Ben's request). Saved papers still on an old default (`#f7f9fb`, `#fbfaf6`) move to it; a paper color he picked himself is kept. The brush color persists between sessions as before.
 
+**View resolution.** The `#resOut` pill beside the zoom shows how many canvas pixels the screen covers (`updateZoomLabel`; its tooltip adds the display size and the page size in documents).
+
+**Hover tooltips (2026-11-07, Ben's request).** One themed `#hovertip` element (class `.hovertip`; `.tip` is taken by the brush-tip buttons), driven by a capture `pointerover` listener at the end of the script. Any `[title]` is moved into `data-tip` on first hover, so the browser's own tooltip never doubles up, and titles set later are picked up the same way. It shows after 500 ms, or 60 ms when another tooltip just closed (sliding along a toolbar). It sits below the element, or above it if there's no room, clamped to the screen. A bracketed shortcut such as "(Ctrl+T)" becomes a `kbd` chip (`KEYISH`). Mouse and pen only, never on touch or over `#ov`. It hides on pointerdown, keydown, wheel, scroll and blur. Write new controls with a plain `title` and they get it for free.
+
+**Array number boxes (2026-11-07).** The native spinners were too small and stepped 1 px. Each field is now ‹ box › (`.nudge`): the buttons repeat while held and Shift is ×10, ↑/↓ and the wheel (when focused) nudge, and Offset steps by 10. Typed values can go past the slider.
+
 **Resize readout.** Ctrl+drag shows only the ring. The px label and the toast were removed at Ben's request.
 
 **Pen-down with zero pressure.** Firefox and Zen on Windows report `pressure: 0` at pen-down. A pen pointerdown with 0 pressure waits (`act.wait`) and starts the stroke at the pen-down point on the first event with real pressure. A tap that never reports pressure draws a dot at 0.5. Before this fix, taps made invisible dots in Firefox.
@@ -248,15 +264,16 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Selection actions | Ctrl+drag (with a select tool) moves the selected pixels, or the whole layer with no selection. Delete/Backspace clears them. Ctrl+D or Esc deselects, Ctrl+Shift+I inverts, Ctrl+A selects all. Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste in place on a new layer. Invert and Deselect buttons appear in the toolbar while there's a selection. |
 | Note | T (or toolbar button) then click: places a text note. Esc cancels. |
 | Delete layer | X |
+| Solo a layer | Ctrl + click a layer's (or group's) eye: hides every other layer; Ctrl+click it again restores the old visibility (`soloToggle`, `solo` holds the snapshot; a plain eye click clears it). Ben's request, 2026-11-07 |
 | Flash a layer's drawing | Ctrl + click a layer or group row: accent-tinted silhouette plus dashed bounds, fading over 1.6 s (`highlight`). It doesn't change the active layer. |
 | Size | [ / ], or type it in the px box beside ? |
 | Color menu | V (at the cursor), or click the color swatch |
-| Smudge | F (opacity slider = Strength) |
+| Smudge | F (Blend or Smear in the toolbar; opacity slider = Strength) |
 | Fill | G (Tolerance, Sample: All layers / This layer, and Grow show in the toolbar; Shift+G switches sampling). Alt+Backspace or Shift+Backspace fills the selection |
-| Ellipse guide | O. Strokes that start on it follow it; drag the center, the square (size and turn) and the round handle (squash; Shift for a circle) |
+| Ellipse guide | O. Strokes that start on it follow it; drag the center, the square (size and turn), the round handle (squash; Shift for a circle) and the diamond (uniform scale) |
 | Rotate canvas | Hold R + drag (Shift: 15°; it snaps straight near 0°), R + click straightens, two-finger twist on touch, click the ° pill to reset |
 | Liquify | Ctrl+Shift+X: Push / Twirl / Bloat / Restore, Alt reverses, brush size and opacity set size and strength, Enter applies |
-| Move panels | Drag the dotted grip on the toolbar, a panel or the dock. Double-click to reset |
+| Move / dock panels | Drag any pane's dotted grip: near an edge docks it (left, right, top, bottom), elsewhere floats it. Double-click the grip to send it home. Window menu shows/hides panes and resets the workspace |
 | Shortcut sheet | ? (searchable). App edition: Edit → Keyboard shortcuts to rebind |
 | Home / files | House button at the left of the toolbar, or File → Home. Cards: click opens, ⋯ renames, duplicates, deletes. Esc goes back |
 | Draw together | Start collab server.bat on one PC, then File → Draw together → Connect (the ● pill at the bottom shows who's in) |
@@ -267,7 +284,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Feather | Shift+F6 |
 | Cryptomatte | File → Open EXR (or drop an .exr), then click objects; Shift adds, Alt subtracts |
 | iPad | Two-finger tap = undo, three-finger tap = redo. Dock on the left: Line (hold, or tap to latch) = Shift, Pick = Alt, Undo, Redo |
-| Mirror cycle | M (off, vertical, horizontal, both, radial; Kaleido option; drag the center handle) |
+| Mirror cycle | M (off, vertical, horizontal, both, radial; Kaleido option; drag the center handle). Shift+M toggles it off and back on in the last mode (`toggleSym`, `sym.last`, saved with `sym`; also View → Mirror on/off). Ben, 2026-11-07 |
 | Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |
 | New layer | Ctrl+Shift+N |
 | Hide UI | Tab |
@@ -275,8 +292,9 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 
 ## UI layout
 
-- **Tabs row** (only when a document is open): Canvas, then each document with its size, and a two-click × to close it (closing discards it).
-- **Toolbar groups** (in order): Home, brush, eraser, note, the four select tools, free transform (with its Warp / Flip / Cancel / Apply bar while active; wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
+- **Tabs row** (only when a document is open): Canvas, then each open document with its size, and a × that closes it (it stays saved, as a board on the canvas).
+- **Menu bar** (fixed, top): Home, then File · Edit · Image · Layer · Select · Filter · View · Window · Help.
+- **Toolbar groups** (dockable panes, default order in the top zone): brush, eraser, smudge, fill, guide, note, the four select tools, free transform (with its Warp / Flip / Cancel / Apply bar while active; wand options, Invert and Deselect when relevant) and the brush-settings toggle · size and opacity · color and swatches · mirror · undo, redo, export, clear layer, layers toggle and help.
 - **Brush panel** opens on the left: tips, import alpha, dynamics, stroke test.
 - **Layers panel** opens on the right: layer list and actions, then paper color.
 - **Theme:** cool blue-greys with a blueprint-blue accent, tight corner radii (2–6px). It follows the system light or dark setting through CSS tokens on `:root`.
@@ -308,6 +326,6 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 4. Optional "build-up" mode for soft brushes (MAX blending means a single stroke never darkens over itself).
 5. More modifiers (radial array as its own type, mirror, offset/jitter), transform options typed as numbers, polygonal lasso, and layer thumbnails. Selection basics and feather are in.
 9. **Phase 4 follow-ups:** Perlin/value noise, adjustment *layers* (filters are destructive today, with live preview), PIZ/DWA EXR compression, and checking Cryptomatte against a real Blender EXR.
-6. **Documents next:** saving (IndexedDB, keyed per document), “Place back” onto the canvas, new blank documents of a chosen size, layer thumbnails, and more blend modes. Ben wants many documents open at once in the full app.
+6. **Documents next:** (saving is done, as boards) rename and duplicate from the board menu, “Place back” onto the canvas, new blank documents of a chosen size, layer thumbnails, and more blend modes. Ben wants many documents open at once in the full app.
 7. Save and load a project file (currently it lives only in browser storage plus PNG export).
 8. **Straight lines:** now a rubber band with a hard 10° snap and a 4-line guide, per Ben. Tune `LINE_STEP` or the guide alpha if he asks.

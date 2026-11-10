@@ -56,7 +56,9 @@ body{
   -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;
 }
 button, input, select, label, .layer, .grp{touch-action:manipulation}   /* no double-tap zoom on iPad */
-#stage,#ov{position:fixed; inset:0; width:100%; height:100%; display:block}
+#stage,#boards,#ov{position:fixed; inset:0; width:100%; height:100%; display:block}
+#boards{pointer-events:none} #boards[hidden]{display:none}
+#ov.brd{cursor:default} #ov.brd.mv{cursor:grabbing}
 #ov{touch-action:none; cursor:none}
 #ov.sel{cursor:crosshair} #ov.sel.mv{cursor:move}
 #ov.grab{cursor:grab} #ov.grabbing{cursor:grabbing} #ov.zoom{cursor:zoom-in} #ov.text{cursor:text}
@@ -67,27 +69,70 @@ button, input, select, label, .layer, .grp{touch-action:manipulation}   /* no do
 .note-card{position:absolute; left:0; top:0; width:220px; transform-origin:0 0; pointer-events:auto;
   background:transparent; color:#1b2532; border:1px solid #2a3442; border-left:3px solid #2a3442; border-radius:3px}
 .notes.pass .note-card{pointer-events:none}
+.notes.norm{mix-blend-mode:normal}
+.note-card .nst, .note-card .nx{opacity:0}
+.note-card .nst{width:14px; height:12px; border:0; padding:0; margin-right:3px; background:transparent; cursor:pointer; display:grid; place-items:center}
+.note-card .nst i{width:9px; height:9px; border-radius:50%; border:1px solid currentColor; display:block}
+.note-card:hover .nst, .note-card:focus-within .nst{opacity:.8}
+.note-card .nrs{position:absolute; right:0; bottom:0; width:12px; height:12px; cursor:nwse-resize; touch-action:none; opacity:0;
+  background:linear-gradient(135deg, transparent 0 55%, currentColor 55% 62%, transparent 62% 72%, currentColor 72% 79%, transparent 79%)}
+.note-card:hover .nrs{opacity:.5}
+.note-card.dark .grip{background:repeating-linear-gradient(90deg, transparent 0 3px, rgba(255,255,255,.22) 3px 4px); border-bottom-color:rgba(255,255,255,.25)}
+.note-card.dark .nx{color:#d5dce4}
+.note-card.dark textarea::placeholder{color:rgba(255,255,255,.55)}
+.npop{width:236px; z-index:6}
+.npop .prop{grid-template-columns:62px 1fr 3em; font-size:11.5px}
+.npop .sws .sw.clear{background:repeating-conic-gradient(#c8ced6 0 25%, #fff 0 50%) 50% / 8px 8px}
+.npop .sws .sw.on{outline:2px solid var(--accent); outline-offset:1px}
 .note-card .grip{height:14px; cursor:move; display:flex; justify-content:flex-end; align-items:center; padding:0 2px;
   background:repeating-linear-gradient(90deg, transparent 0 3px, rgba(27,37,50,.18) 3px 4px); border-bottom:1px solid rgba(42,52,66,.35)}
 .note-card .nx{width:16px; height:12px; border:0; padding:0; background:transparent; color:#5a6879; font:600 12px/12px var(--font-ui); cursor:pointer; opacity:0}
 .note-card:hover .nx, .note-card:focus-within .nx{opacity:1}
 .note-card textarea{display:block; width:100%; box-sizing:border-box; border:0; outline:0; resize:none; overflow:hidden; background:transparent;
-  color:inherit; font:400 14px/1.45 var(--font-ui); padding:7px 10px 9px; -webkit-user-select:text; user-select:text}
+  color:inherit; font:400 14px/1.45 var(--font-ui); font-size:inherit; padding:7px 10px 9px; -webkit-user-select:text; user-select:text}
 .note-card textarea::placeholder{color:#7a8796}
 .note-card:focus-within{border-left-color:#1d4f86}
 
+/* the menu bar is always there; everything else lives in dock zones (top, left, right, bottom) or floats */
+.menubar{position:fixed; z-index:3; top:0; left:0; right:0; height:calc(34px + env(safe-area-inset-top, 0px)); box-sizing:border-box;
+  padding:env(safe-area-inset-top, 0px) max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+  display:flex; align-items:center; gap:1px; background:var(--chrome); border-bottom:1px solid var(--line); box-shadow:0 1px 6px rgba(0,0,0,.08);
+  overflow-x:auto; scrollbar-width:none}
+.menubar > *{flex:none}
+.menubar #tHome{height:28px; min-width:30px; margin-right:2px}
 .ui{
   position:fixed; z-index:2;
-  top:calc(10px + env(safe-area-inset-top, 0px));
-  left:max(16px, env(safe-area-inset-left, 0px));
-  right:max(16px, env(safe-area-inset-right, 0px));
-  max-height:calc(100% - 64px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-  display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+  top:calc(42px + env(safe-area-inset-top, 0px));
+  bottom:calc(52px + env(safe-area-inset-bottom, 0px));
+  left:max(12px, env(safe-area-inset-left, 0px));
+  right:max(12px, env(safe-area-inset-right, 0px));
+  display:grid; grid-template-columns:auto minmax(0, 1fr) auto; grid-template-rows:auto auto minmax(0, 1fr) auto; gap:8px;
   pointer-events:none;
 }
 .ui > *{pointer-events:auto}
+.ui > .zone, .ui > #zFloat{pointer-events:none}
+.zone > *, #zFloat > *{pointer-events:auto}
+#zTop{grid-area:1 / 1 / 2 / 4} #tabs{grid-area:2 / 1 / 3 / 4; justify-self:start} #zLeft{grid-area:3 / 1 / 4 / 2} #zRight{grid-area:3 / 3 / 4 / 4} #zBottom{grid-area:4 / 1 / 5 / 4; justify-content:center}
+#zFloat{position:absolute; inset:0}
+#zFloat > *{position:fixed; margin:0; z-index:3; max-height:calc(100dvh - 60px); max-width:calc(100vw - 16px)}
+.zone{display:flex; gap:6px; min-width:0; min-height:0}
+.zone-h{flex-wrap:wrap; align-items:flex-start}
+.zone-v{flex-direction:column; align-items:flex-start}
+#zRight{align-items:flex-end}
+.zone > .panel{max-height:100%; flex:0 1 auto}
+.ui .panel{overflow-x:hidden}
+.zone-h > .panel{max-height:60vh}
+.zone-v > .group{flex-direction:column; align-items:stretch; flex:none}
+.zone-v > .group .sep{width:auto; height:1px; margin:3px 4px}
+.zone-v > .group .bgrip{width:auto; height:10px; margin:0 0 2px; background-repeat:repeat-x; align-self:stretch}
+.zone-v > .group .row{flex-wrap:wrap; max-width:230px}
+.zone-v > .group .swatches{flex-wrap:wrap; max-width:120px; padding:4px}
+.zone-v > .group .slider{flex-direction:column; height:auto; padding:6px 8px; gap:4px}
+.winoff{display:none !important}
+body.docking .zone{min-height:48px; min-width:48px; transition:outline-color .1s}
+body.docking .zone.drop{outline:2px dashed var(--accent); outline-offset:2px; border-radius:4px; background:var(--accent-soft)}
+.lifting{opacity:.85; box-shadow:0 8px 24px rgba(0,0,0,.3) !important}
 .ui.hidden{display:none}
-.bar{display:flex; flex-wrap:wrap; gap:6px; max-width:100%}
 .group{
   display:flex; align-items:center; gap:2px; padding:3px;
   background:var(--chrome); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow);
@@ -114,8 +159,12 @@ button, input, select, label, .layer, .grp{touch-action:manipulation}   /* no do
 .mod.off{opacity:.55}
 .mod .head b{flex:1; font-size:12px}
 .mod .sliders{display:flex; flex-direction:column; gap:4px}
-.mod .prop{grid-template-columns:58px 1fr 52px; gap:6px; font-size:11.5px}
-.mod .num{width:100%; box-sizing:border-box}
+.mod .prop{grid-template-columns:58px 1fr auto; gap:6px; font-size:11.5px}
+.mod .num{width:46px; box-sizing:border-box; border-radius:0; border-left:0; border-right:0}
+.nudge{display:inline-flex; align-items:stretch; height:26px}
+.nud{width:18px; border:1px solid var(--line); background:var(--chrome); color:var(--ink); font:600 13px/1 var(--font-ui); padding:0; cursor:pointer; touch-action:none; user-select:none}
+.nud:first-child{border-radius:3px 0 0 3px} .nud:last-child{border-radius:0 3px 3px 0}
+.nud:hover{background:var(--accent-soft)} .nud:active{background:var(--accent); color:var(--accent-ink)}
 .sep{width:1px; align-self:stretch; background:var(--line); margin:4px 3px}
 
 .slider{display:flex; align-items:center; gap:7px; padding:0 8px; height:32px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
@@ -130,9 +179,7 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .sw:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
 .num{width:44px; height:26px; border:1px solid var(--line); border-radius:3px; background:var(--chrome-2); color:var(--ink); font:500 12px var(--font-ui); text-align:center; font-variant-numeric:tabular-nums}
 
-.panels{display:flex; align-items:flex-start; gap:8px; width:100%; min-height:0; flex:0 1 auto; pointer-events:none}
-.panels > *{pointer-events:auto}
-#layerPanel{margin-left:auto}
+.panels{display:none}
 .panel{
   width:264px; max-width:100%; max-height:calc(100dvh - 150px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); min-height:0; overflow:auto;
   background:var(--chrome); border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow);
@@ -203,6 +250,7 @@ select{height:28px; border:1px solid var(--line); border-radius:3px; background:
 .status > *{pointer-events:auto}
 .pill{background:var(--chrome); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); padding:6px 11px; font-size:12px; font-variant-numeric:tabular-nums; color:var(--ink)}
 button.pill{cursor:pointer; font-family:var(--font-ui)}
+.res{color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
 .hint{color:var(--muted); min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .toast{margin-left:auto; background:var(--ink); color:var(--chrome); border-color:transparent}
 .toast[hidden]{display:none}
@@ -256,11 +304,9 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .bgrip:hover{opacity:1; background-color:var(--chrome-2)}
 .moved{position:fixed !important; margin:0 !important; z-index:3}
 /* App edition menu bar */
-.menubar{padding:2px 3px; gap:0}
 .menubar .mb{height:26px; padding:0 9px; border:0; border-radius:3px; background:transparent; color:var(--ink); font:500 12.5px var(--font-ui); cursor:pointer}
 .menubar .mb:hover, .menubar .mb.on{background:var(--chrome-2)}
 .menubar .brand{font-weight:700; color:var(--accent); padding:0 8px 0 6px; font-size:12.5px; letter-spacing:.02em}
-.menubar[hidden]{display:none}
 .menu button:disabled{opacity:.4; cursor:default; background:transparent}
 .kb{display:grid; grid-template-columns:1fr auto auto; gap:4px 8px; align-items:center; font-size:12.5px}
 .kb .grp{grid-column:1 / -1; margin-top:8px; font-size:10.5px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
@@ -300,6 +346,12 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .seg{display:inline-flex; align-items:center; gap:2px}
 .seg .seglab{font-size:11px; color:var(--muted); margin-right:3px}
 .menu .more::after{content:"›"; margin-left:8px; color:var(--muted)}
+/* hover tooltips: every control's title, shown in the app's own style */
+.hovertip{position:fixed; z-index:9; max-width:280px; padding:6px 9px; border-radius:4px; background:var(--ink); color:var(--chrome);
+  font:500 12px/1.4 var(--font-ui); box-shadow:var(--shadow); pointer-events:none; opacity:0; transform:translateY(-2px); transition:opacity .12s, transform .12s}
+.hovertip.show{opacity:1; transform:none}
+.hovertip kbd{display:inline-block; margin-left:6px; padding:1px 5px; border-radius:3px; background:rgba(127,127,127,.3); font:600 11px var(--font-ui); white-space:nowrap}
+@media (prefers-reduced-motion:reduce){ .hovertip{transition:none} }
 /* small pop-up menus (New doc presets; later the App menu bar) */
 .menu{position:fixed; z-index:7; min-width:200px; background:var(--chrome); border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow); padding:4px; display:flex; flex-direction:column}
 .menu button{display:flex; justify-content:space-between; gap:16px; align-items:center; height:30px; padding:0 10px; border:0; border-radius:3px; background:transparent; color:var(--ink); font:500 12.5px var(--font-ui); text-align:left; cursor:pointer}
@@ -355,16 +407,23 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
 <body>
 
 <canvas id="stage" aria-hidden="true"></canvas>
+<canvas id="boards" aria-hidden="true"></canvas>
 <canvas id="ov" aria-label="Drawing canvas"></canvas>
 <div class="notes" id="notes" aria-label="Notes"></div>
+<div class="notes norm" id="notes2" aria-label="Notes"></div>
+<div class="hovertip" id="hovertip" role="tooltip" hidden></div>
+<div class="cpop npop" id="notePop" hidden role="dialog" aria-label="Note style">
+  <h3>Note color</h3><div class="sws" id="npSw"></div>
+  <label class="prop"><span>Opacity</span><input type="range" id="npA" min="0" max="100" step="1"><output id="npAOut"></output></label>
+  <label class="prop"><span>Text size</span><input type="range" id="npFs" min="9" max="72" step="1"><output id="npFsOut"></output></label>
+  <div class="row" style="gap:4px"><button class="btn" id="npDef" title="New notes start with this color, opacity and text size">Use for new notes</button><button class="btn" id="npSize" title="Back to the standard width and height">Reset size</button></div>
+</div>
 
+<div class="menubar" id="menubar" role="menubar" aria-label="Menu"><button class="btn" id="tHome" title="Home: all your drawings" aria-label="Home"><svg viewBox="0 0 18 18"><path d="M2.5 8.5L9 3l6.5 5.5"/><path d="M4.5 7.2V15h9V7.2"/><path d="M7.5 15v-4h3v4"/></svg></button><span class="brand">Sinopia</span></div>
 <div class="ui" id="ui">
-  <div class="group menubar" id="menubar" role="menubar" aria-label="Menu" hidden><span class="brand">Sinopia</span></div>
-  <div class="bar" role="toolbar" aria-label="Tools" id="bar">
-    <div class="group">
-      <div class="bgrip" id="barGrip" title="Drag to move the toolbar. Double-click to put it back"></div>
-      <button class="btn" id="tHome" title="Home: all your drawings" aria-label="Home"><svg viewBox="0 0 18 18"><path d="M2.5 8.5L9 3l6.5 5.5"/><path d="M4.5 7.2V15h9V7.2"/><path d="M7.5 15v-4h3v4"/></svg></button>
-      <span class="sep"></span>
+  <div class="zone zone-h" role="toolbar" aria-label="Tools" id="zTop">
+    <div class="group" id="tbTools" data-pane="tools">
+      <div class="bgrip" title="Drag to move it, or to an edge of the screen to dock it. Double-click to put it back"></div>
       <button class="btn on" id="tBrush" title="Brush (B)" aria-label="Brush"><svg viewBox="0 0 18 18"><path d="M3 15c2.2 0 3.4-1 3.6-3.2L13.5 4.9l-.4-.4L6.2 11.4C4 11.6 3 12.8 3 15z"/><path d="M11.6 3l3.4 3.4"/></svg></button>
       <button class="btn" id="tErase" title="Eraser (E)" aria-label="Eraser"><svg viewBox="0 0 18 18"><path d="M7 15h8"/><path d="M3.5 11.5l7-7 4 4-6.5 6.5H6.5z"/><path d="M7 8l4 4"/></svg></button>
       <button class="btn" id="tSmudge" title="Smudge (F): drag to push paint around. The opacity slider sets its strength" aria-label="Smudge"><svg viewBox="0 0 18 18"><path d="M7.5 15.5c-2 0-3.5-1.6-3.5-3.6V7.2c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V9"/><path d="M6.2 9V3.7c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V8.5"/><path d="M8.4 8.5V3c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v5.5"/><path d="M10.6 8.5V4.4c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v7.3c0 2.1-1.6 3.8-3.6 3.8H7.5"/><path d="M14 13.5c1 .3 2 .3 3 0" opacity=".6"/></svg></button>
@@ -391,6 +450,9 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
         <button class="btn" id="xfCancel" title="Cancel (Esc)">Cancel</button>
         <button class="btn on" id="xfOk" title="Apply (Enter)">Apply</button>
       </span>
+      <span id="smOpts" class="row" hidden style="gap:4px;padding:0 4px">
+        <span class="seg" role="group" aria-label="Smudge mode"><button class="btn" id="smBlend" title="Blend: softens where colors meet into a gradient. Strength sets how much">Blend</button><button class="btn" id="smSmear" title="Smear: drags paint along like a finger. Strength sets how far">Smear</button></span>
+      </span>
       <span id="fillOpts" class="row" hidden style="gap:4px;padding:0 4px">
         <input class="num" type="number" id="fillTol" min="0" max="255" aria-label="Fill tolerance" title="Tolerance: how different a color can be and still be filled (0–255)">
         <span class="seg" role="group" aria-label="Fill sampling" title="Which pixels decide where the fill stops. It always paints on the active layer"><span class="seglab">Sample</span><button class="btn" id="fillAll" title="All layers: line art on any visible layer bounds the fill (paint on its own layer under the lines)">All layers</button><button class="btn" id="fillOne" title="This layer: only the active layer's pixels bound the fill">This layer</button></span>
@@ -410,16 +472,19 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       <button class="btn" id="pressBtn" title="Pen pressure: click to turn it on or off. Right-click or long-press for the brush settings" aria-label="Pen pressure" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M2.5 14.2C6 13.6 8.2 9.6 10.6 7S14 3.7 15.6 3.4c-.9 1.6-2.8 4.2-4.8 6.7S6.3 15 2.5 14.2z" fill="currentColor" stroke="none"/></svg></button>
       <button class="btn" id="brushBtn" title="Brush settings" aria-label="Brush settings" aria-expanded="false"><svg viewBox="0 0 18 18"><path d="M3 5h12M3 9h12M3 13h12"/><circle cx="6" cy="5" r="1.6"/><circle cx="12" cy="9" r="1.6"/><circle cx="8" cy="13" r="1.6"/></svg></button>
     </div>
-    <div class="group">
+    <div class="group" id="tbSize" data-pane="size">
+      <div class="bgrip" title="Drag to move it, or to an edge of the screen to dock it. Double-click to put it back"></div>
       <label class="slider" title="Brush size — or hold Ctrl and drag on the canvas">Size <input type="range" id="size" min="0" max="100" step="0.1"><output id="sizeOut">20</output></label>
       <label class="slider"><span id="flowLab">Opacity</span> <input type="range" id="flow" min="1" max="100" step="1"><output id="flowOut">100%</output></label>
     </div>
-    <div class="group">
+    <div class="group" id="tbColor" data-pane="color">
+      <div class="bgrip" title="Drag to move it, or to an edge of the screen to dock it. Double-click to put it back"></div>
       <button class="cswatch" id="color" aria-label="Brush color" title="Brush color (V). Hold Alt on the canvas to pick one"></button>
       <div class="swatches" id="swatches"></div>
     </div>
-    <div class="group" role="radiogroup" aria-label="Mirror">
-      <button class="btn" data-m="off" title="Mirror off" aria-label="Mirror off">Off</button>
+    <div class="group" id="tbMirror" data-pane="mirror" role="radiogroup" aria-label="Mirror">
+      <div class="bgrip" title="Drag to move it, or to an edge of the screen to dock it. Double-click to put it back"></div>
+      <button class="btn" data-m="off" title="Mirror off (Shift+M turns mirror on and off)" aria-label="Mirror off">Off</button>
       <button class="btn" data-m="v" title="Mirror left/right" aria-label="Mirror left and right"><svg viewBox="0 0 18 18"><path d="M9 2v14" stroke-dasharray="2 2"/><path d="M6.5 5.5L2.5 9l4 3.5z"/><path d="M11.5 5.5l4 3.5-4 3.5z"/></svg></button>
       <button class="btn" data-m="h" title="Mirror top/bottom" aria-label="Mirror top and bottom"><svg viewBox="0 0 18 18"><path d="M2 9h14" stroke-dasharray="2 2"/><path d="M5.5 6.5L9 2.5l3.5 4z"/><path d="M5.5 11.5L9 15.5l3.5-4z"/></svg></button>
       <button class="btn" data-m="both" title="Mirror both axes" aria-label="Mirror both axes"><svg viewBox="0 0 18 18"><path d="M9 2v14M2 9h14" stroke-dasharray="2 2"/><circle cx="5" cy="5" r="1.4"/><circle cx="13" cy="5" r="1.4"/><circle cx="5" cy="13" r="1.4"/><circle cx="13" cy="13" r="1.4"/></svg></button>
@@ -430,7 +495,8 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       </span>
       <button class="btn" id="symCenter" title="Move the mirror center to the middle of the view (or drag the center handle)">Center</button>
     </div>
-    <div class="group">
+    <div class="group" id="tbActions" data-pane="actions">
+      <div class="bgrip" title="Drag to move it, or to an edge of the screen to dock it. Double-click to put it back"></div>
       <button class="btn" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg viewBox="0 0 18 18"><path d="M6 4L3 7l3 3"/><path d="M3 7h7.5a4 4 0 010 8H8"/></svg></button>
       <button class="btn" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg viewBox="0 0 18 18"><path d="M12 4l3 3-3 3"/><path d="M15 7H7.5a4 4 0 000 8H10"/></svg></button>
       <span class="sep"></span>
@@ -445,7 +511,11 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
     </div>
   </div>
 
-  <div class="dock" id="dock" hidden aria-label="Touch modifiers">
+  <div class="zone zone-v" id="zLeft"></div>
+  <div class="zone zone-v" id="zRight"></div>
+  <div class="zone zone-h" id="zBottom"></div>
+  <div id="zFloat"></div>
+  <div class="dock" id="dock" data-pane="touch" hidden aria-label="Touch modifiers">
     <div class="pgrip" style="margin:-1px 0 1px" title="Drag to move. Double-click to put it back"></div>
     <button class="btn" id="dLine" title="Line: hold while drawing for a straight line (like Shift). Tap to keep it on" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M3 15L15 3"/><circle cx="3" cy="15" r="1.6"/><circle cx="15" cy="3" r="1.6"/></svg>Line</button>
     <button class="btn" id="dPick" title="Pick: the next touch picks a color (like Alt)" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M11 3.5l3.5 3.5-1.6 1.6-3.5-3.5z"/><path d="M10.2 6.2L4 12.4V14h1.6l6.2-6.2"/></svg>Pick</button>
@@ -456,7 +526,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
   <div class="group tabs" id="tabs" role="tablist" aria-label="Documents" hidden></div>
 
   <div class="panels">
-  <aside class="panel" id="brushPanel" aria-label="Brush settings" hidden>
+  <aside class="panel" id="brushPanel" data-pane="brush" aria-label="Brush settings" hidden>
     <div class="pgrip" title="Drag to move this panel. Double-click to put it back"></div>
     <div class="section">
       <h2 id="tipHead">Brush tip</h2>
@@ -484,7 +554,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       <p class="note">Draws angles, sizes and pressure tapers with the current brush on a new layer, so you can check edges. Undo removes it.</p>
     </div>
   </aside>
-  <aside class="panel" id="layerPanel" aria-label="Layers" hidden>
+  <aside class="panel" id="layerPanel" data-pane="layers" aria-label="Layers" hidden>
     <div class="pgrip" title="Drag to move this panel. Double-click to put it back"></div>
     <div class="section">
       <div class="head">
@@ -553,6 +623,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
 
 <div class="status">
   <button class="pill" id="zoomOut" title="Reset zoom to 100%">100%</button>
+  <span class="pill res" id="resOut"></span>
   <button class="pill" id="rotOut" title="Canvas rotation: click to straighten" hidden>0°</button>
   <span class="pill hint" id="hint">Hold Shift while drawing for straight lines · V opens colors · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
   <button class="pill collab" id="collabOut" title="Drawing together: click for details" hidden></button>
@@ -575,7 +646,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
 
 <div class="dialog keysheet" id="keysDlg" hidden>
   <div class="card" role="dialog" aria-label="Keyboard shortcuts">
-    <div class="row"><h2>Shortcuts</h2><span class="row" style="gap:4px"><button class="btn" id="layoutReset" title="Put the toolbar and panels back where they started">Reset panel positions</button><button class="btn" id="appToggle" title="Show the App edition's File / Edit / Image menu bar">App menus</button><button class="btn" id="keysClose">Close</button></span></div>
+    <div class="row"><h2>Shortcuts</h2><span class="row" style="gap:4px"><button class="btn" id="layoutReset" title="Put the toolbar and panels back where they started (Window → Reset workspace)">Reset workspace</button><button class="btn" id="keysClose">Close</button></span></div>
     <input type="search" id="keysQ" placeholder="Search: fill, zoom, layer…" aria-label="Search shortcuts">
     <div id="keysList"></div>
   </div>
@@ -830,6 +901,7 @@ const SCRIPT = document.currentScript ? document.currentScript.text : '';   // t
 const QS = new URLSearchParams(location.search);                            // ?gl=0 forces canvas 2D; ?worker=0 / ?worker=1 turns the raster worker off / always on
 const $ = id => document.getElementById(id);
 let cv = $('stage');
+const boardsEl = $('boards'), bctx = boardsEl.getContext('2d');
 const ov = $('ov'), octx = ov.getContext('2d');
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -851,7 +923,8 @@ const undoStack = [], redoStack = [];
 let hadView = false;
 let sel = null, selTool = null;               // the selection mask (see "selection"), and the active select tool: rect | ellipse | lasso | wand
 /* workspaces: the infinite canvas, plus documents opened from a rectangle of it (see "documents"). The active one's
-   layers, undo, view and selection live in the globals above; switching tabs swaps them. Documents aren't saved. */
+   layers, undo, view and selection live in the globals above; switching tabs swaps them. Documents are saved with the
+   drawing and sit on the canvas as boards (see "document boards"). */
 const canvasWS = { name: 'Canvas', doc: null };
 let ws = canvasWS, docs = [];
 const paperColor = () => ws.doc ? ws.paper : S.paper;
@@ -921,7 +994,7 @@ function allocId() { const id = collabId(nextId); nextId = id + 1; return id; }
 function allocGid() { const id = collabId(nextGid); nextGid = id + 1; return id; }
 function newLayer(name) {
   const L = { id: allocId(), name: name || 'Layer ' + (layers.length + 1), visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [] };
-  if (ws.doc) L.doc = true;   // document layers are never saved
+  if (ws.doc) L.doc = true;   // a document's layer: saved with its document, never sent to a drawing session
   allLayers.set(L.id, L); return L;
 }
 function mkMask(L, id) {
@@ -943,7 +1016,8 @@ function maskedLayer(L) {   // a stand-in with the mask applied to its pixels (e
 }
 function saveLayers() {
   const G = cur && groupOf(cur); if (G) G.active = cur.id;   // each group remembers its last active layer
-  if (ws.doc || fileGone) return;
+  if (fileGone) return;
+  if (ws.doc) { saveDocs(); return; }
   LS.set(fkey('layers'), { nextId, nextGid, active: cur && cur.id,
     groups: groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
     layers: layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) });
@@ -2120,7 +2194,7 @@ const SEL_HINT = 'Shift adds · Alt subtracts · Shift+Alt intersects · Ctrl-dr
 function syncSelUI() {
   for (const [id, t] of [['tRect', 'rect'], ['tEllipse', 'ellipse'], ['tLasso', 'lasso'], ['tWand', 'wand'], ['tFill', 'fill']]) $(id).classList.toggle('on', selTool === t);
   syncToolBtns();
-  $('selOpts').hidden = !(selTool && selTool !== 'fill') && !sel; $('wandOpts').hidden = selTool !== 'wand'; $('fillOpts').hidden = selTool !== 'fill';
+  $('selOpts').hidden = !(selTool && selTool !== 'fill') && !sel; $('wandOpts').hidden = selTool !== 'wand'; $('fillOpts').hidden = selTool !== 'fill'; $('smOpts').hidden = !!selTool || !S.smudge;
   $('selInv').hidden = $('selNone').hidden = !sel; $('selDoc').hidden = !sel || !!ws.doc;
   ov.classList.toggle('sel', !!selTool);
   $('hint').textContent = xf ? XF_HINT : selTool === 'crypto' ? CRYPTO_HINT : maskEdit && !selTool ? MASK_HINT : selTool === 'fill' ? FILL_HINT : selTool ? SEL_HINT : S.smudge ? SMUDGE_HINT : HINT;
@@ -2164,7 +2238,8 @@ function openDoc(A) {   // A: {x, y, w, h} in canvas world px; A.blank makes an 
   if (act || stroke || ws.doc) return;
   settle();
   const { w, h } = A, b = { x0: A.x, y0: A.y };
-  const D = { name: 'Untitled ' + (++docSeq), doc: { w, h }, paper: S.paper, layers: [], groups: [], undo: [], redo: [], sel: null };
+  const D = { id: newDocId(), name: 'Untitled ' + (++docSeq), doc: { w, h }, paper: S.paper, layers: [], groups: [], undo: [], redo: [], sel: null, open: true,
+    at: freeSpot(A.x + A.w + Math.max(48, Math.round(Math.min(A.w, A.h) * 0.06)), A.y, w, h) };   // its board sits beside the area
   for (const L of A.blank ? [] : layers) {
     if (!shown(L) || !L.tiles.size) continue;
     const N = newLayer(L.name); N.doc = true; N.opacity = L.opacity;
@@ -2177,7 +2252,9 @@ function openDoc(A) {   // A: {x, y, w, h} in canvas world px; A.blank makes an 
   const z = clamp(Math.min(W * 0.84 / w, (H - 120) * 0.84 / h), 0.02 / dpr, 1 / dpr);   // fit to the window, at most 100%
   D.view = { z, x: W / 2 - w / 2 * z, y: H / 2 + 20 - h / 2 * z };
   docs.push(D); switchWS(D);
-  toast(D.name + ': ' + w + ' × ' + h + ' px, ' + D.layers.length + (D.layers.length > 1 ? ' layers' : ' layer') + '. It’s a copy; the canvas tab is unchanged.');
+  for (const L of D.layers) markSave(L, L.tiles.keys());
+  saveDocs();
+  toast(D.name + ': ' + w + ' × ' + h + ' px, ' + D.layers.length + (D.layers.length > 1 ? ' layers' : ' layer') + '. It’s a copy, saved with this drawing; on the canvas it sits beside the area.');
 }
 /* New doc makes the document straight away: the selection's bounds, or what's on screen. Size it afterwards. */
 const DOC_MAX = 16384;
@@ -2265,7 +2342,7 @@ function applyResize(e) {   // {kind:'resize', w, h, dx, dy}: move the content b
   const inv = { kind: 'resize', w: ws.doc.w, h: ws.doc.h, dx: -e.dx, dy: -e.dy };
   for (const L of layers) shiftLayer(L, e.dx, e.dy);
   sel = shiftSel(sel, e.dx, e.dy); selChanged();
-  ws.doc.w = e.w; ws.doc.h = e.h;
+  ws.doc.w = e.w; ws.doc.h = e.h; saveDocs();
   view.x -= e.dx * view.z; view.y -= e.dy * view.z;   // the content stays put on screen; the page edges move
   renderTabs(); dirtyScene();
   return inv;
@@ -2305,25 +2382,148 @@ function switchWS(t) {
   if (xf) xfEnd(true);
   settle(); if (anim) { cancelAnimationFrame(anim); anim = 0; }
   Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: normV(view), sel });
-  ws = t;
+  const old = ws; ws = t;
+  if (old.doc) { makeThumb(old); saveDocs(); }   // its board on the canvas shows the latest
   layers = t.layers; cur = t.cur; groups = t.groups; sel = t.sel;
   undoStack.push(...t.undo); redoStack.push(...t.redo); view.r = 0; view.flip = false; Object.assign(view, t.view); rotLayout(true);
   hl = null; if (noteMode) setNoteMode(false);
-  notesEl.hidden = !!t.doc; $('paper').style.background = paperColor(); if (CP.on === 'paper') closeCP();
+  notesEl.hidden = notesEl2.hidden = !!t.doc; $('paper').style.background = paperColor(); if (CP.on === 'paper') closeCP();
   $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc'; $('newDocMenu').hidden = !!t.doc;
   $('newDoc').title = t.doc ? 'Change the page size (Canvas Size)' : 'New document from the selection, or from what\'s on screen';
+  boardsEl.hidden = !!t.doc; overBoard = null; ov.classList.remove('brd'); boardKey = '';
   selChanged(); syncHistory(); renderLayers(); renderTabs(); updateZoomLabel(); dirtyScene();
 }
-function closeDoc(D) {
+function closeDoc(D) {   // closes the tab; the document stays on the canvas as a board
   if (ws === D) switchWS(canvasWS);
   if (ws === D) return;   // mid-stroke
+  D.open = false; renderTabs(); boardKey = ''; dirtyScene();
+  toast(D.name + ' closed. It’s still on the canvas: double-click it to open it again');
+}
+/* ---------- document boards (Ben, 2026-11-07: "integrated into the infinite canvas … double clicking to open it") ----------
+   Every document is saved with the drawing (meta in fkey('docs'), tiles in IndexedDB like any layer's) and shows on the
+   canvas as a board: a picture of its page at D.at (world px, 1:1), with its name above. Boards draw on their own canvas
+   (#boards, between the stage and the overlay), redrawn only when the view or a board changes, so they cost nothing
+   while drawing. Double-click opens it in a tab; drag moves it; right-click: Open, Delete. The tab's × only closes it. */
+var docTimer = 0, boardKey = '', boardGen = 0, overBoard = null, lastBoardClick = null;   // var: the frame loop can run before this line
+const newDocId = () => 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function saveDocs() { clearTimeout(docTimer); docTimer = setTimeout(writeDocs, 400); }
+function flushDocs() { if (docTimer) writeDocs(); }
+function writeDocs() {
+  docTimer = 0; if (fileGone) return;
+  LS.set(fkey('docs'), { nextId, seq: docSeq, list: docs.map(D => { const d = wsData(D); return {
+    id: D.id, name: D.name, w: D.doc.w, h: D.doc.h, paper: d.paper, at: D.at, view: d.view, active: d.cur && d.cur.id,
+    groups: d.groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, active: G.active })),
+    layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) }; }) });
+}
+function initDocs() {
+  const meta = LS.get(fkey('docs')); if (!meta || !Array.isArray(meta.list)) return;
+  docSeq = Math.max(docSeq, meta.seq || 0); nextId = Math.max(nextId, meta.nextId || 1);
+  for (const m of meta.list) {
+    const gs = (m.groups || []).map(G => ({ id: G.id, name: G.name, visible: G.visible !== false, open: G.open !== false, key: null, active: G.active }));
+    for (const G of gs) nextGid = Math.max(nextGid, G.id + 1);
+    const ls = (m.layers || []).map(o => {
+      const L = { id: o.id, name: o.name, visible: o.visible !== false, opacity: o.opacity == null ? 1 : o.opacity, tiles: new Map(), g: gs.some(G => G.id === o.g) ? o.g : null, blend: o.blend || 'normal', mods: Array.isArray(o.mods) ? o.mods : [], doc: true };
+      allLayers.set(L.id, L); nextId = Math.max(nextId, L.id + 1);
+      if (o.mask && o.mask.id) { L.mask = mkMask(L, o.mask.id); L.mask.on = o.mask.on !== false; }
+      return L;
+    });
+    if (!ls.length) { const L = { id: nextId++, name: 'Layer 1', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [], doc: true }; allLayers.set(L.id, L); ls.push(L); }
+    docs.push({ id: m.id || newDocId(), name: m.name || 'Untitled', doc: { w: m.w, h: m.h }, paper: m.paper || S.paper, at: m.at || { x: 0, y: 0 }, layers: ls, groups: gs,
+      undo: [], redo: [], sel: null, view: m.view || null, cur: ls.find(L => L.id === m.active) || ls[ls.length - 1], open: false });
+  }
+}
+function freeSpot(x, y, w, h) {   // the first spot at (x, y) or further right that no other board overlaps
+  x = Math.round(x); y = Math.round(y);
+  for (let i = 0; i < 200; i++) {
+    const hit = docs.find(D => D.at && x < D.at.x + D.doc.w + 32 && x + w + 32 > D.at.x && y < D.at.y + D.doc.h + 32 && y + h + 32 > D.at.y);
+    if (!hit) break; x = hit.at.x + hit.doc.w + 48;
+  }
+  return { x, y };
+}
+function makeThumb(D) {   // the page as it looks, at most 1536 px a side, blend modes and masks included
+  const d = wsData(D), w = D.doc.w, h = D.doc.h, s = Math.min(1, 1536 / Math.max(w, h));
+  const c = D.thumb && D.thumb.width === Math.max(1, Math.round(w * s)) && D.thumb.height === Math.max(1, Math.round(h * s)) ? D.thumb : mk(Math.max(1, Math.round(w * s)), Math.max(1, Math.round(h * s)));
+  const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  g.fillStyle = d.paper || S.paper; g.fillRect(0, 0, c.width, c.height);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.scale(c.width / w, c.height / h);
+  const gv = id => { const G = d.groups.find(x => x.id === id); return !G || G.visible; };
+  for (const L of d.layers) {
+    if (!L.visible || L.opacity <= 0 || (L.g && !gv(L.g))) continue;
+    const LM = maskedLayer(L), bk = L.mods && L.mods.length ? bakeCopies(LM) : null;
+    g.globalAlpha = L.opacity; g.globalCompositeOperation = blend2D(L.blend);
+    if (bk) for (const [k, cc] of bk) { const [tx, ty] = k.split(',').map(Number); g.drawImage(cc, tx * TILE, ty * TILE, TILE, TILE); }
+    else for (const [k, t] of LM.tiles) { if (t.blank) continue; const [tx, ty] = k.split(',').map(Number); g.drawImage(lodOf(t, TILE * s), tx * TILE, ty * TILE, TILE, TILE); }
+  }
+  D.thumb = c; boardGen++;
+}
+const boardRect = D => ({ x: D.at.x * view.z + view.x, y: D.at.y * view.z + view.y, w: D.doc.w * view.z, h: D.doc.h * view.z });
+function boardHit(x, y) {   // the page, or its name strip above it
+  for (let i = docs.length - 1; i >= 0; i--) { const D = docs[i], r = boardRect(D); if (x >= r.x && x <= r.x + r.w && y >= r.y - 22 && y <= r.y + r.h) return D; }
+  return null;
+}
+function drawBoards() {
+  if (ws.doc) return;
+  const key = [boardGen, docs.length, view.x, view.y, view.z, W, H, dpr, overBoard && overBoard.id, act && act.type === 'board' ? act.D.id : ''].join();
+  if (key === boardKey) return; boardKey = key;
+  const g = bctx; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, boardsEl.width, boardsEl.height);
+  if (!docs.length) return;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.font = '600 12px "Libre Franklin", "Franklin Gothic Medium", Arial, sans-serif'; g.textBaseline = 'middle';
+  for (const D of docs) {
+    const r = boardRect(D); if (r.x > W || r.y - 24 > H || r.x + r.w < 0 || r.y + r.h < 0) continue;
+    const hot = D === overBoard || (act && act.type === 'board' && act.D === D);
+    g.save(); g.shadowColor = 'rgba(8,16,28,.35)'; g.shadowBlur = 14; g.shadowOffsetY = 3; g.fillStyle = D.paper || '#808080'; g.fillRect(r.x, r.y, r.w, r.h); g.restore();
+    if (D.thumb) g.drawImage(D.thumb, r.x, r.y, r.w, r.h);
+    g.lineWidth = hot ? 2 : 1; g.strokeStyle = hot ? '#2d6cb0' : 'rgba(10,20,34,.55)'; g.strokeRect(r.x - (hot ? 1 : 0.5), r.y - (hot ? 1 : 0.5), r.w + (hot ? 2 : 1), r.h + (hot ? 2 : 1));
+    const label = D.name + '  ' + D.doc.w + ' × ' + D.doc.h, tw = Math.min(g.measureText(label).width + 12, Math.max(60, r.w));
+    g.fillStyle = hot ? '#2d6cb0' : 'rgba(12,20,32,.82)'; g.fillRect(r.x, r.y - 21, tw, 18);
+    g.save(); g.beginPath(); g.rect(r.x, r.y - 21, tw, 18); g.clip(); g.fillStyle = '#fff'; g.fillText(label, r.x + 6, r.y - 12); g.restore();
+  }
+}
+function boardHover(e) {
+  const D = !ws.doc && !flt && !xf && docs.length && !spaceHeld && e.pointerType !== 'touch' ? boardHit(e.clientX, e.clientY) : null;
+  if (D === overBoard) return;
+  overBoard = D; ov.classList.toggle('brd', !!D); dirtyScene();
+}
+function openBoard(D) {
+  if (!D.view) { const z = clamp(Math.min(W * 0.84 / D.doc.w, (H - 120) * 0.84 / D.doc.h), 0.02 / dpr, 1 / dpr); D.view = { z, x: W / 2 - D.doc.w / 2 * z, y: H / 2 + 20 - D.doc.h / 2 * z }; }
+  D.open = true; switchWS(D);
+}
+function boardDown(e, D, x, y) {
+  if (e.button === 2) {   // right-click: a small menu at the pointer
+    const rx = e.rawX ?? e.clientX, ry = e.rawY ?? e.clientY;
+    showMenu({ getBoundingClientRect: () => ({ left: rx, right: rx, top: ry, bottom: ry - 6 }) }, [
+      { label: 'Open ' + D.name, sub: 'double-click', fn: () => openBoard(D) },
+      { label: 'Delete document…', fn: () => deleteBoard(D) }]);
+    return;
+  }
+  act = { type: 'board', id: e.pointerId, D, sx: x, sy: y, ax: D.at.x, ay: D.at.y, moved: false };
+  docs = docs.filter(o => o !== D); docs.push(D);   // to the top
+  ov.classList.add('mv'); boardKey = ''; dirtyScene();
+}
+function boardMove(A, e) {
+  const dx = e.clientX - A.sx, dy = e.clientY - A.sy;
+  if (!A.moved && Math.hypot(dx, dy) < 4) return;
+  A.moved = true; A.D.at = { x: Math.round(A.ax + dx / view.z), y: Math.round(A.ay + dy / view.z) }; boardGen++; dirtyScene();
+}
+function boardUp(A) {
+  ov.classList.remove('mv'); boardKey = ''; dirtyScene();
+  if (A.moved) { saveDocs(); lastBoardClick = null; return; }
+  const now = performance.now();
+  if (lastBoardClick && lastBoardClick.D === A.D && now - lastBoardClick.t < 450) { lastBoardClick = null; setTimeout(() => openBoard(A.D)); return; }
+  lastBoardClick = { D: A.D, t: now };
+}
+async function deleteBoard(D) {
+  if (!(await ask('Delete “' + D.name + '”? Its layers are removed from this drawing. This can’t be undone.', 'Delete'))) return;
+  if (ws === D) switchWS(canvasWS);
   docs = docs.filter(o => o !== D);
-  for (const L of D.layers) allLayers.delete(L.id);
-  renderTabs(); toast(D.name + ' closed');
+  for (const L of D.layers) for (const X of L.mask ? [L, L.mask] : [L]) { for (const k of X.tiles.keys()) saveSet.add(X.id + ':' + k); allLayers.delete(X.id); }
+  markSave(layers[0], []); saveDocs(); overBoard = null; ov.classList.remove('brd'); boardGen++; renderTabs(); dirtyScene();
+  toast(D.name + ' deleted');
 }
 function renderTabs() {
-  const el = $('tabs'); el.hidden = !docs.length; el.innerHTML = '';
-  for (const D of [canvasWS, ...docs]) {
+  const open = docs.filter(D => D.open || D === ws), el = $('tabs'); el.hidden = !open.length; el.innerHTML = '';
+  for (const D of [canvasWS, ...open]) {
     const b = document.createElement('button'); b.className = 'btn tab' + (D === ws ? ' on' : '');
     b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', D === ws);
     b.textContent = D.name;
@@ -2331,12 +2531,8 @@ function renderTabs() {
     b.onclick = () => switchWS(D);
     el.appendChild(b);
     if (!D.doc) continue;
-    const x = document.createElement('button'); x.className = 'btn sm tabx'; x.textContent = '×'; x.title = 'Close ' + D.name + ' (documents aren’t saved)'; x.setAttribute('aria-label', 'Close ' + D.name);
-    x.onclick = () => {   // two clicks, since closing throws the document away
-      if (x.dataset.arm) { closeDoc(D); return; }
-      x.dataset.arm = 1; x.textContent = 'Close?'; x.classList.add('warn');
-      setTimeout(() => { delete x.dataset.arm; x.textContent = '×'; x.classList.remove('warn'); }, 3000);
-    };
+    const x = document.createElement('button'); x.className = 'btn sm tabx'; x.textContent = '×'; x.title = 'Close ' + D.name + ' (it’s saved, and stays on the canvas)'; x.setAttribute('aria-label', 'Close ' + D.name);
+    x.onclick = () => closeDoc(D);
     el.appendChild(x);
   }
 }
@@ -2772,7 +2968,8 @@ function guideNear(wx, wy) {
 }
 function guideHandles() {
   const out = GUIDE_OUT / view.z;
-  return [{ k: 'c', p: [guide.cx, guide.cy] }, { k: 'a', p: guideWorld(1 + out / guide.rx, 0) }, { k: 'b', p: guideWorld(0, -1 - out / guide.ry) }];
+  const q = Math.SQRT1_2, [ex, ey] = guideWorld(q, q), dx = ex - guide.cx, dy = ey - guide.cy, dl = Math.hypot(dx, dy) || 1;   // diamond: uniform scale, outside the ellipse at 45°
+  return [{ k: 'c', p: [guide.cx, guide.cy] }, { k: 'a', p: guideWorld(1 + out / guide.rx, 0) }, { k: 'b', p: guideWorld(0, -1 - out / guide.ry) }, { k: 'u', p: [ex + dx / dl * out, ey + dy / dl * out] }];
 }
 function guideHit(x, y) {
   if (!guide.on) return null;
@@ -2787,6 +2984,10 @@ function dragGuide(A, e) {
     const dx = w.x - guide.cx, dy = w.y - guide.cy;
     guide.rot = Math.atan2(dy, dx); if (e.shiftKey) guide.rot = Math.round(guide.rot / (Math.PI / 12)) * (Math.PI / 12);   // Shift: 15° steps
     guide.rx = Math.max(4, Math.hypot(dx, dy) - out);
+  } else if (A.h.k === 'u') {   // uniform: scale both radii about the center, keeping the shape and the angle
+    if (!A.r0) A.r0 = [guide.rx, guide.ry];
+    const d = Math.hypot(w.x - guide.cx, w.y - guide.cy) - out, k = Math.max(4 / Math.min(A.r0[0], A.r0[1]), d / (Math.SQRT1_2 * Math.hypot(A.r0[0], A.r0[1])));
+    guide.rx = A.r0[0] * k; guide.ry = A.r0[1] * k;
   } else {
     const [, v] = guideLocal(w.x, w.y);
     guide.ry = Math.max(4, Math.abs(v) * guide.ry - out);
@@ -2801,12 +3002,12 @@ function drawGuide() {
   octx.strokeStyle = light ? 'rgba(27,37,50,0.35)' : 'rgba(255,255,255,0.5)'; octx.lineWidth = 1;
   octx.beginPath(); octx.ellipse(sx, sy, guide.rx * view.z, guide.ry * view.z, guide.rot, 0, Math.PI * 2); octx.stroke();
   octx.setLineDash([3, 4]); octx.beginPath();
-  for (const h of guideHandles().slice(1)) { octx.moveTo(sx, sy); octx.lineTo(h.p[0] * view.z + view.x, h.p[1] * view.z + view.y); }
+  for (const h of guideHandles().slice(1, 3)) { octx.moveTo(sx, sy); octx.lineTo(h.p[0] * view.z + view.x, h.p[1] * view.z + view.y); }
   octx.stroke(); octx.setLineDash([]);
   for (const h of guideHandles()) {
     const x = h.p[0] * view.z + view.x, y = h.p[1] * view.z + view.y;
     octx.fillStyle = '#fff'; octx.strokeStyle = '#2d6cb0'; octx.lineWidth = 1.5; octx.beginPath();
-    if (h.k === 'c') { octx.arc(x, y, 4, 0, Math.PI * 2); } else if (h.k === 'a') octx.rect(x - 4.5, y - 4.5, 9, 9); else octx.arc(x, y, 5, 0, Math.PI * 2);
+    if (h.k === 'c') { octx.arc(x, y, 4, 0, Math.PI * 2); } else if (h.k === 'a') octx.rect(x - 4.5, y - 4.5, 9, 9); else if (h.k === 'u') { octx.moveTo(x, y - 6); octx.lineTo(x + 6, y); octx.lineTo(x, y + 6); octx.lineTo(x - 6, y); octx.closePath(); } else octx.arc(x, y, 5, 0, Math.PI * 2);
     octx.fill(); octx.stroke();
   }
   octx.restore();
@@ -2837,11 +3038,10 @@ function idb(mode, fn) {
 }
 /* quiet: the change came from the drawing session, or it's a stroke the session gets on its own */
 function markSave(layer, keys, quiet) {
-  if (layer.doc) return;
   const ks = [...keys];
   for (const k of ks) saveSet.add(layer.id + ':' + k);
   clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 1000);
-  if (C && C.ready && !quiet && !C.applying) collabTiles(layer, ks);
+  if (C && C.ready && !quiet && !C.applying && !layer.doc) collabTiles(layer, ks);
 }
 let dbP = null;
 const getDB = () => dbP || (dbP = idbOpen().then(d => (db = d)));
@@ -2906,14 +3106,14 @@ function frame() {
     if (GL) uploadStroke(); else flushStroke();
   }
   if (bakeQ.length) bakeSome();
-  if (sceneRect) { const r = sceneRect; sceneRect = null; R.render(r === 'all' ? null : r); layoutNotes(); }
+  if (sceneRect) { const r = sceneRect; sceneRect = null; R.render(r === 'all' ? null : r); layoutNotes(); drawBoards(); }
   if (needOverlay) { needOverlay = false; drawOverlay(); }
 }
 const toWorld = (sx, sy) => ({ x: (sx - view.x) / view.z, y: (sy - view.y) / view.z });
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 3);
   W = cv.clientWidth; H = cv.clientHeight;
-  for (const c of [cv, ov]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  for (const c of [cv, ov, boardsEl]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
   updateZoomLabel(); dirtyScene();
 }
 /* ---------- canvas rotation ----------
@@ -2937,7 +3137,7 @@ function unrot(x, y) {
 const normV = v => ({ ...v, x: v.x - (W - innerWidth) / 2, y: v.y - (H - innerHeight) / 2 });   // the active view as if not rotated
 function rotLayout(fromNormal) {
   const D = view.r || view.flip || keepRot ? Math.ceil(Math.hypot(innerWidth, innerHeight)) + 2 : 0;
-  for (const el of [cv, ov, notesEl]) {
+  for (const el of [cv, boardsEl, ov, notesEl, $('notes2')]) {
     const st = el.style;
     if (D) { st.width = st.height = D + 'px'; st.left = (innerWidth - D) / 2 + 'px'; st.top = (innerHeight - D) / 2 + 'px'; st.right = st.bottom = 'auto'; st.transform = 'rotate(' + (view.r || 0) + 'rad)' + (view.flip ? ' scaleX(-1)' : ''); }
     else st.width = st.height = st.left = st.top = st.right = st.bottom = st.transform = '';
@@ -2957,7 +3157,7 @@ function patchEv(e) {
   if (e.getCoalescedEvents) { const g = e.getCoalescedEvents.bind(e); e.getCoalescedEvents = () => g().map(patchEv); }
   return e;
 }
-for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'wheel']) document.addEventListener(t, e => { if (e.target === ov || notesEl.contains(e.target)) patchEv(e); }, true);
+for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'wheel']) document.addEventListener(t, e => { if (e.target === ov || notesEl.contains(e.target) || notesEl2.contains(e.target)) patchEv(e); }, true);
 const rawAng = e => Math.atan2((e.rawY ?? e.clientY) - innerHeight / 2, (e.rawX ?? e.clientX) - innerWidth / 2);
 function setRot(r) { view.r = r; rotLayout(); saveSettings(); }
 
@@ -3298,7 +3498,7 @@ function drawOverlay() {
   if (C && C.ready && !ws.doc) drawPeers();
   if (act && act.type === 'resize') { ring(act.ax, act.ay, S.size / 2 * view.z, 1); return; }
   if (hover && hover.type !== 'touch' && !spaceHeld && (act ? act.type === 'pick' : altHeld && !selTool && !xf)) { drawPicker(hover.x, hover.y, act ? act.prev : S.color); return; }
-  if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode && !selTool && !xf) {
+  if (hover && hover.type !== 'touch' && !(act && act.type !== 'draw') && !spaceHeld && !noteMode && !selTool && !xf && !overBoard) {
     const r = S.size / 2 * view.z;
     ring(hover.x, hover.y, r, 1);
     if (sym.mode !== 'off') {
@@ -3400,7 +3600,13 @@ let act = null, penSeen = false, spaceHeld = false, altHeld = false, gest = null
 const virt = { line: false, pick: false };   // the touch dock's Line / Pick buttons, standing in for Shift / Alt
 const touches = new Map();
 const pressureOf = e => e.pointerType === 'mouse' || e.pointerType === 'touch' ? 1 : (e.pressure > 0 ? e.pressure : 0.04);
-function updateZoomLabel() { $('zoomOut').textContent = Math.round(view.z * dpr * 100) + '%'; }
+function curDocSafe() { try { return ws.doc; } catch (e) { return null; } }   // updateZoomLabel can run before ws exists
+function updateZoomLabel() {   // zoom, plus how many canvas pixels the screen is showing right now
+  const w = Math.round(innerWidth / view.z), h = Math.round(innerHeight / view.z);
+  $('zoomOut').textContent = Math.round(view.z * dpr * 100) + '%';
+  $('resOut').textContent = w + ' × ' + h + ' px';
+  $('resOut').title = 'On screen: ' + w + ' × ' + h + ' canvas pixels (your display: ' + Math.round(innerWidth * dpr) + ' × ' + Math.round(innerHeight * dpr) + ' px' + (curDocSafe() ? '; page ' + curDocSafe().w + ' × ' + curDocSafe().h + ' px' : '') + ')';
+}
 function setView(z, wx, wy, sx, sy) { view.z = clamp(z, 0.02 / dpr, 32 / dpr); view.x = sx - wx * view.z; view.y = sy - wy * view.z; updateZoomLabel(); dirtyScene(); }
 function zoomAt(sx, sy, z) { const w = toWorld(sx, sy); setView(z, w.x, w.y, sx, sy); saveSettings(); }
 /* pinch zooms; a twist past 8° also turns the canvas (it snaps straight near 0°) */
@@ -3437,7 +3643,11 @@ function selDown(e, x, y) {
    A finger-painting smudge. The brush carries a patch of paint (C, premultiplied floats, in brush-local pixels). At each dab
    the canvas under the brush moves toward the carried paint, and the carried paint picks up a little of the canvas.
    Dabs sit on whole pixels, so the carried patch is never resampled: smears stay sharp instead of going soft.
-   Strength (the opacity slider) is how long the paint keeps: 100% drags a stroke's paint the whole way.
+   Two modes (S.smMode). Blend (default; Ben, 2026-11-07: "more a way to blend between two colors"): each pass moves only
+   part of the way toward the carried paint (normalised by distance, so speed and size don't change it), the carried paint
+   refreshes within a fraction of the brush radius, and it leans toward the brush's average color, so edges turn into
+   gradients instead of being dragged. Strength = how much it blends. Smear: the old finger-painting pull, where Strength
+   is how long the paint keeps (100% drags a stroke's paint the whole way).
    It works straight on the layer's tile pixels (read once per tile per stroke), clipped to the selection, one undo step. */
 let SM = null;
 function smTile(k, make) {
@@ -3456,14 +3666,19 @@ function startSmudge(x, y, p) {
   const L = paintL(), Rm = Math.max(1, Math.round(S.size / 2));
   if (Rm > 400) toast('Big smudges are slow: try a smaller size');
   SM = { L, Rm, D: Rm * 2 + 1, tiles: new Map(), hist: { kind: 'tiles', layer: L, map: new Map() }, x: Math.round(x), y: Math.round(y), p, fx: x, fy: y, first: true };
-  SM.C = new Float32Array(SM.D * SM.D * 4);
-  smDab(SM.x, SM.y, p);
+  SM.C = new Float32Array(SM.D * SM.D * 4); SM.mean = null;
+  smDab(SM.x, SM.y, p, 0);
   smFlush();
 }
 /* one dab at whole-pixel (cx, cy) */
-function smDab(cx, cy, p) {
+function smDab(cx, cy, p, st) {   // st: whole-pixel distance moved since the last dab
   const M = SM, r = Math.max(0.5, M.Rm * (S.pSize ? Math.max(0.15, p) : 1)), Rm = M.Rm, D = M.D, C = M.C;
-  const keep = S.opacity, pick = 0.015 + 0.6 * (1 - keep) * (1 - keep), amt = S.pOpac ? Math.min(1, 0.25 + p) : 1;
+  const keep = S.opacity, amt = S.pOpac ? Math.min(1, 0.25 + p) : 1, blend = S.smMode !== 'smear';
+  // blend: dep = per-dab share, so one pass over a pixel moves it about T of the way; the carry forgets over ~len px
+  const T = 0.15 + 0.82 * keep, dep = blend ? 1 - Math.pow(1 - T, st / (2 * r)) : 1;
+  const pick = blend ? 1 - Math.exp(-st / Math.max(1, Rm * (0.15 + 0.35 * keep))) : 0.015 + 0.6 * (1 - keep) * (1 - keep);
+  const mn = blend && M.mean, mix = 0.6;   // how far the carry leans toward the last dab's average color
+  let sr = 0, sg = 0, sb = 0, sa = 0, sw = 0;
   const ri = Math.ceil(r), x0 = cx - ri, y0 = cy - ri, x1 = cx + ri, y1 = cy + ri;
   for (let ty = Math.floor(y0 / TILE); ty <= Math.floor(y1 / TILE); ty++) for (let tx = Math.floor(x0 / TILE); tx <= Math.floor(x1 / TILE); tx++) {
     const k = tkey(tx, ty), ox = tx * TILE, oy = ty * TILE;
@@ -3479,12 +3694,19 @@ function smDab(cx, cy, p) {
         const ci = ci0 + dx * 4, i = (li + X - ox) * 4;
         let pr = 0, pg = 0, pb = 0, pa = 0;
         if (d) { pa = d[i + 3] / 255; pr = d[i] * pa; pg = d[i + 1] * pa; pb = d[i + 2] * pa; }
+        const t = dd / r, f = (1 - t * t), fs = f * f * (3 - 2 * f);
+        if (blend) { sr += pr * fs; sg += pg * fs; sb += pb * fs; sa += pa * fs; sw += fs; }
         if (M.first) { C[ci] = pr; C[ci + 1] = pg; C[ci + 2] = pb; C[ci + 3] = pa; continue; }   // pen-down: pick up what's there
-        const t = dd / r, f = (1 - t * t), mv = typeof sm === 'number' ? sm : sm[li + X - ox];
-        const w = f * f * (3 - 2 * f) * amt * mv / 255;
-        if (w <= 0.002) continue;
-        const nr = pr + (C[ci] - pr) * w, ng = pg + (C[ci + 1] - pg) * w, nb = pb + (C[ci + 2] - pb) * w, na = pa + (C[ci + 3] - pa) * w;
-        C[ci] += (nr - C[ci]) * pick; C[ci + 1] += (ng - C[ci + 1]) * pick; C[ci + 2] += (nb - C[ci + 2]) * pick; C[ci + 3] += (na - C[ci + 3]) * pick;
+        const mv = typeof sm === 'number' ? sm : sm[li + X - ox];
+        const w = fs * amt * mv / 255 * dep;
+        if (w <= 0.0005) continue;
+        let cr = C[ci], cg = C[ci + 1], cb = C[ci + 2], ca = C[ci + 3];
+        if (mn) { cr += (mn[0] - cr) * mix; cg += (mn[1] - cg) * mix; cb += (mn[2] - cb) * mix; ca += (mn[3] - ca) * mix; }   // blend: paint toward the local average
+        const nr = pr + (cr - pr) * w, ng = pg + (cg - pg) * w, nb = pb + (cb - pb) * w, na = pa + (ca - pa) * w;
+        if (mn) {   // the carry picks up the canvas, leaned toward the brush's average color
+          const tr = nr + (mn[0] - nr) * mix, tg = ng + (mn[1] - ng) * mix, tb = nb + (mn[2] - nb) * mix, ta = na + (mn[3] - na) * mix;
+          C[ci] += (tr - C[ci]) * pick; C[ci + 1] += (tg - C[ci + 1]) * pick; C[ci + 2] += (tb - C[ci + 2]) * pick; C[ci + 3] += (ta - C[ci + 3]) * pick;
+        } else { C[ci] += (nr - C[ci]) * pick; C[ci + 1] += (ng - C[ci + 1]) * pick; C[ci + 2] += (nb - C[ci + 2]) * pick; C[ci + 3] += (na - C[ci + 3]) * pick; }
         if (!e) { if (na < 0.002) continue; e = smTile(k, true); }
         const q = e.im.data;
         if (na > 0.001) { q[i] = nr / na; q[i + 1] = ng / na; q[i + 2] = nb / na; } q[i + 3] = na * 255;
@@ -3494,6 +3716,7 @@ function smDab(cx, cy, p) {
     if (wrote) { const lx0 = ax - ox, ly0 = ay - oy, lx1 = bx - ox + 1, ly1 = by - oy + 1; if (lx0 < e.x0) e.x0 = lx0; if (ly0 < e.y0) e.y0 = ly0; if (lx1 > e.x1) e.x1 = lx1; if (ly1 > e.y1) e.y1 = ly1; }
   }
   M.first = false;
+  if (blend && sw > 0) M.mean = [sr / sw, sg / sw, sb / sw, sa / sw];
 }
 /* follow the pen: smoothed a little (the brush's smoothing), then dabs every few whole pixels along the way */
 function smudgeTo(x, y, p) {
@@ -3505,7 +3728,7 @@ function smudgeTo(x, y, p) {
     const nx = Math.round(M.x + dx / len * step), ny = Math.round(M.y + dy / len * step);
     if (nx === M.x && ny === M.y) break;
     // shift the carried patch by the whole-pixel move, so what's carried stays put relative to the brush
-    smDab(nx, ny, M.p); M.x = nx; M.y = ny;
+    smDab(nx, ny, M.p, Math.hypot(nx - M.x, ny - M.y)); M.x = nx; M.y = ny;
     dx = M.fx - M.x; dy = M.fy - M.y; len = Math.hypot(dx, dy);
   }
 }
@@ -3548,6 +3771,7 @@ ov.addEventListener('pointerdown', e => {
   if (rHeld) { act = { type: 'rot', id: e.pointerId, a0: rawAng(e), r0: view.r || 0, moved: false }; keepRot = true; rotLayout(); return; }
   if (spaceHeld && (e.ctrlKey || e.metaKey)) { act = { type: 'zoom', id: e.pointerId, ax: x, ay: y, z0: view.z, w: toWorld(x, y) }; return; }
   if (e.button === 1 || spaceHeld) { act = { type: 'pan', id: e.pointerId, lx: x, ly: y }; ov.classList.add('grabbing'); return; }
+  if (!ws.doc && !flt && !xf && docs.length && !e.altKey && !e.ctrlKey && !e.metaKey && !virt.pick) { const D = boardHit(x, y); if (D) { boardDown(e, D, x, y); return; } }
   if (e.button === 2) return;
   if (flt) return;   // a filter is open: only pan and zoom
   if (xf) { xfDown(e, x, y); return; }
@@ -3578,7 +3802,7 @@ ov.addEventListener('pointermove', e => {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY, rx: e.rawX ?? e.clientX, ry: e.rawY ?? e.clientY });
     const g = gest && gest.at.get(e.pointerId); if (g && Math.hypot(e.clientX - g.x, e.clientY - g.y) > 14) gest.moved = true;
   }
-  if (!act) { altHeld = e.altKey; if (xf) xfCursor(e.clientX, e.clientY); dirtyOverlay(); return; }
+  if (!act) { altHeld = e.altKey; if (xf) xfCursor(e.clientX, e.clientY); boardHover(e); dirtyOverlay(); return; }
   if (act.type === 'pinch') { if (touches.size >= 2) movePinch(); return; }
   if (e.pointerId !== act.id) return;
   switch (act.type) {
@@ -3589,6 +3813,7 @@ ov.addEventListener('pointermove', e => {
     case 'modh': dragModHandle(act, e); break;
     case 'rot': { const d = angWrap(rawAng(e) - act.a0); if (Math.abs(d) > 0.01) act.moved = true; view.r = snapRot(act.r0 + d, e.shiftKey); rotLayout(); break; }
     case 'guideh': dragGuide(act, e); break;
+    case 'board': boardMove(act, e); break;
     case 'axis': { const w = toWorld(e.clientX, e.clientY); sym.cx = w.x; sym.cy = w.y; dirtyOverlay(); break; }
     case 'pick': pickAt(e.clientX, e.clientY); break;
     case 'sel': {
@@ -3643,6 +3868,7 @@ function pointerEnd(e) {
   else if (act.type === 'move') { const A = act; act = null; endMove(A); }
   else if (act.type === 'modh') { saveLayers(); renderMods(); }
   else if (act.type === 'guideh') saveGuide();
+  else if (act.type === 'board') boardUp(act);
   else if (act.type === 'rot') { keepRot = false; if (!act.moved) { view.r = 0; toast('Rotation reset'); } rotLayout(); }
   else if (act.type === 'pick') { if (virt.pick) setVirt('pick', false); if (S.color !== act.prev) addRecent(S.color); }
   act = null; ov.classList.remove('grabbing'); saveSettings(); dirtyOverlay();
@@ -3662,9 +3888,13 @@ ov.addEventListener('wheel', onWheel, { passive: false });
 /* ---------- notes ----------
    Text notes pinned to the canvas: DOM cards placed in world space (they pan and zoom with the drawing).
    They're only repositioned when the view changes, never during a stroke. Not part of the PNG export. */
-const notesEl = $('notes');
+const notesEl = $('notes'), notesEl2 = $('notes2');
 let notes = [], noteMode = false, noteSeq = 0, notesTimer = 0, noteView = '';
-function writeNotes() { notesTimer = 0; if (fileGone) return; LS.set(fkey('notes'), notes.filter(n => n.text.trim()).map(n => ({ id: n.id, x: n.x, y: n.y, text: n.text }))); collabNotes(); }
+/* a note: {id, x, y, text} plus optional w, h (card px at 100%), bg (hex or none = clear), a (opacity 0–1), fs (text px) */
+const NOTE_KEYS = ['w', 'h', 'bg', 'a', 'fs'];
+function noteOut(n) { const o = { id: n.id, x: n.x, y: n.y, text: n.text }; for (const k of NOTE_KEYS) if (n[k] != null) o[k] = n[k]; return o; }
+function noteIn(m, id) { const n = { id: id != null ? id : m.id, x: m.x, y: m.y, text: m.text || '' }; for (const k of NOTE_KEYS) if (m[k] != null) n[k] = m[k]; return n; }
+function writeNotes() { notesTimer = 0; if (fileGone) return; LS.set(fkey('notes'), notes.filter(n => n.text.trim()).map(noteOut)); collabNotes(); }
 function saveNotes() { clearTimeout(notesTimer); notesTimer = setTimeout(writeNotes, 300); }
 function flushNotes() { if (notesTimer) { clearTimeout(notesTimer); writeNotes(); } }
 function placeNote(n) { n.el.style.transform = `translate(${n.x * view.z + view.x}px, ${n.y * view.z + view.y}px) scale(${view.z * dpr})`; }
@@ -3675,15 +3905,24 @@ function layoutNotes() {
 }
 function mountNote(n) {
   const el = document.createElement('div'); el.className = 'note-card';
-  el.innerHTML = '<div class="grip" title="Drag to move"><button class="nx" title="Delete note" aria-label="Delete note">×</button></div><textarea rows="1" placeholder="Note" aria-label="Note"></textarea>';
-  const ta = el.querySelector('textarea'), grip = el.querySelector('.grip');
+  el.innerHTML = '<div class="grip" title="Drag to move"><button class="nst" title="Color, transparency and text size" aria-label="Note style"><i></i></button><button class="nx" title="Delete note" aria-label="Delete note">×</button></div><textarea rows="1" placeholder="Note" aria-label="Note"></textarea><div class="nrs" title="Drag to resize (double-click: standard size)"></div>';
+  const ta = el.querySelector('textarea'), grip = el.querySelector('.grip'), rs = el.querySelector('.nrs');
   ta.value = n.text;
   const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+  n.fit = fit;
+  rs.addEventListener('pointerdown', e => {   // resize from the corner, in card px (they scale with the zoom like the card)
+    e.preventDefault(); e.stopPropagation(); try { rs.setPointerCapture(e.pointerId); } catch (_) {}
+    const k = view.z * dpr, sx = e.clientX, sy = e.clientY, w0 = n.w || 220, h0 = el.offsetHeight;
+    rs.onpointermove = ev => { n.w = Math.round(clamp(w0 + (ev.clientX - sx) / k, 90, 2400)); n.h = Math.round(clamp(h0 + (ev.clientY - sy) / k, 30, 4000)); styleNote(n); fit(); };
+    rs.onpointerup = rs.onpointercancel = () => { rs.onpointermove = null; saveNotes(); };
+  });
+  rs.ondblclick = () => { delete n.w; delete n.h; styleNote(n); fit(); saveNotes(); };
+  el.querySelector('.nst').onclick = ev => { ev.stopPropagation(); openNotePop(n, ev.currentTarget); };
   ta.addEventListener('input', () => { n.text = ta.value; fit(); saveNotes(); });
   ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur(); });
   ta.addEventListener('blur', () => { if (!n.text.trim()) removeNote(n); });   // empty notes disappear
   grip.addEventListener('pointerdown', e => {
-    if (e.target.closest('.nx')) return;
+    if (e.target.closest('.nx, .nst')) return;
     e.preventDefault(); grip.setPointerCapture(e.pointerId);
     const sx = e.clientX, sy = e.clientY, x0 = n.x, y0 = n.y;
     grip.onpointermove = ev => { n.x = x0 + (ev.clientX - sx) / view.z; n.y = y0 + (ev.clientY - sy) / view.z; placeNote(n); };
@@ -3691,22 +3930,65 @@ function mountNote(n) {
   });
   el.querySelector('.nx').onclick = () => { const had = n.text.trim(); removeNote(n); if (had) toast('Note deleted'); };
   el.addEventListener('wheel', onWheel, { passive: false });
-  n.el = el; notesEl.appendChild(el); placeNote(n); fit();
+  n.el = el; notesEl.appendChild(el); styleNote(n); placeNote(n); fit();
   return ta;
 }
-addEventListener('pagehide', () => { flushSettings(); flushNotes(); flushSave(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSettings(); flushNotes(); flushSave(); saveThumb(); } });
+addEventListener('pagehide', () => { flushSettings(); flushNotes(); flushDocs(); flushSave(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSettings(); flushNotes(); flushDocs(); flushSave(); saveThumb(); } });
 document.addEventListener('gesturestart', e => e.preventDefault());   // Safari: no page pinch-zoom over the toolbar
-function removeNote(n) { if (!notes.includes(n)) return; n.el.remove(); notes = notes.filter(o => o !== n); saveNotes(); }
+/* a filled note sits on the normal layer (#notes2) so its color shows as picked; a clear one multiplies like ink */
+function styleNote(n) {
+  const el = n.el, ta = el.querySelector('textarea'), a = n.a != null ? n.a : 0.85, fill = !!n.bg && a > 0.02;
+  el.style.width = (n.w || 220) + 'px';
+  ta.style.minHeight = n.h ? Math.max(16, n.h - 16) + 'px' : '';
+  el.style.fontSize = (n.fs || 14) + 'px';
+  if (fill) {
+    const [r, g, b] = hexToRgb(n.bg), lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255, dark = lum * a + 0.5 * (1 - a) < 0.5;
+    el.style.background = 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+    el.style.borderColor = 'rgba(' + Math.round(r * 0.55) + ',' + Math.round(g * 0.55) + ',' + Math.round(b * 0.55) + ',' + Math.min(1, a + 0.3) + ')';
+    el.style.color = dark ? '#f3f6f9' : '#1b2532'; el.classList.toggle('dark', dark);
+  } else { el.style.background = el.style.borderColor = el.style.color = ''; el.classList.remove('dark'); }
+  el.querySelector('.nst i').style.background = fill ? n.bg : 'transparent';
+  const host = fill ? notesEl2 : notesEl; if (el.parentNode !== host) host.appendChild(el);
+}
+const NOTE_COLORS = ['#e9edf2', '#56677a', '#2b3440', '#3c6ea8', '#2e8f8a', '#4d8a3e', '#8a8f3c', '#c9a227', '#c46b2d', '#b0413e', '#a2457a', '#6b4fa0'];
+let notePopFor = null;
+function openNotePop(n, btn) {
+  const P = $('notePop'); notePopFor = n;
+  const sync = () => {
+    $('npA').value = Math.round((n.a != null ? n.a : 0.85) * 100); $('npAOut').textContent = $('npA').value + '%';
+    $('npFs').value = n.fs || 14; $('npFsOut').textContent = (n.fs || 14) + 'px';
+    for (const b of $('npSw').children) b.classList.toggle('on', (b.dataset.c || null) === (n.bg || null));
+  };
+  const upd = () => { styleNote(n); n.fit && n.fit(); sync(); saveNotes(); };
+  $('npSw').innerHTML = '';
+  for (const c of [null, ...NOTE_COLORS]) {
+    const b = document.createElement('button'); b.className = 'sw' + (c ? '' : ' clear'); if (c) { b.style.background = c; b.dataset.c = c; }
+    b.title = c ? c : 'Clear: see-through ink that multiplies into the drawing'; b.setAttribute('aria-label', b.title);
+    b.onclick = () => { if (c) n.bg = c; else delete n.bg; upd(); }; $('npSw').appendChild(b);
+  }
+  $('npA').oninput = () => { n.a = $('npA').value / 100; upd(); };
+  $('npFs').oninput = () => { n.fs = +$('npFs').value; upd(); };
+  $('npDef').onclick = () => { S.noteStyle = { bg: n.bg || null, a: n.a, fs: n.fs, w: n.w }; saveSettings(); toast('New notes will look like this one'); };
+  $('npSize').onclick = () => { delete n.w; delete n.h; upd(); };
+  sync(); P.hidden = false;
+  const r = btn.getBoundingClientRect();
+  P.style.left = clamp(r.left - 8, 8, innerWidth - P.offsetWidth - 8) + 'px'; P.style.top = clamp(r.bottom + 6, 8, innerHeight - P.offsetHeight - 8) + 'px';
+}
+function closeNotePop() { $('notePop').hidden = true; notePopFor = null; }
+document.addEventListener('pointerdown', e => { if (!$('notePop').hidden && !$('notePop').contains(e.target) && !e.target.closest('.nst')) closeNotePop(); }, true);
+$('notePop').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') closeNotePop(); });
+function removeNote(n) { if (!notes.includes(n)) return; if (notePopFor === n) closeNotePop(); n.el.remove(); notes = notes.filter(o => o !== n); saveNotes(); }
 function addNote(sx, sy) {
-  const w = toWorld(sx, sy), n = { id: (noteSeq = collabId(noteSeq + 1)), x: w.x, y: w.y, text: '' };
+  const w = toWorld(sx, sy), n = { id: (noteSeq = collabId(noteSeq + 1)), x: w.x, y: w.y, text: '' }, d = S.noteStyle;
+  if (d) { if (d.bg) n.bg = d.bg; if (d.a != null) n.a = d.a; if (d.fs) n.fs = d.fs; if (d.w) n.w = d.w; }
   notes.push(n); const ta = mountNote(n);
   setNoteMode(false); hideWelcome();
   setTimeout(() => ta.focus());
 }
 function setNoteMode(on) { if (on && ws.doc) { toast('Notes live on the canvas tab'); return; } if (on && selTool) { selTool = null; syncSelUI(); } noteMode = on; $('tNote').classList.toggle('on', on); ov.classList.toggle('text', on); dirtyOverlay(); }
 function loadNotes() {
-  for (const m of LS.get(fkey('notes')) || []) { const n = { id: m.id, x: m.x, y: m.y, text: m.text || '' }; noteSeq = Math.max(noteSeq, n.id); notes.push(n); mountNote(n); }
+  for (const m of LS.get(fkey('notes')) || []) { const n = noteIn(m); noteSeq = Math.max(noteSeq, n.id); notes.push(n); mountNote(n); }
 }
 $('tNote').onclick = () => setNoteMode(!noteMode);
 
@@ -3751,7 +4033,7 @@ addEventListener('keydown', e => {
   if (flt && !e.target.closest('#fltDlg')) { if (e.key === 'Escape') fltEnd(false); if (e.key === 'Enter') fltEnd(true); return; }
   if (e.key === 'Shift') { if (!e.repeat) setLineMode(true); return; }
   if (k0(e) === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) { rHeld = true; ov.classList.add('grab'); return; }
-  if (e.code === 'Space') { e.preventDefault(); spaceHeld = true; notesEl.classList.add('pass'); setCursorMode(e); dirtyOverlay(); return; }
+  if (e.code === 'Space') { e.preventDefault(); spaceHeld = true; notesEl.classList.add('pass'); notesEl2.classList.add('pass'); setCursorMode(e); dirtyOverlay(); return; }
   if (e.key === 'Control' || e.key === 'Meta') { setCursorMode(e); return; }
   if (e.key === 'Alt') { e.preventDefault(); altHeld = true; dirtyOverlay(); return; }   // preventDefault keeps the browser menu bar from taking focus
   const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
@@ -3813,6 +4095,7 @@ addEventListener('keydown', e => {
   else if (k === 'escape' && sel && !act) setSel(null);
   else if (k === '[') { S.size = clamp(S.size / 1.15, 1, 3000); syncSize(); dirtyOverlay(); saveSettings(); }
   else if (k === ']') { S.size = clamp(S.size * 1.15, 1, 3000); syncSize(); dirtyOverlay(); saveSettings(); }
+  else if (k === 'm' && e.shiftKey) toggleSym();
   else if (k === 'm') { const order = ['off', 'v', 'h', 'both', 'radial']; setSym(order[(order.indexOf(sym.mode) + 1) % order.length]); }
   else if (k === 'tab') { e.preventDefault(); $('ui').classList.toggle('hidden'); }
   else if (k === '0') zoomAt(W / 2, H / 2, 1 / dpr);
@@ -3825,10 +4108,10 @@ addEventListener('keyup', e => {
   if (k0(e) === 'r') { rHeld = false; if (!spaceHeld) ov.classList.remove('grab'); return; }
   if (e.key === 'Shift') { setLineMode(virt.line); return; }
   if (e.key === 'Alt') { e.preventDefault(); altHeld = false; dirtyOverlay(); return; }
-  if (e.code === 'Space') { e.preventDefault(); spaceHeld = false; notesEl.classList.remove('pass'); setCursorMode(e); dirtyOverlay(); }
+  if (e.code === 'Space') { e.preventDefault(); spaceHeld = false; notesEl.classList.remove('pass'); notesEl2.classList.remove('pass'); setCursorMode(e); dirtyOverlay(); }
   else if (e.key === 'Control' || e.key === 'Meta') setCursorMode(e);
 });
-addEventListener('blur', () => { spaceHeld = false; altHeld = false; rHeld = false; notesEl.classList.remove('pass'); setCursorMode(null); dirtyOverlay(); });
+addEventListener('blur', () => { spaceHeld = false; altHeld = false; rHeld = false; notesEl.classList.remove('pass'); notesEl2.classList.remove('pass'); setCursorMode(null); dirtyOverlay(); });
 addEventListener('resize', () => { if (rotD) { rotD = -1; rotLayout(); } else resize(); });
 addEventListener('dragover', e => e.preventDefault());
 addEventListener('drop', e => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (!fs || !fs.length) return; if (/\.exr$/i.test(fs[0].name)) { openEXR(fs[0]); return; } if (/\.sinopia$/i.test(fs[0].name)) { importProject(fs[0]); return; } if (e.shiftKey || isApp()) placeFile(fs[0]); else importFiles(fs); });
@@ -3861,10 +4144,11 @@ function setTool(name) {
   syncToolBtns();
   $('tipHead').textContent = name === 'erase' ? 'Eraser tip' : name === 'smudge' ? 'Smudge (the tip isn’t used; opacity = strength)' : 'Brush tip';
   $('flowLab').textContent = name === 'smudge' ? 'Strength' : 'Opacity';
+  $('smOpts').hidden = name !== 'smudge' || !!selTool;
   if (!selTool) $('hint').textContent = name === 'smudge' ? SMUDGE_HINT : HINT;
 }
 function syncToolBtns() { const n = toolName(); for (const [id, t] of [['tBrush', 'brush'], ['tErase', 'erase'], ['tSmudge', 'smudge']]) $(id).classList.toggle('on', n === t && !selTool); }
-const SMUDGE_HINT = 'Smudge: drag to push paint around · Strength (the opacity slider) sets how far it drags · [ ] size · B back to brush';
+const SMUDGE_HINT = 'Smudge: Blend softens where colors meet, Smear drags paint · Strength (the opacity slider) sets how much · [ ] size · B back to brush';
 function setErase(on) { setTool(on ? 'erase' : 'brush'); }
 $('tBrush').onclick = () => { setSelTool(null); setErase(false); };
 $('tErase').onclick = () => { setSelTool(null); setErase(true); };
@@ -3879,6 +4163,10 @@ $('fillTol').addEventListener('input', e => { const v = parseInt(e.target.value,
 $('fillGrow').addEventListener('input', e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 8) { S.fillGrow = v; saveSettings(); } });
 function syncFillAll() { $('fillAll').classList.toggle('on', !!S.fillAll); $('fillOne').classList.toggle('on', !S.fillAll); }
 const setFillAll = on => { S.fillAll = on; syncFillAll(); saveSettings(); toast(on ? 'Fill looks at all visible layers' : 'Fill looks at this layer only'); };
+function syncSmMode() { const b = S.smMode !== 'smear'; $('smBlend').classList.toggle('on', b); $('smSmear').classList.toggle('on', !b); }
+$('smBlend').onclick = () => { S.smMode = 'blend'; syncSmMode(); saveSettings(); };
+$('smSmear').onclick = () => { S.smMode = 'smear'; syncSmMode(); saveSettings(); };
+syncSmMode();
 $('fillAll').onclick = () => setFillAll(true);
 $('fillOne').onclick = () => setFillAll(false);
 $('selNone').onclick = () => setSel(null);
@@ -3930,7 +4218,7 @@ function openCP(which, anchor, at) {
   if (CP.on) closeCP();
   CP.on = which;
   if (which === 'brush') { CP.get = () => S.color; CP.set = c => setColor(c); }
-  else { CP.get = paperColor; CP.set = c => { if (ws.doc) ws.paper = c; else { S.paper = c; saveSettings(); collabMetaSoon(); } $('paper').style.background = c; dirtyScene(); }; }
+  else { CP.get = paperColor; CP.set = c => { if (ws.doc) { ws.paper = c; saveDocs(); } else { S.paper = c; saveSettings(); collabMetaSoon(); } $('paper').style.background = c; dirtyScene(); }; }
   CP.start = CP.get();
   const el = $('cpop'); el.hidden = false; cpSwatches();
   const w = el.offsetWidth, h = el.offsetHeight, a = anchor.getBoundingClientRect();
@@ -3946,7 +4234,7 @@ function closeCP() {
 }
 function toggleBrushColor() {
   if (CP.on === 'brush') { closeCP(); return; }
-  const onCanvas = hover && hover.type !== 'touch' && !$('ui').contains(document.elementFromPoint(hover.x, hover.y));
+  const onCanvas = hover && hover.type !== 'touch' && !$('ui').contains(document.elementFromPoint(hover.x, hover.y)) && !$('menubar').contains(document.elementFromPoint(hover.x, hover.y));
   openCP('brush', $('color'), onCanvas ? hover : null);
 }
 function cpDrag(el, fn) {
@@ -3994,14 +4282,14 @@ $('dLine').addEventListener('pointerdown', e => {
 $('dPick').onclick = () => setVirt('pick', !virt.pick);
 $('dUndo').onclick = () => undo();
 $('dRedo').onclick = () => redo();
-{ const coarse = matchMedia('(any-pointer: coarse)'); const show = () => { $('dock').hidden = !(coarse.matches || IOS); }; show(); coarse.addEventListener && coarse.addEventListener('change', show); }
+{ const coarse = matchMedia('(any-pointer: coarse)'); const show = () => { $('dock').hidden = !(S.touchDock ?? (coarse.matches || IOS)); }; showDock = show; show(); coarse.addEventListener && coarse.addEventListener('change', show); }
 [['#1b2532', 'Graphite'], ['#2d6cb0', 'Blue pencil'], ['#4b9aa8', 'Teal'], ['#a8432c', 'Red chalk'], ['#7a8796', 'Cool grey'], ['#ffffff', 'White']].forEach(([c, n]) => {
   const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.title = n; b.setAttribute('aria-label', n);
   b.onclick = () => setColor(c); $('swatches').appendChild(b);
 });
 
 function setSym(mode) {
-  sym.mode = mode;
+  sym.mode = mode; if (mode !== 'off') sym.last = mode;   // Shift+M turns this back on
   document.querySelectorAll('[data-m]').forEach(b => { const on = b.dataset.m === mode; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.setAttribute('role', 'radio'); });
   $('radialOpts').hidden = mode !== 'radial';
   $('symCenter').hidden = mode === 'off';
@@ -4010,6 +4298,10 @@ function setSym(mode) {
     if (hx < 0 || hy < 0 || hx > W || hy > H) centerSym();
   }
   dirtyOverlay(); saveSettings();
+}
+function toggleSym() {   // Shift+M: mirror off, or back on in the last mode used (Ben, 2026-11-07)
+  setSym(sym.mode === 'off' ? (sym.last || 'v') : 'off');
+  toast(sym.mode === 'off' ? 'Mirror off (Shift+M turns it back on)' : 'Mirror on: ' + ({ v: 'left/right', h: 'top/bottom', both: 'both', radial: 'radial' })[sym.mode]);
 }
 function centerSym() { const w = toWorld(W / 2, H / 2); sym.cx = w.x; sym.cy = w.y; dirtyOverlay(); saveSettings(); }
 document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => setSym(b.dataset.m));
@@ -4046,10 +4338,24 @@ const EYE = '<svg viewBox="0 0 18 18"><path d="M1.5 9S4.2 4 9 4s7.5 5 7.5 5-2.7 
 const EYE_OFF = '<svg viewBox="0 0 18 18"><path d="M3 3l12 12M6.6 5.1A7.6 7.6 0 019 4.6c4.8 0 7.5 4.4 7.5 4.4a13 13 0 01-2.3 2.7M11.4 12.9A7.6 7.6 0 019 13.4C4.2 13.4 1.5 9 1.5 9a13 13 0 012.3-2.7"/></svg>';
 const CARET = '<svg viewBox="0 0 18 18"><path d="M6.5 4.5L11 9l-4.5 4.5"/></svg>';
 const UNGROUP = '<svg viewBox="0 0 18 18"><path d="M5 5l8 8M13 5l-8 8"/></svg>';
-function eyeBtn(on, what, toggle) {
+/* Ctrl+click an eye: show only that layer (or group) and hide every other layer. Ctrl+click it again puts the
+   visibility back as it was. Like Photoshop's Alt+click, which Sinopia keeps for the color picker. */
+let solo = null;
+function soloToggle(key, name, keep) {
+  if (solo && solo.key === key) {
+    for (const L of layers) if (solo.vis.has(L.id)) L.visible = solo.vis.get(L.id);
+    for (const G of groups) if (solo.gvis.has(G.id)) G.visible = solo.gvis.get(G.id);
+    solo = null; toast('All layers back'); return;
+  }
+  const prev = solo; solo = { key, vis: new Map(layers.map(L => [L.id, L.visible])), gvis: new Map(groups.map(G => [G.id, G.visible])) };
+  if (prev) { for (const [id, v] of prev.vis) if (solo.vis.has(id)) solo.vis.set(id, v); for (const [id, v] of prev.gvis) if (solo.gvis.has(id)) solo.gvis.set(id, v); }   // switching solo keeps the original visibility to go back to
+  for (const L of layers) { const k = keep(L); L.visible = k; if (k && L.g != null) { const G = groups.find(g => g.id === L.g); if (G) G.visible = true; } }
+  toast('Showing only ' + name + ' · Ctrl+click its eye again to show the rest');
+}
+function eyeBtn(on, what, toggle, soloFn) {
   const eye = document.createElement('button'); eye.className = 'eye'; eye.innerHTML = on ? EYE : EYE_OFF;
-  eye.title = (on ? 'Hide ' : 'Show ') + what; eye.setAttribute('aria-label', eye.title);
-  eye.onclick = ev => { ev.stopPropagation(); toggle(); saveLayers(); renderLayers(); dirtyScene(); };
+  eye.title = (on ? 'Hide ' : 'Show ') + what + (soloFn ? ' (Ctrl+click: show only this ' + what + ')' : ''); eye.setAttribute('aria-label', eye.title);
+  eye.onclick = ev => { ev.stopPropagation(); if ((ev.ctrlKey || ev.metaKey) && soloFn) soloFn(); else { toggle(); solo = null; } saveLayers(); renderLayers(); dirtyScene(); };
   return eye;
 }
 function renamable(li, name, obj, label) {
@@ -4076,7 +4382,7 @@ function groupRow(G) {
   key.onchange = () => { setGroupKey(G, +key.value || null); key.blur(); };
   const x = document.createElement('button'); x.className = 'eye'; x.innerHTML = UNGROUP; x.title = 'Ungroup (keeps the layers)'; x.setAttribute('aria-label', 'Ungroup ' + G.name);
   x.onclick = ev => { ev.stopPropagation(); ungroup(G); };
-  li.append(caret, eyeBtn(G.visible, 'group', () => { G.visible = !G.visible; }), name, key, x);
+  li.append(caret, eyeBtn(G.visible, 'group', () => { G.visible = !G.visible; }, () => soloToggle('g' + G.id, G.name, L => L.g === G.id)), name, key, x);
   const pick = () => { const L = mine.find(L => L.id === G.active) || mine[mine.length - 1]; if (L && cur !== L) { cur = L; saveLayers(); renderLayers(); } };
   li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight(mine, G.name); else pick(); }; li.onkeydown = ev => { if (ev.key === 'Enter') pick(); };
   renamable(li, name, G, 'Group name');
@@ -4168,7 +4474,7 @@ function renderLayers() {
     li.setAttribute('aria-selected', L === cur);
     const name = document.createElement('span'); name.className = 'name'; name.textContent = L.name;
     const op = document.createElement('span'); op.className = 'op'; op.textContent = opText(L);
-    li.append(eyeBtn(L.visible, 'layer', () => { L.visible = !L.visible; }), name);
+    li.append(eyeBtn(L.visible, 'layer', () => { L.visible = !L.visible; }, () => soloToggle('l' + L.id, L.name, X => X === L)), name);
     if (L.mask) {   // the mask chip: click paints on the mask, Shift+click turns it off
       const ch = document.createElement('button'); ch.className = 'mchip' + (maskEdit && L === cur ? ' on' : '') + (L.mask.on ? '' : ' off');
       ch.title = (L.mask.on ? 'Layer mask' : 'Layer mask (off)') + ': click to paint on it, Shift+click to turn it on or off'; ch.setAttribute('aria-label', 'Layer mask');
@@ -4225,16 +4531,31 @@ function renderMods() {
       b.classList.toggle('on', (m.mode || 'linear') === md); modes.append(b);
     }
     const rows = document.createElement('div'); rows.className = 'sliders';
+    // [key, label, slider min, max, nudge step]. The ‹ › buttons nudge (hold to repeat; Shift: 10×), as do the arrow keys
+    // and the wheel over the box. The box takes any typed value, past the slider's range.
     const fields = m.mode === 'radial'
-      ? [['count', 'Count', 2, 64, 1], ['scale', 'Scale %', 25, 200, 1]]
-      : [['count', 'Count', 1, 64, 1], ['dx', 'Offset X', -far, far, 1], ['dy', 'Offset Y', -far, far, 1], ['rot', 'Rotate°', -180, 180, 1], ['scale', 'Scale %', 25, 200, 1]];
-    for (const [k, label, min, max, step] of fields) {
-      const row = document.createElement('label'); row.className = 'prop';
-      const rg = document.createElement('input'); rg.type = 'range'; rg.min = min; rg.max = max; rg.step = step; rg.value = m[k];
-      const nb = document.createElement('input'); nb.type = 'number'; nb.className = 'num'; nb.step = step; nb.value = m[k]; nb.setAttribute('aria-label', label);
-      const set = (v, from) => { if (!isFinite(v)) return; m[k] = v; if (from !== rg) rg.value = v; if (from !== nb) nb.value = v; saveLayers(); dirtyScene(); };
-      rg.oninput = () => set(+rg.value, rg); nb.oninput = () => set(parseFloat(nb.value), nb);   // the number box can go past the slider's range
-      row.append(label, rg, nb); rows.append(row);
+      ? [['count', 'Count', 2, 64, 1, 2], ['scale', 'Scale %', 25, 200, 1, 1]]
+      : [['count', 'Count', 1, 64, 1, 1], ['dx', 'Offset X', -far, far, 10, -1e9], ['dy', 'Offset Y', -far, far, 10, -1e9], ['rot', 'Rotate°', -180, 180, 1, -1e9], ['scale', 'Scale %', 25, 200, 1, 1]];
+    for (const [k, label, min, max, step, lo] of fields) {
+      const row = document.createElement('div'); row.className = 'prop';
+      const lab = document.createElement('span'); lab.textContent = label;
+      const rg = document.createElement('input'); rg.type = 'range'; rg.min = min; rg.max = max; rg.step = 1; rg.value = m[k]; rg.setAttribute('aria-label', label);
+      const nb = document.createElement('input'); nb.type = 'text'; nb.inputMode = 'decimal'; nb.className = 'num'; nb.value = m[k]; nb.setAttribute('aria-label', label);
+      const set = (v, from) => { if (!isFinite(v)) return; v = Math.max(lo, Math.round(v * 100) / 100); m[k] = v; if (from !== rg) rg.value = v; if (from !== nb) nb.value = v; saveLayers(); dirtyScene(); };
+      const nudge = (d, big) => set((+m[k] || 0) + d * step * (big ? 10 : 1));
+      rg.oninput = () => set(+rg.value, rg);
+      nb.onchange = () => set(parseFloat(nb.value), nb);
+      nb.onkeydown = e => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); nudge(e.key === 'ArrowUp' ? 1 : -1, e.shiftKey); } else if (e.key === 'Enter') nb.blur(); };
+      nb.addEventListener('wheel', e => { if (document.activeElement !== nb) return; e.preventDefault(); nudge(e.deltaY < 0 ? 1 : -1, e.shiftKey); }, { passive: false });
+      const arrow = (d, txt) => {
+        const b = document.createElement('button'); b.className = 'nud'; b.type = 'button'; b.textContent = txt; b.title = (d > 0 ? '+' : '−') + step + ' (Shift: ×10). Hold to repeat'; b.tabIndex = -1;
+        let t = 0; const stop = () => { clearTimeout(t); t = 0; };
+        b.addEventListener('pointerdown', e => { e.preventDefault(); const big = e.shiftKey; nudge(d, big); let wait = 380; const go = () => { nudge(d, big); wait = Math.max(40, wait * 0.8); t = setTimeout(go, wait); }; t = setTimeout(go, wait); });
+        for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, stop);
+        return b;
+      };
+      const box = document.createElement('span'); box.className = 'nudge'; box.append(arrow(-1, '‹'), nb, arrow(1, '›'));
+      row.append(lab, rg, box); rows.append(row);
     }
     const piv = btn('Center pivot', 'Put the pivot at the middle of this layer\'s drawing (or drag the pivot ring on the canvas)', () => { if (cb) { m.cx = Math.round((cb.minX + cb.maxX) / 2); m.cy = Math.round((cb.minY + cb.maxY) / 2); saveLayers(); dirtyScene(); } });
     const note = document.createElement('p'); note.className = 'note';
@@ -4381,12 +4702,118 @@ function makeMovable(el, grip, key) {
   MOVABLE.push(apply); apply(); return apply;
 }
 addEventListener('resize', () => MOVABLE.forEach(f => f()));
-makeMovable($('bar'), $('barGrip'), 'bar');
-makeMovable($('brushPanel'), $('brushPanel').querySelector('.pgrip'), 'brush');
-makeMovable($('layerPanel'), $('layerPanel').querySelector('.pgrip'), 'layers');
-makeMovable($('dock'), $('dock').querySelector('.pgrip'), 'dock');
+/* ---------- workspace: dockable panes (Ben, 2026-11-07) ----------
+   The menu bar (with Home) is fixed. Every other pane (the five toolbar groups, the brush and layers panels, the touch
+   dock) sits in a dock zone (top, left, right, bottom) or floats. Drag a pane's dotted grip: let go near a screen edge
+   (or over the top row) to dock it there, anywhere else to float it. Double-click the grip to send it home.
+   Window shows and hides each pane. Saved in S.ws2 = {zones: {top: [ids]...}, float: {id: {x, y}}, off: {id: true}}. */
+var showDock;   // set by the touch-dock block above (var: it runs before this line)
+const PANES = [['tools', 'tbTools', 'Tools'], ['size', 'tbSize', 'Size and opacity'], ['color', 'tbColor', 'Colors'], ['mirror', 'tbMirror', 'Mirror'], ['actions', 'tbActions', 'Actions'],
+  ['brush', 'brushPanel', 'Brush settings'], ['layers', 'layerPanel', 'Layers'], ['touch', 'dock', 'Touch dock']];
+const PANE = Object.fromEntries(PANES.map(q => [q[0], q]));
+const ZONES = { top: 'zTop', left: 'zLeft', right: 'zRight', bottom: 'zBottom' };
+const WS_DEFAULT = { top: ['tools', 'size', 'color', 'mirror', 'actions'], left: ['brush', 'touch'], right: ['layers'], bottom: [] };
+const wsState = () => {
+  const st = S.ws2 || (S.ws2 = {});
+  if (!st.zones) st.zones = JSON.parse(JSON.stringify(WS_DEFAULT));
+  for (const z in ZONES) st.zones[z] = st.zones[z] || [];
+  st.float = st.float || {}; st.off = st.off || {}; return st;
+};
+function placeFloat(el, at) {
+  el.style.left = clamp(at.x, 4 - el.offsetWidth + 60, innerWidth - 60) + 'px';
+  el.style.top = clamp(at.y, 36, innerHeight - 30) + 'px';
+}
+function applyWorkspace() {
+  const st = wsState(), placed = new Set();
+  const put = (id, z) => { const el = $(PANE[id][1]); el.style.left = el.style.top = ''; el.classList.remove('moved'); el.style.transform = ''; $(ZONES[z]).appendChild(el); placed.add(id); };
+  for (const z in ZONES) st.zones[z] = st.zones[z].filter(id => PANE[id] && !placed.has(id) && (put(id, z), true));
+  for (const id in st.float) {
+    if (!PANE[id] || placed.has(id)) { delete st.float[id]; continue; }
+    const el = $(PANE[id][1]); el.classList.remove('moved'); el.style.transform = ''; $('zFloat').appendChild(el); placeFloat(el, st.float[id]); placed.add(id);
+  }
+  for (const [id] of PANES) if (!placed.has(id)) { const z = Object.keys(WS_DEFAULT).find(k => WS_DEFAULT[k].includes(id)) || 'top'; st.zones[z].push(id); put(id, z); }
+  for (const [id, eid] of PANES) $(eid).classList.toggle('winoff', !!st.off[id]);
+  const tabs = $('tabs'); if (tabs.parentNode !== $('ui')) $('ui').appendChild(tabs);
+}
+addEventListener('resize', () => { const st = wsState(); for (const id in st.float) placeFloat($(PANE[id][1]), st.float[id]); });
+function dropZone(x, y) {
+  const E = 64, mb = $('menubar').getBoundingClientRect().bottom, top = $('zTop').getBoundingClientRect();
+  if (x < E) return 'left';
+  if (x > innerWidth - E) return 'right';
+  if (y < Math.max(top.bottom, mb + 36) + 8) return 'top';
+  if (y > innerHeight - 100) return 'bottom';
+  return null;
+}
+function homeZone(id) { return Object.keys(WS_DEFAULT).find(k => WS_DEFAULT[k].includes(id)) || 'top'; }
+function dockPane(id, zone, ev) {   // put a pane in a zone at the pointer's position (or at its default spot)
+  const st = wsState(), el = $(PANE[id][1]);
+  for (const z in st.zones) st.zones[z] = st.zones[z].filter(x => x !== id); delete st.float[id];
+  const box = $(ZONES[zone]), vert = zone === 'left' || zone === 'right';
+  const kids = [...box.children].filter(c => c !== el && c.dataset.pane && !c.classList.contains('winoff'));
+  let at = st.zones[zone].length;
+  if (ev) {
+    const hit = kids.find(c => { const b = c.getBoundingClientRect(); return vert ? ev.clientY < b.top + b.height / 2 : ev.clientY < b.top || (ev.clientY <= b.bottom && ev.clientX < b.left + b.width / 2); });
+    if (hit) at = st.zones[zone].indexOf(hit.dataset.pane);
+  } else {   // its default order among the panes already there
+    const order = WS_DEFAULT[zone], mine = order.indexOf(id);
+    if (mine >= 0) { const i = st.zones[zone].findIndex(x => order.indexOf(x) > mine); if (i >= 0) at = i; }
+  }
+  st.zones[zone].splice(at < 0 ? st.zones[zone].length : at, 0, id);
+}
+function makeDockable(id) {
+  const el = $(PANE[id][1]), grip = el.querySelector(':scope > .bgrip, :scope > .pgrip');
+  if (!grip) return;
+  grip.title = 'Drag to move it, or to an edge of the screen to dock it. Double-click to put it back';
+  grip.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    e.preventDefault(); e.stopPropagation();
+    const r = el.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top, sx = e.clientX, sy = e.clientY, pid = e.pointerId;
+    let moving = false, zone = null;
+    const mv = ev => {
+      if (ev.pointerId !== pid) return;
+      if (!moving) {
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return;
+        moving = true; document.body.classList.add('docking'); el.classList.add('lifting'); $('zFloat').appendChild(el);
+      }
+      el.style.left = (ev.clientX - ox) + 'px'; el.style.top = (ev.clientY - oy) + 'px';
+      zone = dropZone(ev.clientX, ev.clientY);
+      for (const z in ZONES) $(ZONES[z]).classList.toggle('drop', z === zone);
+    };
+    const up = ev => {
+      if (ev.pointerId !== pid) return;
+      removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      document.body.classList.remove('docking'); el.classList.remove('lifting');
+      for (const z in ZONES) $(ZONES[z]).classList.remove('drop');
+      if (!moving) return;
+      const st = wsState();
+      if (zone) dockPane(id, zone, ev);
+      else { for (const z in st.zones) st.zones[z] = st.zones[z].filter(x => x !== id); st.float[id] = { x: Math.round(ev.clientX - ox), y: Math.round(ev.clientY - oy) }; }
+      applyWorkspace(); saveSettings();
+    };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  });
+  grip.addEventListener('dblclick', () => { dockPane(id, homeZone(id)); applyWorkspace(); saveSettings(); });
+}
+for (const [id] of PANES) makeDockable(id);
+function winOn(id) {
+  if (id === 'brush' || id === 'layers') return !$(PANE[id][1]).hidden && !wsState().off[id];
+  if (id === 'touch') return !$('dock').hidden && !wsState().off[id];
+  return !wsState().off[id];
+}
+function winToggle(id) {
+  const st = wsState(), on = winOn(id);
+  delete st.off[id];
+  if (id === 'brush' || id === 'layers') showPanel(id, !on, true);
+  else if (id === 'touch') { S.touchDock = !on; showDock && showDock(); }
+  else if (on) { st.off[id] = true; toast(PANE[id][2] + ' hidden. Window → ' + PANE[id][2] + ' brings it back'); }
+  applyWorkspace(); saveSettings();
+}
+function resetWorkspace() {
+  S.ws2 = null; S.layout = {}; delete S.touchDock; showDock && showDock();
+  MOVABLE.forEach(f => f()); applyWorkspace(); saveSettings(); toast('Workspace reset');
+}
 const fltPlace = makeMovable($('fltCard'), $('fltGrip'), 'flt');   // the filter sheet
-$('layoutReset').onclick = () => { S.layout = {}; MOVABLE.forEach(f => f()); saveSettings(); toast('Toolbar and panels are back in place'); };
+$('layoutReset').onclick = () => resetWorkspace();
 
 /* the shortcut list: one source for the ? sheet (keep README and CLAUDE.md in step with it) */
 const K = (...a) => a.map(x => '<kbd>' + x + '</kbd>').join(' + ');
@@ -4396,13 +4823,15 @@ const KEYS = [
     [K('Ctrl') + ' + drag', 'Resize the brush (same speed at any zoom)'],
     [K('[') + ' ' + K(']'), 'Smaller / larger brush (or type it in the px box)'],
     [K('B') + ' ' + K('E'), 'Brush / eraser'],
-    [K('F'), 'Smudge: drag to push paint around. The opacity slider becomes Strength (how far the paint drags)'],
+    [K('F'), 'Smudge: Blend (default) softens where two colors meet; Smear drags paint like a finger. The opacity slider becomes Strength'],
     [K('G'), 'Fill: click an area to fill it with the brush color'],
     [K('Shift') + ' + ' + K('G'), 'Fill samples all layers or only this layer (also in the toolbar)'],
     ['Hold ' + K('Alt'), 'Pick a color: preview, then click or drag'],
     [K('V'), 'Color menu'],
     [K('M'), 'Cycle mirror: off, left/right, top/bottom, both, radial'],
-    [K('O'), 'Ellipse guide: strokes that start on it follow it. Drag the square to size and turn it, the round handle to squash it (Shift: circle), the center to move it'],
+    [K('Shift') + ' + ' + K('M'), 'Mirror on/off (comes back in the last mode you used)'],
+    [K('O'), 'Ellipse guide: strokes that start on it follow it. Drag the square to size and turn it, the round handle to squash it (Shift: circle), the diamond to scale it evenly, the center to move it'],
+    ['Double-click', 'A document board on the canvas opens it in a tab. Drag a board to move it; right-click it to delete it'],
   ]],
   ['View', [
     [K('Space') + ' + drag', 'Pan (or middle mouse, or two fingers)'],
@@ -4413,7 +4842,7 @@ const KEYS = [
     ['Hold ' + K('R') + ' + drag', 'Rotate the canvas around the middle of the screen (Shift: 15° steps; it snaps straight near 0°). R + click straightens it'],
     ['Two-finger twist', 'Rotate the canvas on a touch screen (pinch zooms as before)'],
     [K('Tab'), 'Hide the panels'],
-    ['Drag the dotted grip', 'Move the toolbar, a panel or the touch dock anywhere. Double-click the grip to put it back'],
+    ['Drag the dotted grip', 'Move any toolbar or panel. Let go at the left, right, top or bottom edge to dock it there, anywhere else to float it. Double-click the grip to put it back. Window shows or hides each one'],
     [K('Ctrl') + ' + ' + K('1') + '–' + K('9'), 'Jump to a group and frame its drawing'],
   ]],
   ['Select', [
@@ -4435,6 +4864,7 @@ const KEYS = [
     [K('X'), 'Delete the active layer'],
     [K('\\'), 'Paint on the layer mask (brush hides, eraser reveals) or back on the pixels. The ◐ button in the layers panel adds a mask'],
     [K('Ctrl') + ' + click', 'In the layers panel: flash that layer’s drawing'],
+    [K('Ctrl') + ' + click an eye', 'Show only that layer (or group) and hide the rest. Ctrl+click it again to bring them back'],
   ]],
   ['Image and filters', [
     [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('A'), 'Develop, like DaVinci Resolve’s primaries: temp, tint, exposure, contrast, pivot, mid/detail, color boost, shadows, highlights, saturation, hue. Drag a field left or right'],
@@ -4459,7 +4889,8 @@ const KEYS = [
     [K('Ctrl') + ' + ' + K('Z'), 'Undo'],
     [K('Ctrl') + ' + ' + K('Shift') + ' + ' + K('Z'), 'Redo (or Ctrl+Y)'],
     [K('T'), 'Place a note'],
-    [K('?'), 'This list. Edit → Keyboard shortcuts (App menus) lets you change them'],
+    ['● on a note', 'Note color, opacity and text size. Drag a note’s bottom-right corner to resize it'],
+    [K('?'), 'This list. Edit → Keyboard shortcuts lets you change them'],
   ]],
   ['iPad and touch', [
     ['Two-finger tap', 'Undo'],
@@ -4631,14 +5062,22 @@ const CMDS = [
   ['View', 'flip', 'Flip view horizontally', 'Shift+H', () => { view.flip = !view.flip; rotLayout(); saveSettings(); toast(view.flip ? 'View flipped (the drawing itself isn’t changed)' : 'View back to normal'); }],
   ['View', 'unrotate', 'Straighten the canvas', '', () => { view.flip = false; setRot(0); }],
   ['View', 'guide', 'Ellipse guide', 'O', () => setGuide(!guide.on)],
+  ['View', 'mirror', 'Mirror on/off', 'Shift+M', () => toggleSym(), null, () => sym.mode !== 'off'],
   '-View',
-  ['View', 'brushpanel', 'Brush panel', '', () => showPanel('brush', $('brushPanel').hidden, true)],
-  ['View', 'layerpanel', 'Layers panel', '', () => showPanel('layers', $('layerPanel').hidden, true)],
-  ['View', 'hideui', 'Hide panels', 'Tab', () => $('ui').classList.toggle('hidden')],
-  ['View', 'layout', 'Reset panel positions', '', () => $('layoutReset').click()],
+  ['Window', 'w_tools', 'Tools', '', () => winToggle('tools'), null, () => winOn('tools')],
+  ['Window', 'w_size', 'Size and opacity', '', () => winToggle('size'), null, () => winOn('size')],
+  ['Window', 'w_color', 'Colors', '', () => winToggle('color'), null, () => winOn('color')],
+  ['Window', 'w_mirror', 'Mirror', '', () => winToggle('mirror'), null, () => winOn('mirror')],
+  ['Window', 'w_actions', 'Actions (undo, export, layers…)', '', () => winToggle('actions'), null, () => winOn('actions')],
+  '-Window',
+  ['Window', 'brushpanel', 'Brush settings', '', () => winToggle('brush'), null, () => winOn('brush')],
+  ['Window', 'layerpanel', 'Layers', '', () => winToggle('layers'), null, () => winOn('layers')],
+  ['Window', 'w_touch', 'Touch dock (Line, Pick, Undo)', '', () => winToggle('touch'), null, () => winOn('touch')],
+  '-Window',
+  ['Window', 'hideui', 'Hide all panels', 'Tab', () => $('ui').classList.toggle('hidden')],
+  ['Window', 'layout', 'Reset workspace', '', () => resetWorkspace()],
   ['Help', 'shortcuts', 'All shortcuts', '?', () => toggleKeys(true)],
-  ['Help', 'appoff', 'Hide the App menus', '', () => setApp(false)],
-].map(c => typeof c === 'string' ? { sep: c.slice(1) } : { menu: c[0], id: c[1], label: c[2], key: c[3], run: c[4], only: c[5] });
+].map(c => typeof c === 'string' ? { sep: c.slice(1) } : { menu: c[0], id: c[1], label: c[2], key: c[3], run: c[4], only: c[5], on: c[6] });
 const keyOf = c => S.keys && S.keys[c.id] != null ? S.keys[c.id] : c.key;
 function comboOf(e) {
   let k = e.key; if (!k || ['Shift', 'Control', 'Alt', 'Meta'].includes(k)) return '';
@@ -4658,7 +5097,7 @@ function customKey(e) {
 /* menu bar */
 function buildMenubar() {
   const bar = $('menubar'); bar.querySelectorAll('.mb').forEach(b => b.remove());
-  for (const name of ['File', 'Edit', 'Image', 'Layer', 'Select', 'Filter', 'View', 'Help']) {
+  for (const name of ['File', 'Edit', 'Image', 'Layer', 'Select', 'Filter', 'View', 'Window', 'Help']) {
     const b = document.createElement('button'); b.className = 'mb'; b.textContent = name; b.setAttribute('aria-haspopup', 'menu');
     const open = () => {
       const items = [];
@@ -4673,7 +5112,7 @@ function buildMenubar() {
         }
         if (c.menu !== name) continue;
         if (c.only === 'doc' && !ws.doc || c.only === 'canvas' && ws.doc) continue;
-        items.push({ label: c.label, sub: keyOf(c), fn: c.run });
+        items.push({ label: c.label, sub: keyOf(c), fn: c.run, on: c.on && c.on() });
       }
       if (items[items.length - 1] === '-') items.pop();
       for (const x of bar.querySelectorAll('.mb')) x.classList.toggle('on', x === b);
@@ -4687,8 +5126,7 @@ function buildMenubar() {
 let menuOwner = null;
 const _closeMenu = closeMenu;
 closeMenu = function () { _closeMenu(); menuOwner = null; $('menubar').querySelectorAll('.mb').forEach(x => x.classList.remove('on')); };
-function setApp(on) { S.app = on; saveSettings(); $('menubar').hidden = !on; $('appToggle').classList.toggle('on', on); if (on) toast('App menus on. Help → Hide the App menus turns them off'); }
-$('appToggle').onclick = () => setApp(!isApp());
+
 
 /* ---------- filters and adjustments (App edition) ----------
    The target pixels (the active layer, or a merged copy of everything visible; clipped to the selection) are read into
@@ -5384,13 +5822,13 @@ async function buildProject() {
   const spaces = [canvasWS, ...docs], out = [];
   for (let i = 0; i < spaces.length; i++) {
     const d = wsData(spaces[i]);
-    out.push({ name: spaces[i].name, doc: spaces[i].doc, paper: d.paper, view: d.view, active: d.cur && d.cur.id,
+    out.push({ name: spaces[i].name, doc: spaces[i].doc, at: spaces[i].at, paper: d.paper, view: d.view, active: d.cur && d.cur.id,
       groups: d.groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, key: G.key, active: G.active })),
       layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) });
     for (const L of d.layers) { await pack(i, L); if (L.mask) await pack(i, L.mask); }
   }
   const head = new TextEncoder().encode(JSON.stringify({ v: 1, app: 'Sinopia', saved: new Date().toISOString(), spaces: out, tiles,
-    notes: notes.filter(n => n.text.trim()).map(n => ({ x: n.x, y: n.y, text: n.text })), guide: S.guide || null, sym }));
+    notes: notes.filter(n => n.text.trim()).map(n => { const o = noteOut(n); delete o.id; return o; }), guide: S.guide || null, sym }));
   const pre = new Uint8Array(12); pre.set(new TextEncoder().encode('SINOPIA1')); new DataView(pre.buffer).setUint32(8, head.length, true);
   return new Blob([pre, head, ...blobs], { type: 'application/octet-stream' });
 }
@@ -5453,7 +5891,7 @@ async function loadProject(file) {
   const n = new DataView(buf).getUint32(8, true), P = JSON.parse(new TextDecoder().decode(u8.slice(12, 12 + n))), base = 12 + n;
   if (ws !== canvasWS) switchWS(canvasWS);
   settle(); setSel(null, true);
-  for (const D of [...docs]) { for (const L of D.layers) allLayers.delete(L.id); }
+  for (const D of [...docs]) for (const L of D.layers) for (const X of L.mask ? [L, L.mask] : [L]) { for (const k of X.tiles.keys()) saveSet.add(X.id + ':' + k); allLayers.delete(X.id); }   // the autosave drops the old boards' tiles
   docs = [];
   for (const L of layers) { for (const k of L.tiles.keys()) saveSet.add(L.id + ':' + k); allLayers.delete(L.id); }   // the autosave drops the old tiles
   const made = [];
@@ -5479,13 +5917,19 @@ async function loadProject(file) {
   if (!saveSet.size) markSave(layers[0], []);
   saveLayers(); saveSettings();
   for (const nn of [...notes]) { nn.el.remove(); } notes = [];
-  for (const m of P.notes || []) { const nn = { id: ++noteSeq, x: m.x, y: m.y, text: m.text }; notes.push(nn); mountNote(nn); }
+  for (const m of P.notes || []) { const nn = noteIn(m, ++noteSeq); notes.push(nn); mountNote(nn); }
   saveNotes(); noteView = '';
   for (const M of made.slice(1)) {
-    const D = { name: M.sp.name, doc: M.sp.doc, paper: M.sp.paper, layers: M.ls, groups: M.gs, undo: [], redo: [], sel: null, view: M.sp.view, cur: M.idMap.get(M.sp.active) || M.ls[M.ls.length - 1] };
+    const D = { id: newDocId(), name: M.sp.name, doc: M.sp.doc, paper: M.sp.paper, layers: M.ls, groups: M.gs, undo: [], redo: [], sel: null, view: M.sp.view, cur: M.idMap.get(M.sp.active) || M.ls[M.ls.length - 1] };
+    for (const L of M.ls) L.doc = true;
     if (!D.layers.length) { const N = { id: nextId++, name: 'Layer 1', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [], doc: true }; allLayers.set(N.id, N); D.layers.push(N); D.cur = N; }
     docs.push(D); docSeq++;
+    const bb = contentBounds(layers);
+    D.at = M.sp.at || freeSpot(bb ? bb.maxX + 200 : 0, bb ? bb.minY : 0, D.doc.w, D.doc.h);
+    for (const L of D.layers) { markSave(L, L.tiles.keys()); if (L.mask) { L.mask.doc = true; markSave(L.mask, L.mask.tiles.keys()); } }
+    makeThumb(D);
   }
+  saveDocs(); boardKey = '';
   fileName = file.name || fileName;
   hideWelcome(); syncHistory(); renderLayers(); renderTabs(); dirtyScene();
   toast('Opened ' + fileName + ': ' + count + ' tiles' + (docs.length ? ', ' + docs.length + (docs.length > 1 ? ' documents' : ' document') : ''));
@@ -5603,10 +6047,10 @@ function renameFile(f, el) {
   inp.onclick = e => e.stopPropagation();
 }
 async function dupFile(f) {
-  if (f.id === fileId) { settle(); flushSettings(); flushNotes(); await saveNow(); await saveThumb(); }
+  if (f.id === fileId) { settle(); flushSettings(); flushNotes(); flushDocs(); await saveNow(); await saveThumb(); }
   await getDB();
   const nf = newFileRec(f.name + ' copy');
-  for (const k of ['layers', 'notes', 'fv']) { const v = LS.get(fkeyOf(f.id, k)); if (v != null) LS.set(fkeyOf(nf.id, k), v); }
+  for (const k of ['layers', 'notes', 'fv', 'docs']) { const v = LS.get(fkeyOf(f.id, k)); if (v != null) LS.set(fkeyOf(nf.id, k), v); }
   if (db) {
     const all = [], pre = preOf(f.id);
     await idb('readonly', s => { const q = s.openCursor(rangeOf(f.id)); q.onsuccess = () => { const c = q.result; if (c) { all.push([String(c.key).slice(pre.length), c.value]); c.continue(); } }; });
@@ -5619,7 +6063,7 @@ async function delFile(f) {
   if (!(await ask('Delete “' + f.name + '”? Its layers and notes are removed from this browser. This can’t be undone.', 'Delete'))) return;
   await getDB();
   if (db) await idb('readwrite', s => { s.delete(rangeOf(f.id)); for (const p of ['thumb/', 'handle/', 'import/']) s.delete(p + f.id); });
-  for (const k of ['layers', 'notes', 'fv']) try { localStorage.removeItem(fkeyOf(f.id, k)); } catch (e) {}
+  for (const k of ['layers', 'notes', 'fv', 'docs']) try { localStorage.removeItem(fkeyOf(f.id, k)); } catch (e) {}
   updFiles(fl => { const i = fl.findIndex(x => x.id === f.id); if (i >= 0) fl.splice(i, 1); });
   if (f.id !== fileId) { renderHome(); toast('Deleted “' + f.name + '”'); return; }
   fileGone = true; saveSet.clear(); clearTimeout(saveTimer); collabEnd();
@@ -5631,14 +6075,13 @@ async function canLeave() {
   if (!idle() || flt) { toast('Finish what you’re doing first'); return false; }
   const why = [];
   if (C) why.push('you’ll leave the drawing session');
-  if (docs.length) why.push('open documents will close (they aren’t saved with the drawing)');
   return !why.length || ask('Switch drawings? ' + why.join(', and ').replace(/^./, c => c.toUpperCase()) + '.', 'Switch');
 }
 async function switchFile(id, asked) {
   if (id === fileId) { closeHome(); return; }
   if (!asked && !(await canLeave())) return;
   toast('Opening…');
-  collabEnd(); settle(); flushSettings(); flushNotes();
+  collabEnd(); settle(); flushSettings(); flushNotes(); flushDocs();
   await saveNow(); await saveThumb();
   LS.set('sinopia.file', id); location.reload();
 }
@@ -5675,7 +6118,7 @@ const deflate = u8 => ZOK ? new Response(new Blob([u8]).stream().pipeThrough(new
 const inflate = u8 => new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer().then(b => new Uint8Array(b));
 const pngOf = c => new Promise(r => c.toBlob(b => b ? b.arrayBuffer().then(r, () => r(null)) : r(null), 'image/png'));
 const canApply = () => idle() && !flt && ws === canvasWS;
-const noteMap = () => new Map(notes.filter(n => n.text.trim()).map(n => [n.id, JSON.stringify([n.x, n.y, n.text])]));
+const noteMap = () => new Map(notes.filter(n => n.text.trim()).map(n => [n.id, JSON.stringify(noteOut(n))]));
 const idsOf = m => { const s = new Set(); for (const d of m.layers) { s.add(d.id); if (d.mask) s.add(d.mask.id); } return s; };
 function metaNow() {
   const d = wsData(canvasWS);
@@ -5825,7 +6268,7 @@ function collabMeta() {
 function collabNotes() {
   if (!C || !C.ready) return;
   const now = noteMap(), up = [], del = [];
-  for (const [id, j] of now) if (C.noteSnap.get(id) !== j) { const [x, y, text] = JSON.parse(j); up.push({ id, x, y, text }); }
+  for (const [id, j] of now) if (C.noteSnap.get(id) !== j) up.push(JSON.parse(j));
   for (const id of C.noteSnap.keys()) if (!now.has(id)) del.push(id);
   C.noteSnap = now;
   if (up.length || del.length) sendOp({ t: 'notes', up, del });
@@ -5848,7 +6291,7 @@ async function collabSendSnap(to) {   // someone joined: send them the canvas as
   const meta = metaNow(), seen = Object.fromEntries(c.seen); seen[c.id] = c.seq;
   c.known = idsOf(meta);
   sendOp({ t: 'snap', meta, list, seen, nextId, nextGid, noteSeq, name: curFile().name, from: c.name,
-    notes: notes.filter(n => n.text.trim()).map(n => ({ id: n.id, x: n.x, y: n.y, text: n.text })) }, cans, { to, noSeq: true });
+    notes: notes.filter(n => n.text.trim()).map(noteOut) }, cans, { to, noSeq: true });
 }
 async function collabApplySnap(op) {
   const c = C, h = op.head;
@@ -5865,7 +6308,7 @@ async function collabApplySnap(op) {
   applyMeta(h.meta);
   h.list.forEach(([id, k], i) => { const L = allLayers.get(id); if (L && bms[i]) putTile(L, k, bms[i]); });
   for (const n of [...notes]) n.el.remove(); notes = [];
-  for (const m of h.notes || []) { const n = { id: m.id, x: m.x, y: m.y, text: m.text }; notes.push(n); mountNote(n); }
+  for (const m of h.notes || []) { const n = noteIn(m); notes.push(n); mountNote(n); }
   saveNotes(); noteView = '';
   c.applying = false;
   updFiles(fl => { const f = fl.find(x => x.id === fileId); if (f) f.name = (h.name || 'Shared drawing') + ' (with ' + (h.from || 'a friend') + ')'; });
@@ -5969,11 +6412,12 @@ function applyMeta(m) {
 function applyNotes(m) {
   for (const u of m.up || []) {
     let n = notes.find(x => x.id === u.id);
-    if (!n) { n = { id: u.id, x: u.x, y: u.y, text: u.text }; notes.push(n); mountNote(n); noteSeq = Math.max(noteSeq, n.id); }
+    if (!n) { n = noteIn(u); notes.push(n); mountNote(n); noteSeq = Math.max(noteSeq, n.id); }
     else if (!n.el.contains(document.activeElement)) {   // a note you're typing in keeps your text
-      n.x = u.x; n.y = u.y; const ta = n.el.querySelector('textarea'); ta.value = u.text; ta.dispatchEvent(new Event('input')); placeNote(n);
+      n.x = u.x; n.y = u.y; for (const k of NOTE_KEYS) { if (u[k] != null) n[k] = u[k]; else delete n[k]; }
+      const ta = n.el.querySelector('textarea'); ta.value = u.text; styleNote(n); ta.dispatchEvent(new Event('input')); placeNote(n);
     }
-    C.noteSnap.set(u.id, JSON.stringify([u.x, u.y, u.text]));
+    C.noteSnap.set(u.id, JSON.stringify(noteOut(n)));
   }
   for (const id of m.del || []) { const n = notes.find(x => x.id === id); if (n) { n.el.remove(); notes = notes.filter(o => o !== n); } C.noteSnap.delete(id); }
   saveNotes();
@@ -6027,7 +6471,7 @@ if (!isFinite(view.r)) view.r = 0;
 if (view.r || view.flip) rotLayout(true);
 updateZoomLabel();
 builtinBrushes();
-initLayers(); renderLayers();
+initLayers(); initDocs(); renderLayers();
 syncSize();
 $('flow').value = Math.round(S.opacity * 100); $('flowOut').textContent = Math.round(S.opacity * 100) + '%';
 $('color').style.background = S.color;
@@ -6040,13 +6484,48 @@ S.brush = clamp(S.brush, 0, brushes.length - 1);
 renderTips();
 loadAlphas().then(() => { S.brush = clamp(S.brush, 0, brushes.length - 1); renderTips(); });
 const joining = (() => { try { return sessionStorage.getItem('sinopia.join'); } catch (e) { return null; } })();
-loadTiles().then(async n => { booted = true; if (n) hideWelcome(); await bootFile(); collabBoot(); });
-buildMenubar(); $('menubar').hidden = !isApp(); $('appToggle').classList.toggle('on', isApp());
+loadTiles().then(async n => { booted = true; docs.forEach(makeThumb); boardKey = ''; dirtyScene(); if (n) hideWelcome(); await bootFile(); collabBoot(); });
+buildMenubar(); applyWorkspace();
 document.title = curFile().name + ' · Sinopia';
 if (!joining && (S.homeStart ?? isApp())) openHome();
 // offline + installable (Add to Home Screen on iPad). Only over https, so local testing never serves a stale cached copy.
 if ('serviceWorker' in navigator && location.protocol === 'https:' && standalone) navigator.serviceWorker.register('sw.js').catch(() => {});
-})();
+/* Tooltips. Any element with a title gets a themed popup after a short hover (mouse and pen only). The title moves to
+   data-tip so the browser's own tooltip doesn't show as well; code that sets a new title later is picked up on the next
+   hover. A shortcut in brackets, like "(Ctrl+T)" or "(B)", becomes a key chip. Never over the canvas, and never on touch. */
+{
+  const tip = $('hovertip'); let el = null, timer = 0, lastHide = 0;
+  const KEYISH = /^(?:(?:Ctrl|Shift|Alt|Cmd|Space)\+)*(?:[A-Z0-9?\\\[\]=\-]|F\d{1,2}|Tab|Esc|Enter|Delete|Backspace|Space|Ctrl|Shift|Alt)(?:\s*(?:\/|or)\s*(?:(?:Ctrl|Shift|Alt)\+)*[A-Z0-9])?$/;
+  const render = text => {
+    tip.textContent = '';
+    const m = text.match(/\s*\(([^()]{1,22})\)/);
+    if (m && KEYISH.test(m[1].trim())) {
+      tip.append(text.slice(0, m.index) + text.slice(m.index + m[0].length));
+      const k = document.createElement('kbd'); k.textContent = m[1].trim(); tip.append(k);
+    } else tip.textContent = text;
+  };
+  const place = () => {
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = r.left + r.width / 2 - w / 2, y = r.bottom + 8;
+    if (y + h > innerHeight - 6) y = r.top - h - 8;
+    tip.style.left = clamp(x, 6, innerWidth - w - 6) + 'px'; tip.style.top = clamp(y, 6, innerHeight - h - 6) + 'px';
+  };
+  const hide = () => { clearTimeout(timer); timer = 0; if (!tip.hidden) lastHide = performance.now(); tip.classList.remove('show'); tip.hidden = true; el = null; };
+  document.addEventListener('pointerover', e => {
+    if (e.pointerType === 'touch') return;
+    const t = e.target.closest && e.target.closest('[title], [data-tip]');
+    if (!t || t === el) return;
+    if (t.hasAttribute('title')) { const v = t.getAttribute('title'); t.removeAttribute('title'); if (v) t.dataset.tip = v; }
+    hide();
+    if (!t.dataset.tip || t === ov || t.closest('.note-card textarea')) return;
+    el = t;
+    const show = () => { if (el !== t || !t.isConnected) return; render(t.dataset.tip); tip.hidden = false; place(); requestAnimationFrame(() => tip.classList.add('show')); };
+    timer = setTimeout(show, performance.now() - lastHide < 400 ? 60 : 500);   // quick when sliding along a toolbar
+  }, true);
+  document.addEventListener('pointerout', e => { if (el && (!e.relatedTarget || !el.contains(e.relatedTarget))) hide(); }, true);
+  for (const t of ['pointerdown', 'keydown', 'wheel']) addEventListener(t, hide, true);
+  addEventListener('scroll', hide, true); addEventListener('blur', hide);
+} })();
 </script>
 </body>
 </html>
