@@ -64,6 +64,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
   - `#boards` is its own canvas between `#stage` and `#ov` (rotated with them). `drawBoards` runs after a scene render but returns at once unless `boardKey` (view, `boardGen`, hover) changed, so strokes don't pay for it.
   - Input (`boardHit` in the `#ov` pointerdown, before tools, canvas tab only, not with Alt/Ctrl): drag moves (`boardMove`, saved on release), two clicks within 450 ms open (`openBoard`, which fits the view the first time), right-click shows Open / Delete (`deleteBoard`: asks, then queues its tiles for deletion). Hovering hides the brush ring (`overBoard`).
   - Tabs list only open documents (`D.open`); the tab × (and File → Close document) just closes the tab. Project files store `at` per space; loading one places boards right of the drawing.
+  - **Document groups (2026-11-09, Ben: pop-outs as "groups that can only be accessed inside the pop-up", with nothing inside identifiable).** On the canvas, `renderLayers` lists each document first as a locked row (`docRow`, `.dgrp`) in its own color (`D.color` from `DOC_COLORS`, unique, assigned by `docColor`, saved in `writeDocs`; also the board frame and label). No expand arrow, no layer names. Click glides to the board, double-click opens it, the eye hides the board (`D.hide`, skipped by `drawBoards` / `boardHit`), × deletes it via `deleteBoard` (asks first).
 - **Blend modes** (`L.blend`, `BLENDS`), documents only. In WebGL, a document renders into screen-sized buffers (`screenBuf`), scissored to the page. Normal layers draw straight in; a blended layer draws into its own buffer, then `FS_BLEND` mixes it with the buffers below (W3C separable formulas, premultiplied). The page is then copied onto the `PASTEBOARD`. Canvas 2D uses the same modes as `globalCompositeOperation` (`blend2D`). The picker (`blendCh`), export and merge-down also blend. Live strokes on a blended layer blend as you draw.
 - `texClear` keeps the bound framebuffer and turns off the scissor while it clears, because it can run mid-render.
 
@@ -78,8 +79,9 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 **iPad / touch** (added 2026-11-06).
 - PWA: the manifest, Apple meta tags and `sw.js` (cache-first, refreshed in the background). The service worker registers only over https, so local testing never serves a stale copy. `IOS` detects iPadOS, which reports itself as a Mac, and halves the WebGL texture budget to 160 MB.
 - `touch-action: manipulation` on controls and `gesturestart` prevented, so there's no page zoom. There's no callout or text selection.
-- **Gestures**: `gest` tracks a touch sequence; a two-finger tap (no movement over 14 px, under 400 ms) undoes, and a three-finger tap redoes. While a pen stroke is down (`act.pen`), touches are ignored entirely, so a resting palm can't cancel it (before, a second touch cancelled the stroke to start a pinch).
-- **Touch dock** (`#dock`, shown on coarse pointers or iOS; Tab hides it with the rest of the UI):
+- **Gestures**: `gest` tracks a touch sequence; a two-finger tap (no movement over 14 px, under 400 ms) undoes, and a three-finger tap redoes. A two-finger drag always pans; each gesture then commits to **one** of zoom (spread changes 6%, `PINCH_ZOOM`) or rotate (twist 15° first, `PINCH_TWIST`) until the fingers lift (Ben, 2026-11-09: it kept zooming and rotating at once).
+- **iPad speed (2026-11-09):** the multiply notes layer is `display:none` while empty (a full-screen blend costs Safari every frame), `#boards` is hidden without boards, and texture uploads get 2 ms a frame on iOS (4 elsewhere). `?perf` shows fps, the worst frame, canvas size, dpr and texture MB (`PERF`, `perfTick`; `frame` wraps `frameBody`). While a pen stroke is down (`act.pen`), touches are ignored entirely, so a resting palm can't cancel it (before, a second touch cancelled the stroke to start a pinch).
+- **Touch dock** (`#dock`, shown on coarse pointers or iOS; Tab hides it with the rest of the UI). Under Undo/Redo, `#dGroups` has one numbered button per group with a hotkey (`renderDockGroups`, from `renderLayers`; two columns past 5), each calling `jumpGroup` (Ben, 2026-11-10).
   - Line stands in for Shift via `virt.line`. Holding it works like holding Shift; a quick tap latches it on or off.
   - Pick stands in for Alt via `virt.pick`, for one pick.
   - Undo and Redo.
@@ -111,6 +113,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
   - square: size and turn (Shift: 15° steps)
   - round: squash (Shift: back to a circle)
   - diamond (45°, lower right): uniform scale about the center, keeping the ratio and the angle (Ben, 2026-11-07)
+- **Rectangle guide** (U, `tRect`; 2026-11-10): `guide.shape = 'rect'` (saved), rx/ry are half the width and height. `guideSnap` projects along the ray from the center (max-norm), handles are the same (the diamond sits on the corner). `strokeTo` re-projects the smoothed point and inserts the exact corner (`rectEdge` / `rectCorner`) when the stroke turns onto an adjacent side, so smoothing never rounds corners. `guideKey(shape)` switches shape if the other guide is on; `syncGuideBtns`.
 
 **Canvas rotation** (hold R and drag, two-finger twist, `#rotOut` pill to reset; added 2026-11-06).
 - **CSS rotation, not renderer math:** `#stage`, `#ov` and `#notes` are rotated about the screen center (`rotLayout`). While rotated, they're squares the size of the screen's diagonal (`rotD`). `keepRot` holds that layout through a drag, so crossing 0° doesn't reallocate the canvases.
@@ -159,6 +162,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 - The panel card is movable (`makeMovable` on `#fltCard`, key `flt`). `.dialog.flt` has `pointer-events: none`, so the canvas around the card still pans and zooms.
 - Color wheels (`wheelVec`): the puck's hue becomes a balanced RGB offset (no brightness change), plus each wheel's brightness slider. Lift = c + lift·(1−c), gain = c·(1+gain), gamma = pow(c, e^−gamma), then offset.
 - `noiseLayer()`: a 50% grey Overlay layer of the page in documents, or clear black-and-white grain over the screen on the canvas.
+- **Gradient Map** (`gmap`, color mode 18, 2026-11-10): luma (optionally reversed) indexes a 256×1 LUT on unit 3 (`gradLut`, from `flt.grad` stops `{p, c}`), mixed by Amount. `gradUI`: `GRADS` presets, a bar (click adds a stop), stops (drag moves, drag 28 px below removes, tap opens the color menu). `openCP` takes `{get, set}` for any target (`CP.on = 'custom'`); `fltEnd` closes it. Stops are saved as `S.flt.gmap.stops`.
 - **Feather** (Shift+F6, `featherSel`): blurs the selection mask with the same blur shader. `askNum` is a themed number prompt (`#numDlg`).
 
 **Layer masks** (Phase 4). `L.mask` is a layer-like object (`mkMask`, its own id, registered in `allLayers`) whose **alpha means hidden**.
@@ -221,6 +225,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
     - A line between rows takes the group of the layer below it.
     - Just under a group's bottom layer, the pointer's x decides: more than 30 px from the left edge joins the group; less leaves the layer outside. The drop line's indent shows which.
     - Dragging a group header moves the whole block, and it can't land inside another group (groups don't nest).
+  - **Multi-select (Procreate style, 2026-11-10):** swipe a layer row right (26 px, in `startRowDrag`) or Shift+click toggles it in `picked` (a Set beside the active `cur`; a plain click clears it). `#pickBar` under the list: Group (`groupPicked`: one new group at the top layer's spot, never splitting another group), Merge (`mergePicked`: into the lowest, one undo with `extra` tiles), Delete (`deletePicked`; X too). Moving or transforming several at once isn't in yet.
   - **New group** takes the next free hotkey. If the active layer isn't in a group, the new group wraps it, as in Photoshop. Ben expects this: making a group over an inked layer and pressing Ctrl+N should frame that ink. If the active layer is already in a group, it makes a new group with a fresh empty layer above that group, since groups don't nest.
   - Visibility goes through `shown(L)`, which includes group visibility. There is no group opacity yet (it needs per-layer framebuffers).
   - Undo `layers` entries snapshot the group list and each layer's `g` (`layerSnap`).
@@ -271,6 +276,8 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Smudge | F (Blend or Smear in the toolbar; opacity slider = Strength) |
 | Fill | G (Tolerance, Sample: All layers / This layer, and Grow show in the toolbar; Shift+G switches sampling). Alt+Backspace or Shift+Backspace fills the selection |
 | Ellipse guide | O. Strokes that start on it follow it; drag the center, the square (size and turn), the round handle (squash; Shift for a circle) and the diamond (uniform scale) |
+| Rectangle guide | U. Same handles; corners stay sharp |
+| Select several layers | Swipe a row right, or Shift+click; Group / Merge / Delete in the bar under the list |
 | Rotate canvas | Hold R + drag (Shift: 15°; it snaps straight near 0°), R + click straightens, two-finger twist on touch, click the ° pill to reset |
 | Liquify | Ctrl+Shift+X: Push / Twirl / Bloat / Restore, Alt reverses, brush size and opacity set size and strength, Enter applies |
 | Move / dock panels | Drag any pane's dotted grip: near an edge docks it (left, right, top, bottom), elsewhere floats it. Double-click the grip to send it home. Window menu shows/hides panes and resets the workspace |
@@ -283,7 +290,7 @@ Owner: Ben Franz (3D/VFX artist, Windows PC with a pen tablet). He prefers conci
 | Layer mask | ◐ button in the layers panel (Shift+click toggles). \ paints on the mask: brush hides, eraser reveals |
 | Feather | Shift+F6 |
 | Cryptomatte | File → Open EXR (or drop an .exr), then click objects; Shift adds, Alt subtracts |
-| iPad | Two-finger tap = undo, three-finger tap = redo. Dock on the left: Line (hold, or tap to latch) = Shift, Pick = Alt, Undo, Redo |
+| iPad | Two-finger tap = undo, three-finger tap = redo. Dock on the left: Line (hold, or tap to latch) = Shift, Pick = Alt, Undo, Redo, then one numbered button per group (jump) |
 | Mirror cycle | M (off, vertical, horizontal, both, radial; Kaleido option; drag the center handle). Shift+M toggles it off and back on in the last mode (`toggleSym`, `sym.last`, saved with `sym`; also View → Mirror on/off). Ben, 2026-11-07 |
 | Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |
 | New layer | Ctrl+Shift+N |

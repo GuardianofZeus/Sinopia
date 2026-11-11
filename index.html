@@ -70,6 +70,7 @@ button, input, select, label, .layer, .grp{touch-action:manipulation}   /* no do
   background:transparent; color:#1b2532; border:1px solid #2a3442; border-left:3px solid #2a3442; border-radius:3px}
 .notes.pass .note-card{pointer-events:none}
 .notes.norm{mix-blend-mode:normal}
+.notes:empty{display:none}   /* iPad: a full-screen multiply layer costs a whole-screen blend every frame, so none without notes */
 .note-card .nst, .note-card .nx{opacity:0}
 .note-card .nst{width:14px; height:12px; border:0; padding:0; margin-right:3px; background:transparent; cursor:pointer; display:grid; place-items:center}
 .note-card .nst i{width:9px; height:9px; border-radius:50%; border:1px solid currentColor; display:block}
@@ -194,6 +195,10 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .layer{display:flex; align-items:center; gap:6px; height:32px; padding:0 4px 0 2px; border-radius:3px; cursor:pointer; font-size:12.5px}
 .layer:hover{background:var(--chrome)}
 .layer.on{background:var(--chrome); box-shadow:inset 3px 0 0 var(--accent)}
+.layer.pk{background:color-mix(in srgb, var(--accent) 16%, transparent); box-shadow:inset 3px 0 0 color-mix(in srgb, var(--accent) 55%, transparent)}
+.pickbar{display:flex; align-items:center; gap:3px; margin-top:4px; font-size:12px}
+.pickbar[hidden]{display:none}
+.pickbar span{flex:1; min-width:0; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .layer .name{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .layer.hid .name{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--line)}
 .mchip{width:16px; height:16px; flex:none; border:1.5px solid var(--muted); border-radius:3px; padding:0; margin-right:4px; cursor:pointer; background:radial-gradient(circle, var(--ink) 0 34%, transparent 38%), var(--panel)}
@@ -218,6 +223,10 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .grp.hid .name{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--line)}
 .grp.hid .eye{color:var(--muted)}
 .grp input{flex:1; min-width:0; height:24px; border:1px solid var(--accent); border-radius:2px; background:var(--chrome); color:var(--ink); font:600 12px var(--font-ui); padding:0 5px}
+.dgrp{box-shadow:inset 3px 0 0 var(--dc); background:color-mix(in srgb, var(--dc) 13%, transparent); cursor:default}
+.dgrp:hover{background:color-mix(in srgb, var(--dc) 22%, transparent)}
+.dgrp .lock{color:var(--dc); pointer-events:none}
+.dgrp .op{font-weight:500; color:var(--muted); font-size:11px; padding:0 2px}
 .grp select.key{height:22px; width:58px; padding:0 2px; font-size:11px}
 .caret svg{transition:transform .12s}
 .caret.open svg{transform:rotate(90deg)}
@@ -340,6 +349,13 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
 .scrub input{width:100%; box-sizing:border-box; text-align:center; font:600 13px var(--font-ui)}
 .wheel .scrub{width:100%; box-sizing:border-box}
 .histo{display:block; width:100%; height:64px; border-radius:3px; background:var(--chrome-2)}
+.grad .gpre{display:grid; grid-template-columns:repeat(auto-fill, minmax(34px, 1fr)); gap:4px; margin-bottom:8px}
+.grad .gchip{height:18px; border:1px solid var(--line); border-radius:2px; padding:0; cursor:pointer}
+.grad .gchip:hover{outline:1px solid var(--accent)}
+.grad .gbar{height:24px; border:1px solid var(--line); border-radius:3px; cursor:copy; touch-action:none}
+.grad .gstops{position:relative; height:18px; margin:0 0 4px}
+.grad .gstop{position:absolute; top:2px; width:14px; height:14px; margin-left:-7px; padding:0; border:2px solid #fff; border-radius:2px; background:var(--c); box-shadow:0 0 0 1px rgba(0,0,0,.55); cursor:ew-resize; touch-action:none}
+.grad .gstop.on{box-shadow:0 0 0 2px var(--accent)}
 .curves{display:block; width:100%; aspect-ratio:1; max-width:300px; margin:0 auto; touch-action:none; cursor:crosshair; border-radius:3px; background:var(--chrome-2)}
 .chans{display:flex; gap:4px; justify-content:center}
 .chans .btn.on{background:var(--accent); color:var(--accent-ink); border-color:transparent}
@@ -370,6 +386,10 @@ kbd{font:600 11px var(--font-ui); background:var(--chrome-2); border:1px solid v
   background:var(--chrome); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); pointer-events:auto}
 .dock .btn{height:44px; min-width:44px; flex-direction:column; gap:2px; font-size:9.5px; font-weight:600; letter-spacing:.04em; padding:0 4px}
 .dock[hidden]{display:none}
+.dgroups{display:grid; grid-template-columns:1fr; gap:2px; border-top:1px solid var(--line); padding-top:3px; margin-top:1px}
+.dgroups.two{grid-template-columns:1fr 1fr}
+.dgroups[hidden]{display:none}
+.dock .dgroups .btn{height:36px; min-width:0; font-size:15px; font-weight:700; letter-spacing:0; flex-direction:row}
 @media (pointer:coarse){
   .btn{height:38px; min-width:38px} .btn.sm{height:30px; min-width:30px} .slider{height:38px}
   .sw{width:24px; height:24px} .layer{height:38px} .cswatch{width:36px; height:36px}
@@ -429,6 +449,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       <button class="btn" id="tSmudge" title="Smudge (F): drag to push paint around. The opacity slider sets its strength" aria-label="Smudge"><svg viewBox="0 0 18 18"><path d="M7.5 15.5c-2 0-3.5-1.6-3.5-3.6V7.2c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V9"/><path d="M6.2 9V3.7c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V8.5"/><path d="M8.4 8.5V3c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v5.5"/><path d="M10.6 8.5V4.4c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v7.3c0 2.1-1.6 3.8-3.6 3.8H7.5"/><path d="M14 13.5c1 .3 2 .3 3 0" opacity=".6"/></svg></button>
       <button class="btn" id="tFill" title="Fill (G): fills the area of similar color you click, with the brush color" aria-label="Fill"><svg viewBox="0 0 18 18"><path d="M8 2.5l6 6-5.5 5.5a1.5 1.5 0 01-2.1 0L2.5 10.1a1.5 1.5 0 010-2.1z"/><path d="M3 8.5h10.5"/><path d="M15.5 11.5s1.2 1.6 1.2 2.5a1.2 1.2 0 01-2.4 0c0-.9 1.2-2.5 1.2-2.5z" fill="currentColor"/></svg></button>
       <button class="btn" id="tGuide" title="Ellipse guide (O): strokes that start on the ellipse follow it. Drag its handles to move, size, squash and turn it" aria-label="Ellipse guide" aria-pressed="false"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="4" transform="rotate(-25 9 9)"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></button>
+      <button class="btn" id="tRect" title="Rectangle guide (U): strokes that start on the rectangle follow it, corners stay sharp. Drag its handles to move, size and turn it" aria-label="Rectangle guide" aria-pressed="false"><svg viewBox="0 0 18 18"><rect x="3" y="4.5" width="12" height="9" rx=".5" transform="rotate(-12 9 9)"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></button>
       <button class="btn" id="tNote" title="Note (T): click the canvas to place one" aria-label="Note"><svg viewBox="0 0 18 18"><path d="M3.5 3.5h11v7l-4 4h-7z"/><path d="M10.5 14.5v-4h4"/><path d="M6 7h6M6 9.5h3"/></svg></button>
       <span class="sep"></span>
       <button class="btn" id="tRect" title="Rectangle select (S; press S again for ellipse)" aria-label="Rectangle select"><svg viewBox="0 0 18 18"><rect x="3" y="3.5" width="12" height="11" stroke-dasharray="2.4 2"/></svg></button>
@@ -521,6 +542,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
     <button class="btn" id="dPick" title="Pick: the next touch picks a color (like Alt)" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M11 3.5l3.5 3.5-1.6 1.6-3.5-3.5z"/><path d="M10.2 6.2L4 12.4V14h1.6l6.2-6.2"/></svg>Pick</button>
     <button class="btn" id="dUndo" title="Undo (or tap with two fingers)"><svg viewBox="0 0 18 18"><path d="M6 4L3 7l3 3"/><path d="M3 7h7.5a4 4 0 010 8H8"/></svg>Undo</button>
     <button class="btn" id="dRedo" title="Redo (or tap with three fingers)"><svg viewBox="0 0 18 18"><path d="M12 4l3 3-3 3"/><path d="M15 7H7.5a4 4 0 000 8H10"/></svg>Redo</button>
+    <div class="dgroups" id="dGroups" hidden></div>
   </div>
 
   <div class="group tabs" id="tabs" role="tablist" aria-label="Documents" hidden></div>
@@ -667,6 +689,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
     <div class="row"><h2 id="fltTitle">Filter</h2><label class="check" title="Run the filter on a new layer made from everything visible, instead of only the active layer"><input type="checkbox" id="fltMerged"> Merged copy</label></div>
     <canvas class="histo" id="fltHisto" width="512" height="128" hidden></canvas>
     <div id="fltCurves" hidden></div>
+    <div id="fltGrad" class="grad" hidden></div>
     <div class="wheels" id="fltWheels" hidden></div>
     <div class="props" id="fltParams"></div>
     <p class="note" id="fltInfo"></p>
@@ -1390,7 +1413,11 @@ function strokeTo(wx, wy, p) {
   stroke.raw = { x: wx, y: wy, p };
   const k = 1 - stroke.smooth;
   stroke.sx += (wx - stroke.sx) * k; stroke.sy += (wy - stroke.sy) * k;
-  stroke.s.add(stroke.sx, stroke.sy, p);
+  if (stroke.snap && isRect()) {   // the smoothed point back onto the rectangle, with the exact corner where it turns a side
+    const [x, y] = guideSnap(stroke.sx, stroke.sy), e = rectEdge(x, y), pe = stroke.edge;
+    if (pe != null && e !== pe && (e - pe + 4) % 4 !== 2) { const [cx, cy] = rectCorner(e, pe); stroke.s.add(cx, cy, p); }
+    stroke.edge = e; stroke.s.add(x, y, p);
+  } else stroke.s.add(stroke.sx, stroke.sy, p);
   schedule();
 }
 function endStroke() {
@@ -1553,6 +1580,7 @@ function dupLayer() {
   });
 }
 function delLayer() {
+  if (picked.size) { deletePicked(); return; }
   if (layers.length < 2) { toast('Can’t delete the only layer'); return; }
   const G = groupOf(cur), last = G && layers.filter(L => L.g === G.id).length === 1;
   layerOp(() => { const i = layers.indexOf(cur); layers.splice(i, 1); cur = layers[Math.max(0, i - 1)]; });
@@ -2240,6 +2268,7 @@ function openDoc(A) {   // A: {x, y, w, h} in canvas world px; A.blank makes an 
   const { w, h } = A, b = { x0: A.x, y0: A.y };
   const D = { id: newDocId(), name: 'Untitled ' + (++docSeq), doc: { w, h }, paper: S.paper, layers: [], groups: [], undo: [], redo: [], sel: null, open: true,
     at: freeSpot(A.x + A.w + Math.max(48, Math.round(Math.min(A.w, A.h) * 0.06)), A.y, w, h) };   // its board sits beside the area
+  docColor(D);
   for (const L of A.blank ? [] : layers) {
     if (!shown(L) || !L.tiles.size) continue;
     const N = newLayer(L.name); N.doc = true; N.opacity = L.opacity;
@@ -2390,7 +2419,7 @@ function switchWS(t) {
   notesEl.hidden = notesEl2.hidden = !!t.doc; $('paper').style.background = paperColor(); if (CP.on === 'paper') closeCP();
   $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc'; $('newDocMenu').hidden = !!t.doc;
   $('newDoc').title = t.doc ? 'Change the page size (Canvas Size)' : 'New document from the selection, or from what\'s on screen';
-  boardsEl.hidden = !!t.doc; overBoard = null; ov.classList.remove('brd'); boardKey = '';
+  boardsEl.hidden = !!t.doc || !docs.length; overBoard = null; ov.classList.remove('brd'); boardKey = '';
   selChanged(); syncHistory(); renderLayers(); renderTabs(); updateZoomLabel(); dirtyScene();
 }
 function closeDoc(D) {   // closes the tab; the document stays on the canvas as a board
@@ -2405,13 +2434,19 @@ function closeDoc(D) {   // closes the tab; the document stays on the canvas as 
    (#boards, between the stage and the overlay), redrawn only when the view or a board changes, so they cost nothing
    while drawing. Double-click opens it in a tab; drag moves it; right-click: Open, Delete. The tab's × only closes it. */
 var docTimer = 0, boardKey = '', boardGen = 0, overBoard = null, lastBoardClick = null;   // var: the frame loop can run before this line
+/* each document has its own color: its board frame and its locked row in the canvas Layers panel */
+const DOC_COLORS = ['#d9534f', '#e8913a', '#d4b72c', '#5cb85c', '#2fb3a6', '#3a8fd9', '#7a6ad8', '#c75bb5', '#8c6e52', '#6f8a9c'];
+function docColor(D) {
+  if (!D.color) { const used = new Set(docs.filter(o => o !== D).map(o => o.color)); D.color = DOC_COLORS.find(c => !used.has(c)) || DOC_COLORS[Math.max(0, docs.indexOf(D)) % DOC_COLORS.length]; }
+  return D.color;
+}
 const newDocId = () => 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 function saveDocs() { clearTimeout(docTimer); docTimer = setTimeout(writeDocs, 400); }
 function flushDocs() { if (docTimer) writeDocs(); }
 function writeDocs() {
   docTimer = 0; if (fileGone) return;
   LS.set(fkey('docs'), { nextId, seq: docSeq, list: docs.map(D => { const d = wsData(D); return {
-    id: D.id, name: D.name, w: D.doc.w, h: D.doc.h, paper: d.paper, at: D.at, view: d.view, active: d.cur && d.cur.id,
+    id: D.id, name: D.name, color: docColor(D), hide: !!D.hide, w: D.doc.w, h: D.doc.h, paper: d.paper, at: D.at, view: d.view, active: d.cur && d.cur.id,
     groups: d.groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, active: G.active })),
     layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) }; }) });
 }
@@ -2428,7 +2463,7 @@ function initDocs() {
       return L;
     });
     if (!ls.length) { const L = { id: nextId++, name: 'Layer 1', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [], doc: true }; allLayers.set(L.id, L); ls.push(L); }
-    docs.push({ id: m.id || newDocId(), name: m.name || 'Untitled', doc: { w: m.w, h: m.h }, paper: m.paper || S.paper, at: m.at || { x: 0, y: 0 }, layers: ls, groups: gs,
+    docs.push({ id: m.id || newDocId(), name: m.name || 'Untitled', color: m.color || null, hide: !!m.hide, doc: { w: m.w, h: m.h }, paper: m.paper || S.paper, at: m.at || { x: 0, y: 0 }, layers: ls, groups: gs,
       undo: [], redo: [], sel: null, view: m.view || null, cur: ls.find(L => L.id === m.active) || ls[ls.length - 1], open: false });
   }
 }
@@ -2458,11 +2493,12 @@ function makeThumb(D) {   // the page as it looks, at most 1536 px a side, blend
 }
 const boardRect = D => ({ x: D.at.x * view.z + view.x, y: D.at.y * view.z + view.y, w: D.doc.w * view.z, h: D.doc.h * view.z });
 function boardHit(x, y) {   // the page, or its name strip above it
-  for (let i = docs.length - 1; i >= 0; i--) { const D = docs[i], r = boardRect(D); if (x >= r.x && x <= r.x + r.w && y >= r.y - 22 && y <= r.y + r.h) return D; }
+  for (let i = docs.length - 1; i >= 0; i--) { const D = docs[i]; if (D.hide) continue; const r = boardRect(D); if (x >= r.x && x <= r.x + r.w && y >= r.y - 22 && y <= r.y + r.h) return D; }
   return null;
 }
 function drawBoards() {
-  if (ws.doc) return;
+  const off = !!ws.doc || !docs.length; if (boardsEl.hidden !== off) boardsEl.hidden = off;   // no extra screen layer without boards
+  if (off) return;
   const key = [boardGen, docs.length, view.x, view.y, view.z, W, H, dpr, overBoard && overBoard.id, act && act.type === 'board' ? act.D.id : ''].join();
   if (key === boardKey) return; boardKey = key;
   const g = bctx; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, boardsEl.width, boardsEl.height);
@@ -2470,13 +2506,14 @@ function drawBoards() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   g.font = '600 12px "Libre Franklin", "Franklin Gothic Medium", Arial, sans-serif'; g.textBaseline = 'middle';
   for (const D of docs) {
+    if (D.hide) continue;
     const r = boardRect(D); if (r.x > W || r.y - 24 > H || r.x + r.w < 0 || r.y + r.h < 0) continue;
     const hot = D === overBoard || (act && act.type === 'board' && act.D === D);
     g.save(); g.shadowColor = 'rgba(8,16,28,.35)'; g.shadowBlur = 14; g.shadowOffsetY = 3; g.fillStyle = D.paper || '#808080'; g.fillRect(r.x, r.y, r.w, r.h); g.restore();
     if (D.thumb) g.drawImage(D.thumb, r.x, r.y, r.w, r.h);
-    g.lineWidth = hot ? 2 : 1; g.strokeStyle = hot ? '#2d6cb0' : 'rgba(10,20,34,.55)'; g.strokeRect(r.x - (hot ? 1 : 0.5), r.y - (hot ? 1 : 0.5), r.w + (hot ? 2 : 1), r.h + (hot ? 2 : 1));
+    const col = docColor(D); g.lineWidth = hot ? 3 : 2; g.strokeStyle = col; g.strokeRect(r.x - g.lineWidth / 2, r.y - g.lineWidth / 2, r.w + g.lineWidth, r.h + g.lineWidth);
     const label = D.name + '  ' + D.doc.w + ' × ' + D.doc.h, tw = Math.min(g.measureText(label).width + 12, Math.max(60, r.w));
-    g.fillStyle = hot ? '#2d6cb0' : 'rgba(12,20,32,.82)'; g.fillRect(r.x, r.y - 21, tw, 18);
+    g.fillStyle = col; g.fillRect(r.x, r.y - 21, tw, 18); if (!hot) { g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(r.x, r.y - 21, tw, 18); }
     g.save(); g.beginPath(); g.rect(r.x, r.y - 21, tw, 18); g.clip(); g.fillStyle = '#fff'; g.fillText(label, r.x + 6, r.y - 12); g.restore();
   }
 }
@@ -2518,7 +2555,7 @@ async function deleteBoard(D) {
   if (ws === D) switchWS(canvasWS);
   docs = docs.filter(o => o !== D);
   for (const L of D.layers) for (const X of L.mask ? [L, L.mask] : [L]) { for (const k of X.tiles.keys()) saveSet.add(X.id + ':' + k); allLayers.delete(X.id); }
-  markSave(layers[0], []); saveDocs(); overBoard = null; ov.classList.remove('brd'); boardGen++; renderTabs(); dirtyScene();
+  markSave(layers[0], []); saveDocs(); overBoard = null; ov.classList.remove('brd'); boardGen++; renderTabs(); renderLayers(); dirtyScene();
   toast(D.name + ' deleted');
 }
 function renderTabs() {
@@ -2956,11 +2993,18 @@ function drawModHandles() {
    GUIDE_GRAB screen px of it is projected onto it (radially, in the ellipse's own frame) for the whole stroke, so circles
    and ellipses in perspective come out clean with your own pressure. Strokes that start elsewhere are free. */
 const GUIDE_GRAB = 22, GUIDE_OUT = 26;   // grab distance; handles sit this far outside the ellipse so they don't get in the way
-const guide = Object.assign({ on: false, cx: 0, cy: 0, rx: 200, ry: 200, rot: 0, set: false }, S.guide || {}, { on: !!(S.guide && S.guide.on) });
-function saveGuide() { S.guide = { on: guide.on, cx: guide.cx, cy: guide.cy, rx: guide.rx, ry: guide.ry, rot: guide.rot, set: guide.set }; saveSettings(); }
+const guide = Object.assign({ on: false, shape: 'ellipse', cx: 0, cy: 0, rx: 200, ry: 200, rot: 0, set: false }, S.guide || {}, { on: !!(S.guide && S.guide.on) });
+function saveGuide() { S.guide = { on: guide.on, shape: guide.shape, cx: guide.cx, cy: guide.cy, rx: guide.rx, ry: guide.ry, rot: guide.rot, set: guide.set }; saveSettings(); }
+/* Rectangle guide (U, 2026-11-10, Ben: "a rectangular sketch tool, similar to the ellipse guide"): the same guide with
+   shape 'rect'; rx and ry are half the width and height. Points are projected along the ray from the center, so a
+   stroke can go all the way round, and strokeTo puts the exact corner in whenever the stroke turns onto the next side,
+   so smoothing never rounds the corners. */
+const isRect = () => guide.shape === 'rect';
+function rectEdge(wx, wy) { const [u, v] = guideLocal(wx, wy); return Math.abs(u) >= Math.abs(v) ? (u > 0 ? 0 : 2) : (v > 0 ? 1 : 3); }   // right, bottom, left, top
+function rectCorner(a, b) { const has = e => a === e || b === e; return guideWorld(has(0) ? 1 : -1, has(1) ? 1 : -1); }
 function guideLocal(wx, wy) { const dx = wx - guide.cx, dy = wy - guide.cy, c = Math.cos(-guide.rot), s = Math.sin(-guide.rot); return [(dx * c - dy * s) / guide.rx, (dx * s + dy * c) / guide.ry]; }
 function guideWorld(u, v) { const x = u * guide.rx, y = v * guide.ry, c = Math.cos(guide.rot), s = Math.sin(guide.rot); return [guide.cx + x * c - y * s, guide.cy + x * s + y * c]; }
-function guideSnap(wx, wy) { const [u, v] = guideLocal(wx, wy), r = Math.hypot(u, v) || 1; return guideWorld(u / r, v / r); }
+function guideSnap(wx, wy) { const [u, v] = guideLocal(wx, wy), r = (isRect() ? Math.max(Math.abs(u), Math.abs(v)) : Math.hypot(u, v)) || 1; return guideWorld(u / r, v / r); }
 function guideNear(wx, wy) {
   if (!guide.on) return false;
   const [px, py] = guideSnap(wx, wy);
@@ -2968,7 +3012,7 @@ function guideNear(wx, wy) {
 }
 function guideHandles() {
   const out = GUIDE_OUT / view.z;
-  const q = Math.SQRT1_2, [ex, ey] = guideWorld(q, q), dx = ex - guide.cx, dy = ey - guide.cy, dl = Math.hypot(dx, dy) || 1;   // diamond: uniform scale, outside the ellipse at 45°
+  const q = isRect() ? 1 : Math.SQRT1_2, [ex, ey] = guideWorld(q, q), dx = ex - guide.cx, dy = ey - guide.cy, dl = Math.hypot(dx, dy) || 1;   // diamond: uniform scale, outside the ellipse at 45°
   return [{ k: 'c', p: [guide.cx, guide.cy] }, { k: 'a', p: guideWorld(1 + out / guide.rx, 0) }, { k: 'b', p: guideWorld(0, -1 - out / guide.ry) }, { k: 'u', p: [ex + dx / dl * out, ey + dy / dl * out] }];
 }
 function guideHit(x, y) {
@@ -2986,12 +3030,12 @@ function dragGuide(A, e) {
     guide.rx = Math.max(4, Math.hypot(dx, dy) - out);
   } else if (A.h.k === 'u') {   // uniform: scale both radii about the center, keeping the shape and the angle
     if (!A.r0) A.r0 = [guide.rx, guide.ry];
-    const d = Math.hypot(w.x - guide.cx, w.y - guide.cy) - out, k = Math.max(4 / Math.min(A.r0[0], A.r0[1]), d / (Math.SQRT1_2 * Math.hypot(A.r0[0], A.r0[1])));
+    const d = Math.hypot(w.x - guide.cx, w.y - guide.cy) - out, k = Math.max(4 / Math.min(A.r0[0], A.r0[1]), d / ((isRect() ? 1 : Math.SQRT1_2) * Math.hypot(A.r0[0], A.r0[1])));
     guide.rx = A.r0[0] * k; guide.ry = A.r0[1] * k;
   } else {
     const [, v] = guideLocal(w.x, w.y);
     guide.ry = Math.max(4, Math.abs(v) * guide.ry - out);
-    if (e.shiftKey) guide.ry = guide.rx;   // Shift: back to a circle
+    if (e.shiftKey) guide.ry = guide.rx;   // Shift: back to a circle (a square for the rectangle)
   }
   dirtyOverlay();
 }
@@ -3000,7 +3044,10 @@ function drawGuide() {
   const sx = guide.cx * view.z + view.x, sy = guide.cy * view.z + view.y;
   octx.save();
   octx.strokeStyle = light ? 'rgba(27,37,50,0.35)' : 'rgba(255,255,255,0.5)'; octx.lineWidth = 1;
-  octx.beginPath(); octx.ellipse(sx, sy, guide.rx * view.z, guide.ry * view.z, guide.rot, 0, Math.PI * 2); octx.stroke();
+  octx.beginPath();
+  if (isRect()) { for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const [x, y] = guideWorld(u, v); octx.lineTo(x * view.z + view.x, y * view.z + view.y); } octx.closePath(); }
+  else octx.ellipse(sx, sy, guide.rx * view.z, guide.ry * view.z, guide.rot, 0, Math.PI * 2);
+  octx.stroke();
   octx.setLineDash([3, 4]); octx.beginPath();
   for (const h of guideHandles().slice(1, 3)) { octx.moveTo(sx, sy); octx.lineTo(h.p[0] * view.z + view.x, h.p[1] * view.z + view.y); }
   octx.stroke(); octx.setLineDash([]);
@@ -3012,18 +3059,24 @@ function drawGuide() {
   }
   octx.restore();
 }
-function setGuide(on) {
+function setGuide(on, shape) {
+  if (shape && guide.on && guide.shape !== shape) on = true;   // the other guide's key switches shape instead of turning it off
+  if (shape) guide.shape = shape;
   guide.on = on;
   if (on) {   // first use, or the guide is off screen: put a circle in the middle of the view
     const sx = guide.cx * view.z + view.x, sy = guide.cy * view.z + view.y;
     if (!guide.set || sx < 0 || sy < 0 || sx > W || sy > H) { const c = toWorld(W / 2, H / 2); guide.cx = c.x; guide.cy = c.y; guide.rx = guide.ry = Math.min(W, H) * 0.25 / view.z; guide.rot = 0; guide.set = true; }
-    toast('Ellipse guide on: strokes that start on it follow it. Drag the handles to shape it');
+    toast((isRect() ? 'Rectangle' : 'Ellipse') + ' guide on: strokes that start on it follow it. Drag the handles to shape it');
   }
-  $('tGuide').classList.toggle('on', on); $('tGuide').setAttribute('aria-pressed', on);
+  syncGuideBtns();
   saveGuide(); dirtyOverlay();
 }
-$('tGuide').onclick = () => setGuide(!guide.on);
-$('tGuide').classList.toggle('on', guide.on);
+function syncGuideBtns() {
+  for (const [id, sh] of [['tGuide', 'ellipse'], ['tRect', 'rect']]) { const on = guide.on && guide.shape === sh; $(id).classList.toggle('on', on); $(id).setAttribute('aria-pressed', on); }
+}
+const guideKey = sh => setGuide(!(guide.on && guide.shape === sh), sh);
+$('tGuide').onclick = () => guideKey('ellipse'); $('tRect').onclick = () => guideKey('rect');
+syncGuideBtns();
 
 /* ---------- persistence (IndexedDB) ---------- */
 let db = null; const saveSet = new Set(); let saveTimer = 0, saving = false;
@@ -3092,6 +3145,16 @@ async function loadTiles() {
 /* ---------- rendering ---------- */
 let scheduled = false, sceneRect = null, needOverlay = false, hover = null;
 function schedule() { if (!scheduled) { scheduled = true; requestAnimationFrame(frame); } }
+/* ?perf shows frames per second, the slowest frame of the last second (ms of script time), and the screen and texture
+   sizes, so speed can be checked on the iPad itself. Off by default; nothing is measured without it. */
+const PERF = QS.has('perf') ? { el: null, n: 0, max: 0, t0: performance.now() } : null;
+function perfTick(ms) {
+  const P = PERF, now = performance.now(); P.n++; if (ms > P.max) P.max = ms;
+  if (now - P.t0 < 1000) return;
+  if (!P.el) { P.el = document.createElement('div'); P.el.style.cssText = 'position:fixed;left:8px;bottom:52px;z-index:9;font:600 11px/1.4 ui-monospace,monospace;background:rgba(0,0,0,.72);color:#9fe;padding:4px 7px;border-radius:4px;pointer-events:none;white-space:pre'; document.body.appendChild(P.el); }
+  P.el.textContent = Math.round(P.n * 1000 / (now - P.t0)) + ' fps · worst ' + P.max.toFixed(1) + ' ms\n' + cv.width + '×' + cv.height + ' px · dpr ' + dpr + (GL && R.texMB ? ' · tex ' + R.texMB() + ' MB' : '') + (IOS ? ' · iOS' : '');
+  P.n = 0; P.max = 0; P.t0 = now;
+}
 function dirtyScene(r) {
   if (!r) sceneRect = 'all';
   else if (sceneRect !== 'all') sceneRect = sceneRect ? { x0: Math.min(sceneRect.x0, r.x0), y0: Math.min(sceneRect.y0, r.y0), x1: Math.max(sceneRect.x1, r.x1), y1: Math.max(sceneRect.y1, r.y1) } : r;
@@ -3100,6 +3163,11 @@ function dirtyScene(r) {
 function dirtyOverlay() { needOverlay = true; schedule(); }
 function frame() {
   scheduled = false;
+  const pt0 = PERF ? performance.now() : 0;
+  frameBody();
+  if (PERF) { perfTick(performance.now() - pt0); schedule(); }   // with ?perf it keeps ticking so the fps is real
+}
+function frameBody() {
   if (stroke) {
     const L = stroke.line;
     if (L && L.dirty) { L.dirty = false; if (!stroke.w) previewLine(L); }
@@ -3308,7 +3376,7 @@ void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
   }
   function render(rect, force) {
     if (gl.isContextLost()) return;
-    fno++; pending = false; upEnd = force ? Infinity : performance.now() + 4;
+    fno++; pending = false; upEnd = force ? Infinity : performance.now() + (IOS ? 2 : 4);
     bindFB(null); gl.viewport(0, 0, cv.width, cv.height); gl.activeTexture(gl.TEXTURE0);
     const pc = hexToRgb(paperColor()), doc = ws.doc;
     const z = view.z * dpr, ox = view.x * dpr, oy = view.y * dpr, size = TILE * z;
@@ -3390,7 +3458,7 @@ void main() { o = texelFetch(uT, ivec2(gl_FragCoord.xy), 0); }`;
   cv.addEventListener('webglcontextlost', e => e.preventDefault());
   cv.addEventListener('webglcontextrestored', () => { init(); dirtyScene(); });
   return {
-    gl: true, render,
+    gl: true, render, texMB: () => Math.round(used / 1048576),
     strokePatch(e, x0, y0, x1, y1) { if (gl.isContextLost()) return; gl.activeTexture(gl.TEXTURE0); strokeTex(e); strokeRect(e, x0, y0, x1, y1); },
     strokeFree(e) { texFree(e.gtex); e.gtex = null; },
     tilePatch(t, px, x0, y0, w, h) {   // after a bake: upload just the baked rect if the texture was current before it
@@ -3613,15 +3681,26 @@ function zoomAt(sx, sy, z) { const w = toWorld(sx, sy); setView(z, w.x, w.y, sx,
 function startPinch() {
   const [a, b] = [...touches.values()];
   const c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  act = { type: 'pinch', d0: Math.hypot(a.rx - b.rx, a.ry - b.ry) || 1, z0: view.z, w: toWorld(c.x, c.y), a0: Math.atan2(b.ry - a.ry, b.rx - a.rx), r0: view.r || 0, twist: false };
+  act = { type: 'pinch', d0: Math.hypot(a.rx - b.rx, a.ry - b.ry) || 1, z0: view.z, w: toWorld(c.x, c.y), a0: Math.atan2(b.ry - a.ry, b.rx - a.rx), r0: view.r || 0, twist: false, mode: null };
 }
+/* Two fingers always pan. Each gesture then commits to ONE of zoom or rotate, whichever passes its threshold first:
+   spreading or closing by 6% zooms (no rotation for the rest of that gesture), twisting 15° while the spread is still
+   under that rotates (no zoom). Lift the fingers to switch. Committing re-anchors, so nothing jumps. */
+const PINCH_ZOOM = 0.06, PINCH_TWIST = 0.26;
 function movePinch() {
   const [a, b] = [...touches.values()];
-  const ang = Math.atan2(b.ry - a.ry, b.rx - a.rx);
-  if (!act.twist && Math.abs(angWrap(ang - act.a0)) > 0.14) { act.twist = true; act.a0 = ang; act.r0 = view.r || 0; keepRot = true; }
-  if (act.twist) { view.r = snapRot(act.r0 + angWrap(ang - act.a0), false); rotLayout(); }
+  const ang = Math.atan2(b.ry - a.ry, b.rx - a.rx), d = Math.hypot(a.rx - b.rx, a.ry - b.ry) || 1;
   const [mx, my] = unrot((a.rx + b.rx) / 2, (a.ry + b.ry) / 2);
-  setView(act.z0 * Math.hypot(a.rx - b.rx, a.ry - b.ry) / act.d0, act.w.x, act.w.y, mx, my);
+  if (!act.mode) {
+    const sc = Math.abs(Math.log(d / act.d0)), tw = Math.abs(angWrap(ang - act.a0));
+    if (sc > PINCH_ZOOM) { act.mode = 'zoom'; act.d0 = d; act.z0 = view.z; act.w = toWorld(mx, my); }
+    else if (tw > PINCH_TWIST) { act.mode = 'rot'; act.twist = true; act.a0 = ang; act.r0 = view.r || 0; keepRot = true; }
+  }
+  if (act.mode === 'rot') {
+    view.r = snapRot(act.r0 + angWrap(ang - act.a0), false); rotLayout();
+    const [rx, ry] = unrot((a.rx + b.rx) / 2, (a.ry + b.ry) / 2);
+    setView(act.z0, act.w.x, act.w.y, rx, ry);
+  } else setView(act.mode === 'zoom' ? act.z0 * d / act.d0 : act.z0, act.w.x, act.w.y, mx, my);
 }
 function setCursorMode(e) {
   ov.classList.toggle('grab', spaceHeld && !(e && (e.ctrlKey || e.metaKey)));
@@ -4080,7 +4159,8 @@ addEventListener('keydown', e => {
   if (mod || e.altKey) return;
   if (k === 'g' && e.shiftKey) { if (selTool !== 'fill') setSelTool('fill'); setFillAll(!S.fillAll); }
   else if (k === 'g') setSelTool(selTool === 'fill' ? null : 'fill');
-  else if (k === 'o') setGuide(!guide.on);
+  else if (k === 'o') guideKey('ellipse');
+  else if (k === 'u') guideKey('rect');
   else if (k === 'b') { setSelTool(null); setErase(false); }
   else if (k === 'e') { const on = selTool ? true : !S.erase; setSelTool(null); setErase(on); }
   else if (k === 'f') { setSelTool(null); setTool(S.smudge ? 'brush' : 'smudge'); }
@@ -4214,10 +4294,12 @@ function cpSwatches() {
   fill($('cpSw'), PRESETS); fill($('cpRecent'), S.recent.map(c => [c]));
   if (!S.recent.length) $('cpRecent').innerHTML = '<span class="note">Colors you use show up here</span>';
 }
-function openCP(which, anchor, at) {
+function openCP(which, anchor, at) {   // which: 'brush', 'paper', or {get, set} for anything else (gradient stops)
   if (CP.on) closeCP();
+  const cfg = typeof which === 'object' ? which : null; if (cfg) which = 'custom';
   CP.on = which;
-  if (which === 'brush') { CP.get = () => S.color; CP.set = c => setColor(c); }
+  if (cfg) { CP.get = cfg.get; CP.set = cfg.set; }
+  else if (which === 'brush') { CP.get = () => S.color; CP.set = c => setColor(c); }
   else { CP.get = paperColor; CP.set = c => { if (ws.doc) { ws.paper = c; saveDocs(); } else { S.paper = c; saveSettings(); collabMetaSoon(); } $('paper').style.background = c; dirtyScene(); }; }
   CP.start = CP.get();
   const el = $('cpop'); el.hidden = false; cpSwatches();
@@ -4440,11 +4522,15 @@ function applyDrop(src, t) {
 function emptiedToast(G) { if (G && !groups.includes(G)) toast(G.name + ' had no layers left, so it was removed. Undo brings it back.'); }
 function startRowDrag(ev, src) {
   if (ev.button !== 0 || ev.target.closest('button, select, input')) return;
-  const ol = $('layers'), y0 = ev.clientY;
-  let dragging = false, target = null;
+  const ol = $('layers'), y0 = ev.clientY, x0 = ev.clientX;
+  let dragging = false, target = null, swiped = false;
   const move = e => {
+    if (swiped) return;
     if (!dragging) {   // capture only once it's a drag: capturing on press sends the click to the list, not the row
-      if (Math.abs(e.clientY - y0) < 5) return;
+      const dx = e.clientX - x0, dy = Math.abs(e.clientY - y0);
+      if (src.L && dx > 26 && dy < 16) { swiped = true; togglePick(src.L); return; }   // swipe right: add to / take out of the selection
+      if (Math.abs(dx) > dy) return;
+      if (dy < 5) return;
       dragging = true; src.li.classList.add('dragging'); try { ol.setPointerCapture(e.pointerId); } catch (_) {}
     }
     const r = ol.getBoundingClientRect();   // auto-scroll near the list's edges
@@ -4453,6 +4539,7 @@ function startRowDrag(ev, src) {
   };
   const end = e => {
     ol.removeEventListener('pointermove', move); removeEventListener('pointerup', end); removeEventListener('pointercancel', end);
+    if (swiped) { rowDragged = true; setTimeout(() => rowDragged = false); return; }
     if (!dragging) return;
     rowDragged = true; setTimeout(() => rowDragged = false);   // swallow the click that follows the drop
     src.li.classList.remove('dragging'); showDrop(null);
@@ -4460,9 +4547,102 @@ function startRowDrag(ev, src) {
   };
   ol.addEventListener('pointermove', move); addEventListener('pointerup', end); addEventListener('pointercancel', end);   // on window, so a release anywhere ends it
 }
+/* On the canvas, each document shows as a locked group in its own color (Ben, 2026-11-09): its layers live only inside
+   the document, so the row has no expand arrow and shows nothing of what's in it. Click glides to the board,
+   double-click opens it, the eye hides the board, × deletes the document (after asking). */
+const LOCKED = '<svg viewBox="0 0 18 18"><rect x="4.5" y="8" width="9" height="6.5" rx="1"/><path d="M6.5 8V6a2.5 2.5 0 0 1 5 0v2"/></svg>';
+function docRow(D) {
+  const li = document.createElement('li'); li.className = 'grp dgrp' + (D.hide ? ' hid' : ''); li.tabIndex = 0;
+  li.style.setProperty('--dc', docColor(D));
+  li.title = 'Document: double-click to open it, click to go to its board';
+  const lock = document.createElement('span'); lock.className = 'eye lock'; lock.innerHTML = LOCKED;
+  const name = document.createElement('span'); name.className = 'name'; name.textContent = D.name;
+  const sz = document.createElement('span'); sz.className = 'op'; sz.textContent = D.doc.w + '×' + D.doc.h;
+  const x = document.createElement('button'); x.className = 'eye'; x.innerHTML = UNGROUP; x.title = 'Delete this document'; x.setAttribute('aria-label', 'Delete ' + D.name);
+  x.onclick = ev => { ev.stopPropagation(); deleteBoard(D); };
+  const eye = eyeBtn(!D.hide, 'board', () => { D.hide = !D.hide; boardGen++; saveDocs(); });
+  li.append(lock, eye, name, sz, x);
+  const go = () => { if (D.hide) { D.hide = false; boardGen++; saveDocs(); renderLayers(); }
+    const pad = 0.14, z = clamp(Math.min(W * (1 - 2 * pad) / D.doc.w, H * (1 - 2 * pad) / D.doc.h), 0.02 / dpr, 1 / dpr);
+    animateView(z, D.at.x + D.doc.w / 2, D.at.y + D.doc.h / 2); };
+  let clickT = 0;
+  li.onclick = () => { clearTimeout(clickT); clickT = setTimeout(go, 260); };   // wait, so a double-click doesn't glide first
+  li.ondblclick = ev => { ev.preventDefault(); clearTimeout(clickT); if (!act && !stroke) openBoard(D); };
+  li.onkeydown = ev => { if (ev.key === 'Enter') openBoard(D); };
+  return li;
+}
+/* Touch dock: one numbered button per group with a hotkey (Ben, 2026-11-10: "an array of buttons that act as your jump
+   between groups"). A tap is Ctrl + that number: it selects the group and glides to its drawing. */
+function renderDockGroups() {
+  const box = $('dGroups'), gs = groups.filter(G => G.key).sort((a, b) => a.key - b.key);
+  box.hidden = !gs.length; box.classList.toggle('two', gs.length > 5); box.innerHTML = '';
+  for (const G of gs) {
+    const b = document.createElement('button'); b.className = 'btn' + (cur && cur.g === G.id ? ' on' : ''); b.textContent = G.key;
+    b.title = G.name + ': jump to it (Ctrl+' + G.key + ')'; b.setAttribute('aria-label', 'Jump to ' + G.name);
+    b.onclick = () => jumpGroup(G.key); box.append(b);
+  }
+}
+/* Several layers at once, as in Procreate (Ben, 2026-11-10): swipe a layer right (or Shift+click it) to add it to the
+   selection beside the active layer. A bar under the list then groups, merges or deletes them all, in one undo step. */
+let picked = new Set();
+const pickedList = () => layers.filter(L => L === cur || picked.has(L));
+function togglePick(L) { if (L === cur) return; if (picked.has(L)) picked.delete(L); else picked.add(L); renderLayers(); }
+function groupPicked() {
+  const sel = pickedList(); if (sel.length < 2) return;
+  let G;
+  layerOp(() => {
+    const used = new Set(groups.map(o => o.key)), key = [1, 2, 3, 4, 5, 6, 7, 8, 9].find(k => !used.has(k)) || null;
+    G = { id: allocGid(), name: 'Group ' + (groups.length + 1), visible: true, open: true, key, active: cur.id }; groups.push(G);
+    const topI = layers.indexOf(sel[sel.length - 1]), rest = layers.filter(L => !sel.includes(L));
+    let i = rest.filter(L => layers.indexOf(L) < topI).length;
+    while (i > 0 && i < rest.length && rest[i - 1].g && rest[i].g === rest[i - 1].g) i++;   // never split another group
+    rest.splice(i, 0, ...sel); for (const L of sel) L.g = G.id;
+    layers.length = 0; layers.push(...rest);
+  });
+  picked.clear(); renderLayers();
+  toast(sel.length + ' layers grouped into ' + G.name + '.' + (G.key ? ' Ctrl+' + G.key + ' jumps to it.' : ''));
+}
+function mergePicked() {
+  const sel = pickedList(); if (sel.length < 2) return;
+  settle();
+  const below = sel[0], tiles = { kind: 'tiles', layer: below, map: new Map() };
+  for (const top of sel.slice(1)) {
+    const topM = maskedLayer(top), baked = bakeCopies(topM);
+    for (const [k, t] of baked ? [...baked].map(([k, c]) => [k, { c }]) : topM.tiles) {
+      let b = below.tiles.get(k);
+      if (!tiles.map.has(k)) tiles.map.set(k, b ? cloneCanvas(b.c) : null);
+      if (!b) { b = mkTile(); below.tiles.set(k, b); }
+      const g = b.c.getContext('2d'); g.globalAlpha = top.visible ? top.opacity : 0; g.globalCompositeOperation = blend2D(top.blend); g.drawImage(t.c, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; b.v++; b.blank = false;
+    }
+  }
+  const entry = Object.assign(layerSnap(), { extra: tiles });
+  for (const L of sel.slice(1)) layers.splice(layers.indexOf(L), 1);
+  cur = below; picked.clear(); tidyGroups();
+  pushUndo(entry); markSave(below, tiles.map.keys()); saveLayers(); renderLayers(); dirtyScene();
+  toast(sel.length + ' layers merged into ' + below.name + '. Undo splits them again.');
+}
+function deletePicked() {
+  const sel = pickedList();
+  if (sel.length >= layers.length) { toast('Can’t delete every layer'); return; }
+  layerOp(() => { const i = layers.indexOf(sel[0]); for (const L of sel) layers.splice(layers.indexOf(L), 1); cur = layers[clamp(i - 1, 0, layers.length - 1)]; });
+  picked.clear(); renderLayers();
+  toast(sel.length + ' layers deleted. Undo brings them back.');
+}
+function renderPickBar() {
+  let bar = $('pickBar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'pickBar'; bar.className = 'pickbar'; $('layers').after(bar); }
+  bar.hidden = !picked.size; if (!picked.size) return;
+  bar.innerHTML = '';
+  const n = document.createElement('span'); n.textContent = (picked.size + 1) + ' layers selected';
+  const btn = (t, tip, fn) => { const b = document.createElement('button'); b.className = 'btn sm'; b.textContent = t; b.title = tip; b.onclick = fn; return b; };
+  bar.append(n, btn('Group', 'Put the selected layers in a new group', groupPicked), btn('Merge', 'Merge the selected layers into the lowest one', mergePicked),
+    btn('Delete', 'Delete the selected layers (X)', deletePicked), btn('✕', 'Clear the selection (keeps the active layer)', () => { picked.clear(); renderLayers(); }));
+}
 function renderLayers() {
   const ol = $('layers'); ol.innerHTML = '';
   layerRows = [];
+  for (const L of picked) if (L === cur || !layers.includes(L)) picked.delete(L);
+  if (!ws.doc) for (let i = docs.length - 1; i >= 0; i--) ol.appendChild(docRow(docs[i]));
   let lastG = 0;
   for (let i = layers.length - 1; i >= 0; i--) {
     const L = layers[i], G = groupOf(L);
@@ -4470,7 +4650,7 @@ function renderLayers() {
     lastG = G ? G.id : 0;
     if (G && !G.open) continue;
     const li = document.createElement('li');
-    li.className = 'layer' + (G ? ' in' : '') + (L === cur ? ' on' : '') + (L.visible ? '' : ' hid'); li.tabIndex = 0;
+    li.className = 'layer' + (G ? ' in' : '') + (L === cur ? ' on' : '') + (picked.has(L) ? ' pk' : '') + (L.visible ? '' : ' hid'); li.tabIndex = 0;
     li.setAttribute('aria-selected', L === cur);
     const name = document.createElement('span'); name.className = 'name'; name.textContent = L.name;
     const op = document.createElement('span'); op.className = 'op'; op.textContent = opText(L);
@@ -4482,7 +4662,7 @@ function renderLayers() {
       li.append(ch);
     }
     li.append(op);
-    li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight([L], L.name); else if (cur !== L || maskEdit) { cur = L; maskEdit = false; saveLayers(); renderLayers(); syncSelUI(); } };
+    li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight([L], L.name); else if (ev.shiftKey) togglePick(L); else if (cur !== L || maskEdit || picked.size) { cur = L; maskEdit = false; picked.clear(); saveLayers(); renderLayers(); syncSelUI(); } };
     li.onkeydown = ev => { if (ev.key === 'Enter') { cur = L; saveLayers(); renderLayers(); } };
     renamable(li, name, L, 'Layer name');
     const row = { li, L }; layerRows.push(row); li.addEventListener('pointerdown', ev => startRowDrag(ev, row));
@@ -4496,6 +4676,7 @@ function renderLayers() {
   $('layerMerge').disabled = i <= 0; $('layerDel').disabled = layers.length < 2;
   if (!cur.mask) maskEdit = false;
   $('layerMask').classList.toggle('on', !!cur.mask);
+  renderPickBar(); renderDockGroups();
 }
 $('blend').innerHTML = BLENDS.map((m, i) => '<option value="' + m + '">' + BLEND_NAMES[i] + '</option>').join('');
 $('layerMask').onclick = e => { if (e.shiftKey && cur.mask) toggleMask(); else maskMenu(e.currentTarget); };
@@ -4830,8 +5011,11 @@ const KEYS = [
     [K('V'), 'Color menu'],
     [K('M'), 'Cycle mirror: off, left/right, top/bottom, both, radial'],
     [K('Shift') + ' + ' + K('M'), 'Mirror on/off (comes back in the last mode you used)'],
+    [K('U'), 'Rectangle guide: strokes that start on it follow it, with sharp corners. Same handles as the ellipse guide'],
+    ['Swipe right', 'On a layer (or Shift+click): adds it to the selection. Group, merge or delete them all from the bar under the list'],
     [K('O'), 'Ellipse guide: strokes that start on it follow it. Drag the square to size and turn it, the round handle to squash it (Shift: circle), the diamond to scale it evenly, the center to move it'],
     ['Double-click', 'A document board on the canvas opens it in a tab. Drag a board to move it; right-click it to delete it'],
+    ['Layers panel', 'On the canvas, each document is a locked row in its own color: click goes to its board, double-click opens it, the eye hides the board, × deletes the document'],
   ]],
   ['View', [
     [K('Space') + ' + drag', 'Pan (or middle mouse, or two fingers)'],
@@ -5016,6 +5200,7 @@ const CMDS = [
   ['Image/Adjustments', 'threshold', 'Threshold…', '', () => fltStart('threshold')],
   '-Image/Adjustments',
   ['Image/Adjustments', 'desat', 'Desaturate', 'Ctrl+Shift+U', () => fltStart('desat')],
+  ['Image/Adjustments', 'gmap', 'Gradient Map…', '', () => fltStart('gmap')],
   ['Image', 'develop', 'Develop (Resolve primaries: temp, tint, contrast, pivot…)…', 'Ctrl+Shift+A', () => fltStart('develop')],
   ['Image', 'grade', 'Color wheels (lift / gamma / gain / offset)…', 'Ctrl+Shift+G', () => fltStart('grade')],
   '-Image',
@@ -5061,7 +5246,8 @@ const CMDS = [
   '-View',
   ['View', 'flip', 'Flip view horizontally', 'Shift+H', () => { view.flip = !view.flip; rotLayout(); saveSettings(); toast(view.flip ? 'View flipped (the drawing itself isn’t changed)' : 'View back to normal'); }],
   ['View', 'unrotate', 'Straighten the canvas', '', () => { view.flip = false; setRot(0); }],
-  ['View', 'guide', 'Ellipse guide', 'O', () => setGuide(!guide.on)],
+  ['View', 'guide', 'Ellipse guide', 'O', () => guideKey('ellipse')],
+  ['View', 'rguide', 'Rectangle guide', 'U', () => guideKey('rect')],
   ['View', 'mirror', 'Mirror on/off', 'Shift+M', () => toggleSym(), null, () => sym.mode !== 'off'],
   '-View',
   ['Window', 'w_tools', 'Tools', '', () => winToggle('tools'), null, () => winOn('tools')],
@@ -5166,6 +5352,7 @@ const FILTERS = {
     ['mono', 'Monochrome (all channels use the red output)', 0, 1, 0, 1]] },
   invert: { label: 'Invert', instant: true, params: [] },
   desat: { label: 'Desaturate', instant: true, params: [] },
+  gmap: { label: 'Gradient Map', grad: true, params: [['amt', 'Amount %', 0, 100, 100, 1], ['rev', 'Reverse', 0, 1, 0, 1]] },
   posterize: { label: 'Posterize', params: [['n', 'Levels', 2, 64, 4, 1]] },
   threshold: { label: 'Threshold', hist: true, params: [['lvl', 'Threshold level', 1, 255, 128, 1], ['soft', 'Edge softness', 0, 64, 0, 1]] },
 };
@@ -5228,6 +5415,7 @@ const FS_SRC = {
     else if (mode == 15) { float y = luma(c) * 255.0; c = vec3(clamp((y - P[0] + 0.5) / max(P[1], 0.02) + 0.5, 0.0, 1.0)); }
     else if (mode == 16) { vec3 q = (clamp(c, 0.0, 1.0) * 255.0 + 0.5) / 256.0; c = vec3(texture(lut, vec2(q.r, 0.5)).r, texture(lut, vec2(q.g, 0.5)).g, texture(lut, vec2(q.b, 0.5)).b); }
     else if (mode == 17) c = vec3(luma(c));
+    else if (mode == 18) { float y = clamp(luma(c), 0.0, 1.0); if (P[1] > 0.5) y = 1.0 - y; c = mix(c, texture(lut, vec2((y * 255.0 + 0.5) / 256.0, 0.5)).rgb, P[0] / 100.0); }
     c = clamp(c, 0.0, 1.0); o = vec4(c * t.a, t.a); }`,
 };
 FS_SRC.mixm = `uniform sampler2D m; void main() { o = mix(texture(s2, uv), texture(s, uv), texture(m, uv).a); }`;
@@ -5286,12 +5474,13 @@ function fltRun() {
   else if (K === 'sharpen') { fpass('blur', X.src, T.a, [p.radius, 1, 0]); fpass('blur', T.a, T.b, [p.radius, 0, 1]); fpass('usm', X.src, T.a, [p.amount / 100], { s2: T.b }); }
   else if (K === 'split') fpass('split', X.src, T.a, [p.dist, p.angle * Math.PI / 180]);
   else {
-    const mode = { huesat: 3, levels: 4, develop: 5, grade: 6, noise: 7, bc: 8, balance: 9, bw: 10, photo: 11, mixer: 12, invert: 13, posterize: 14, threshold: 15, curves: 16, desat: 17 }[K], P = X.spec.params.map(q => p[q[0]]);
+    const mode = { huesat: 3, levels: 4, develop: 5, grade: 6, noise: 7, bc: 8, balance: 9, bw: 10, photo: 11, mixer: 12, invert: 13, posterize: 14, threshold: 15, curves: 16, desat: 17, gmap: 18 }[K], P = X.spec.params.map(q => p[q[0]]);
     if (K === 'noise') P[5] = X.empty ? 1 : 0;
     const wh = K === 'grade' ? [...wheelVec(p.w0x, p.w0y, 0.3).map(v => v + p.l0 * 0.5), ...wheelVec(p.w1x, p.w1y, 0.8).map(v => v + p.l1), ...wheelVec(p.w2x, p.w2y, 0.6).map(v => v + p.l2), ...wheelVec(p.w3x, p.w3y, 0.25).map(v => v + p.l3 * 0.3)] : null;
     let s2 = null;
     if (K === 'develop' && p.md) { fpass('blur', X.src, T.a, [12, 1, 0]); fpass('blur', T.a, T.b, [12, 0, 1]); s2 = T.b; }   // Mid/Detail: local contrast against a 12 px blur
     if (K === 'curves') curveLut(X);
+    if (K === 'gmap') gradLut(X);
     fpass('color', X.src, T.a, P, { mode, wh, s2, lut: X.lut });
   }
   if (X.mtex && out !== X.src) { fpass('mixm', out, out === T.a ? T.b : T.a, [], { s2: X.src, m: X.mtex }); out = out === T.a ? T.b : T.a; }
@@ -5357,6 +5546,7 @@ function fltStart(kind, opts) {
   const st = S.flt && S.flt[spec.store || kind];
   for (const q of spec.params) flt.P[q[0]] = st && st[q[0]] != null ? st[q[0]] : q[4];
   if (spec.curves) { flt.curves = st && st.pts ? JSON.parse(JSON.stringify(st.pts)) : curveDefault(); flt.chan = 'rgb'; flt.lut = curveTex(); }
+  if (spec.grad) { flt.grad = (st && st.stops || GRADS[0].stops).map(o => ({ p: o.p, c: o.c })); flt.lut = curveTex(); }
   if (spec.hist) flt.histo = histOf(src);
   if (spec.instant) { fltRun(); fltEnd(true); toast(spec.label); return; }
   if (spec.wheels) for (let i = 0; i < 4; i++) for (const k of ['w' + i + 'x', 'w' + i + 'y', 'l' + i]) flt.P[k] = 0;
@@ -5365,9 +5555,9 @@ function fltStart(kind, opts) {
 }
 function fltEnd(apply) {
   const X = flt; if (!X) return;
-  flt = null; $('fltDlg').hidden = true;
+  flt = null; $('fltDlg').hidden = true; if (CP.on === 'custom') closeCP();
   if (!apply && X.merged) { restoreTiles(X.L, X.hist.map); applyEntry(undoStack.pop()); syncHistory(); X.merged = false; }   // Cancel also removes the merged copy
-  if (apply) { pushUndo(X.hist); markSave(X.L, X.hist.map.keys()); S.flt = S.flt || {}; const st = S.flt[X.spec.store || X.kind] = {}; for (const q of X.spec.params) st[q[0]] = X.P[q[0]]; if (X.curves) st.pts = X.curves; saveSettings(); }
+  if (apply) { pushUndo(X.hist); markSave(X.L, X.hist.map.keys()); S.flt = S.flt || {}; const st = S.flt[X.spec.store || X.kind] = {}; for (const q of X.spec.params) st[q[0]] = X.P[q[0]]; if (X.curves) st.pts = X.curves; if (X.grad) st.stops = X.grad; saveSettings(); }
   else restoreTiles(X.L, X.hist.map);
   const gl = FG.gl; for (const o of [X.src, X.tx.a, X.tx.b, X.mtex]) if (o) { gl.deleteTexture(o.t); if (o.fb) gl.deleteFramebuffer(o.fb); }
   if (X.lut) gl.deleteTexture(X.lut);
@@ -5470,6 +5660,78 @@ function curveLut(X) {   // each channel's curve first, then the RGB master
   const gl = FG.gl; gl.bindTexture(gl.TEXTURE_2D, X.lut); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
   gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 1, gl.RGBA, gl.UNSIGNED_BYTE, d);
 }
+/* Gradient Map (2026-11-10, Ben asked for gradient maps in the filters): each pixel's luminance picks a color from the
+   gradient, through a 256×1 LUT on texture unit 3 like Curves. Presets, then the bar: click it to add a stop, drag a stop
+   to move it (down off the bar removes it), tap a stop for the color menu. The stops are remembered with the sliders. */
+const GRADS = [
+  { name: 'Black to white', stops: [{ p: 0, c: '#000000' }, { p: 1, c: '#ffffff' }] },
+  { name: 'Ink and paper', stops: [{ p: 0, c: '#1b2532' }, { p: 1, c: '#f4ecdc' }] },
+  { name: 'Sepia', stops: [{ p: 0, c: '#1e140c' }, { p: 0.5, c: '#8a5a34' }, { p: 1, c: '#f6e7c8' }] },
+  { name: 'Cyanotype', stops: [{ p: 0, c: '#0b1f3a' }, { p: 0.55, c: '#2f6fa8' }, { p: 1, c: '#e8f1f7' }] },
+  { name: 'Teal and orange', stops: [{ p: 0, c: '#0d2a33' }, { p: 0.5, c: '#4f8a8b' }, { p: 1, c: '#f5b971' }] },
+  { name: 'Sunset', stops: [{ p: 0, c: '#1d0f3a' }, { p: 0.35, c: '#8a2b6b' }, { p: 0.65, c: '#ef6f3c' }, { p: 1, c: '#ffe39a' }] },
+  { name: 'Heat', stops: [{ p: 0, c: '#000000' }, { p: 0.35, c: '#9b1c0c' }, { p: 0.7, c: '#f29a1d' }, { p: 1, c: '#fffbe0' }] },
+  { name: 'Night vision', stops: [{ p: 0, c: '#021006' }, { p: 0.6, c: '#2fa84f' }, { p: 1, c: '#d9ffd0' }] },
+  { name: 'Violet and pink', stops: [{ p: 0, c: '#2b1055' }, { p: 1, c: '#ff8fb1' }] },
+];
+const gradSorted = st => st.slice().sort((a, b) => a.p - b.p);
+const gradCss = st => 'linear-gradient(90deg,' + gradSorted(st).map(o => o.c + ' ' + (o.p * 100).toFixed(2) + '%').join(',') + ')';
+function gradAt(st, t) {
+  const g = gradSorted(st); if (t <= g[0].p) return hexToRgb(g[0].c); if (t >= g[g.length - 1].p) return hexToRgb(g[g.length - 1].c);
+  let i = 1; while (g[i].p < t) i++;
+  const a = g[i - 1], b = g[i], f = (t - a.p) / Math.max(1e-6, b.p - a.p), A = hexToRgb(a.c), B = hexToRgb(b.c);
+  return A.map((v, j) => v + (B[j] - v) * f);
+}
+function gradLut(X) {
+  const d = new Uint8Array(1024);
+  for (let i = 0; i < 256; i++) { const c = gradAt(X.grad, i / 255); d[i * 4] = Math.round(c[0]); d[i * 4 + 1] = Math.round(c[1]); d[i * 4 + 2] = Math.round(c[2]); d[i * 4 + 3] = 255; }
+  const gl = FG.gl; gl.bindTexture(gl.TEXTURE_2D, X.lut); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 1, gl.RGBA, gl.UNSIGNED_BYTE, d);
+}
+function gradUI(box) {
+  const X = flt; box.innerHTML = '';
+  const pre = document.createElement('div'); pre.className = 'gpre';
+  const bar = document.createElement('div'); bar.className = 'gbar'; bar.title = 'Click to add a color stop';
+  const track = document.createElement('div'); track.className = 'gstops';
+  const hint = document.createElement('p'); hint.className = 'note'; hint.textContent = 'Click the bar to add a stop. Drag a stop to move it, or down off the bar to remove it. Tap a stop to pick its color.';
+  box.append(pre, bar, track, hint);
+  let si = 0;
+  const kick = () => { bar.style.background = gradCss(X.grad); fltKick(); };
+  const draw = () => {
+    bar.style.background = gradCss(X.grad); track.innerHTML = '';
+    X.grad.forEach((o, i) => {
+      const m = document.createElement('button'); m.className = 'gstop' + (i === si ? ' on' : ''); m.style.left = o.p * 100 + '%'; m.style.setProperty('--c', o.c);
+      m.title = o.c + ': drag to move, tap for its color'; m.setAttribute('aria-label', 'Color stop ' + (i + 1));
+      m.addEventListener('pointerdown', e => stopDown(e, i, m)); track.append(m);
+    });
+  };
+  for (const G of GRADS) {
+    const b = document.createElement('button'); b.className = 'gchip'; b.title = G.name; b.setAttribute('aria-label', G.name); b.style.background = gradCss(G.stops);
+    b.onclick = () => { X.grad = G.stops.map(o => ({ p: o.p, c: o.c })); si = 0; if (CP.on === 'custom') closeCP(); draw(); fltKick(); };
+    pre.append(b);
+  }
+  const stopDown = (e, i, m) => {
+    e.preventDefault(); e.stopPropagation(); try { m.setPointerCapture(e.pointerId); } catch (_) {}
+    si = i; for (const o of track.children) o.classList.toggle('on', o === m);
+    const r = track.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY; let moved = false, gone = false;
+    m.onpointermove = ev => {
+      if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 3) return;
+      moved = true; X.grad[i].p = clamp((ev.clientX - r.left) / r.width, 0, 1); m.style.left = X.grad[i].p * 100 + '%';
+      gone = X.grad.length > 2 && ev.clientY - r.bottom > 28; m.style.opacity = gone ? 0.3 : '';
+      kick();
+    };
+    m.onpointerup = m.onpointercancel = () => {
+      m.onpointermove = m.onpointerup = m.onpointercancel = null;
+      if (gone) { X.grad.splice(i, 1); si = 0; draw(); fltKick(); return; }
+      if (!moved) openCP({ get: () => X.grad[si].c, set: c => { X.grad[si].c = c; draw(); fltKick(); } }, m);
+    };
+  };
+  bar.addEventListener('pointerdown', e => {
+    const r = bar.getBoundingClientRect(), t = clamp((e.clientX - r.left) / r.width, 0, 1), c = gradAt(X.grad, t);
+    X.grad.push({ p: t, c: '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join('') }); si = X.grad.length - 1; draw(); fltKick();
+  });
+  draw();
+}
 function curvesUI(box) {
   const X = flt; box.innerHTML = '';
   const chans = document.createElement('div'); chans.className = 'chans';
@@ -5550,6 +5812,7 @@ function fltUI() {
     rg.ondblclick = () => put(def);
     row.append(label, rg, nb); box.appendChild(row);
   }
+  const gd = $('fltGrad'); gd.hidden = !X.grad; if (X.grad) gradUI(gd); else gd.innerHTML = '';
   const cv = $('fltCurves'); cv.hidden = !X.curves; if (X.curves) curvesUI(cv); else cv.innerHTML = '';
   fltHisto();
   const wb = $('fltWheels'); wb.hidden = !X.spec.wheels; wb.innerHTML = '';
@@ -5912,7 +6175,7 @@ async function loadProject(file) {
   tidyGroups(); undoStack.length = redoStack.length = 0;
   S.paper = C.sp.paper || S.paper; $('paper').style.background = S.paper;
   if (C.sp.view) { view.r = 0; view.flip = false; Object.assign(view, C.sp.view); rotLayout(true); updateZoomLabel(); }
-  if (P.guide) { Object.assign(guide, P.guide); saveGuide(); $('tGuide').classList.toggle('on', guide.on); }
+  if (P.guide) { Object.assign(guide, P.guide); saveGuide(); syncGuideBtns(); }
   for (const L of layers) { markSave(L, L.tiles.keys()); if (L.mask) markSave(L.mask, L.mask.tiles.keys()); }
   if (!saveSet.size) markSave(layers[0], []);
   saveLayers(); saveSettings();
