@@ -449,7 +449,8 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       <button class="btn" id="tSmudge" title="Smudge (F): drag to push paint around. The opacity slider sets its strength" aria-label="Smudge"><svg viewBox="0 0 18 18"><path d="M7.5 15.5c-2 0-3.5-1.6-3.5-3.6V7.2c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V9"/><path d="M6.2 9V3.7c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2V8.5"/><path d="M8.4 8.5V3c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v5.5"/><path d="M10.6 8.5V4.4c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2v7.3c0 2.1-1.6 3.8-3.6 3.8H7.5"/><path d="M14 13.5c1 .3 2 .3 3 0" opacity=".6"/></svg></button>
       <button class="btn" id="tFill" title="Fill (G): fills the area of similar color you click, with the brush color" aria-label="Fill"><svg viewBox="0 0 18 18"><path d="M8 2.5l6 6-5.5 5.5a1.5 1.5 0 01-2.1 0L2.5 10.1a1.5 1.5 0 010-2.1z"/><path d="M3 8.5h10.5"/><path d="M15.5 11.5s1.2 1.6 1.2 2.5a1.2 1.2 0 01-2.4 0c0-.9 1.2-2.5 1.2-2.5z" fill="currentColor"/></svg></button>
       <button class="btn" id="tGuide" title="Ellipse guide (O): strokes that start on the ellipse follow it. Drag its handles to move, size, squash and turn it" aria-label="Ellipse guide" aria-pressed="false"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="4" transform="rotate(-25 9 9)"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></button>
-      <button class="btn" id="tRect" title="Rectangle guide (U): strokes that start on the rectangle follow it, corners stay sharp. Drag its handles to move, size and turn it" aria-label="Rectangle guide" aria-pressed="false"><svg viewBox="0 0 18 18"><rect x="3" y="4.5" width="12" height="9" rx=".5" transform="rotate(-12 9 9)"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></button>
+      <button class="btn" id="tRGuide" title="Rectangle guide (U): strokes that start on the rectangle follow it, corners stay sharp. Drag its handles to move, size and turn it" aria-label="Rectangle guide" aria-pressed="false"><svg viewBox="0 0 18 18"><rect x="3" y="4.5" width="12" height="9" rx=".5" transform="rotate(-12 9 9)"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></button>
+      <button class="btn" id="tPersp" title="Perspective guide (P): a 1, 2 or 3-point grid. With Snap on, strokes lock to its lines. Drag the vanishing points to set it up" aria-label="Perspective guide" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M1.5 7.5h15"/><path d="M9 7.5L2 16M9 7.5l7 8.5M9 7.5V16" opacity=".75"/><path d="M9 7.5L4.5 16M9 7.5l4.5 8.5" opacity=".45"/><circle cx="9" cy="7.5" r="1.3" fill="currentColor"/></svg></button>
       <button class="btn" id="tNote" title="Note (T): click the canvas to place one" aria-label="Note"><svg viewBox="0 0 18 18"><path d="M3.5 3.5h11v7l-4 4h-7z"/><path d="M10.5 14.5v-4h4"/><path d="M6 7h6M6 9.5h3"/></svg></button>
       <span class="sep"></span>
       <button class="btn" id="tRect" title="Rectangle select (S; press S again for ellipse)" aria-label="Rectangle select"><svg viewBox="0 0 18 18"><rect x="3" y="3.5" width="12" height="11" stroke-dasharray="2.4 2"/></svg></button>
@@ -473,6 +474,11 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
       </span>
       <span id="smOpts" class="row" hidden style="gap:4px;padding:0 4px">
         <span class="seg" role="group" aria-label="Smudge mode"><button class="btn" id="smBlend" title="Blend: softens where colors meet into a gradient. Strength sets how much">Blend</button><button class="btn" id="smSmear" title="Smear: drags paint along like a finger. Strength sets how far">Smear</button></span>
+      </span>
+      <span id="pOpts" class="row" hidden style="gap:4px;padding:0 4px">
+        <span class="seg" role="group" aria-label="Vanishing points"><button class="btn" id="pN1" title="1-point perspective: one vanishing point on the horizon">1-pt</button><button class="btn" id="pN2" title="2-point perspective: two vanishing points on the horizon, verticals stay vertical">2-pt</button><button class="btn" id="pN3" title="3-point perspective: two on the horizon plus one for the verticals">3-pt</button></span>
+        <button class="btn" id="pSnap" title="Snap: strokes lock to the grid's lines (towards a vanishing point, or straight across or up). Off: the grid is just a guide" aria-pressed="true">Snap</button>
+        <button class="btn" id="pReset" title="Put the vanishing points back in view">Reset</button>
       </span>
       <span id="fillOpts" class="row" hidden style="gap:4px;padding:0 4px">
         <input class="num" type="number" id="fillTol" min="0" max="255" aria-label="Fill tolerance" title="Tolerance: how different a color can be and still be filled (0–255)">
@@ -1321,7 +1327,8 @@ function beginStroke(wx, wy, p, erase, local) {
   const w = !local && useWorker(P, b, mats.length);
   stroke = { T, erase, opts, hist, smooth: P.smooth, rgb, layer: PL, w, sid: ++strokeSeq,
     s: w ? { q: [], add(x, y, p) { this.q.push(x, y, p); }, finish() {} } : new Stroke(T, opts),
-    sx: wx, sy: wy, raw: { x: wx, y: wy, p }, snap };
+    sx: wx, sy: wy, raw: { x: wx, y: wy, p }, snap,
+    persp: !snap && !local && persp.on && persp.snap && persp.vp ? { x0: wx, y0: wy, dir: null } : null };
   if (w) wbegin(b);
   stroke.s.add(wx, wy, p);
   if (w) wflush(false);
@@ -1409,6 +1416,14 @@ function commitLine() {
 }
 function strokeTo(wx, wy, p) {
   if (stroke.snap) [wx, wy] = guideSnap(wx, wy);   // a stroke that started on the ellipse guide stays on it
+  if (stroke.persp) {   // perspective snap: wait for a direction, then stay on that line
+    const P = stroke.persp;
+    if (!P.dir) {
+      if (Math.hypot(wx - P.x0, wy - P.y0) * view.z < 10) { stroke.cursor = stroke.raw = { x: wx, y: wy, p }; return; }
+      P.dir = perspDir(P.x0, P.y0, wx - P.x0, wy - P.y0);
+    }
+    const t = (wx - P.x0) * P.dir[0] + (wy - P.y0) * P.dir[1]; wx = P.x0 + t * P.dir[0]; wy = P.y0 + t * P.dir[1];
+  }
   stroke.cursor = { x: wx, y: wy, p };
   stroke.raw = { x: wx, y: wy, p };
   const k = 1 - stroke.smooth;
@@ -2371,7 +2386,9 @@ function applyResize(e) {   // {kind:'resize', w, h, dx, dy}: move the content b
   const inv = { kind: 'resize', w: ws.doc.w, h: ws.doc.h, dx: -e.dx, dy: -e.dy };
   for (const L of layers) shiftLayer(L, e.dx, e.dy);
   sel = shiftSel(sel, e.dx, e.dy); selChanged();
-  ws.doc.w = e.w; ws.doc.h = e.h; saveDocs();
+  ws.doc.w = e.w; ws.doc.h = e.h;
+  if (ws.at) { ws.at = { x: ws.at.x - e.dx, y: ws.at.y - e.dy }; boardGen++; }   // the board keeps its content where it was on the canvas
+  saveDocs();
   view.x -= e.dx * view.z; view.y -= e.dy * view.z;   // the content stays put on screen; the page edges move
   renderTabs(); dirtyScene();
   return inv;
@@ -3072,11 +3089,97 @@ function setGuide(on, shape) {
   saveGuide(); dirtyOverlay();
 }
 function syncGuideBtns() {
-  for (const [id, sh] of [['tGuide', 'ellipse'], ['tRect', 'rect']]) { const on = guide.on && guide.shape === sh; $(id).classList.toggle('on', on); $(id).setAttribute('aria-pressed', on); }
+  for (const [id, sh] of [['tGuide', 'ellipse'], ['tRGuide', 'rect']]) { const on = guide.on && guide.shape === sh; $(id).classList.toggle('on', on); $(id).setAttribute('aria-pressed', on); }
 }
 const guideKey = sh => setGuide(!(guide.on && guide.shape === sh), sh);
-$('tGuide').onclick = () => guideKey('ellipse'); $('tRect').onclick = () => guideKey('rect');
+$('tGuide').onclick = () => guideKey('ellipse'); $('tRGuide').onclick = () => guideKey('rect');
 syncGuideBtns();
+
+/* Perspective guide (P, 2026-11-11, Ben: "create perspective grids … and use them to trace like the rectangle and circle
+   tools"). 1, 2 or 3 vanishing points (world px), drawn as a faint grid of rays plus the horizon. With Snap on, every
+   brush or eraser stroke that doesn't start on the ellipse / rectangle guide waits until the pen has moved 10 screen px,
+   then locks to the line through its start point that best matches that direction: towards a vanishing point, or along
+   the true horizontal (1-point) or vertical (1- and 2-point). Every later point is projected onto that line, so the
+   stroke stays dead straight with your own pressure. 1- and 2-point VPs share the horizon: dragging one up or down moves
+   it. The grid is drawn once into a cached canvas and only redrawn when the view or the guide changes. */
+const persp = Object.assign({ on: false, n: 2, snap: true, vp: null }, S.persp || {}, { on: !!(S.persp && S.persp.on) });
+let perspC = null, perspKey = '';
+function savePersp() { S.persp = { on: persp.on, n: persp.n, snap: persp.snap, vp: persp.vp }; saveSettings(); }
+function perspDefault() {   // horizon at 40% of the screen; VPs placed for the current mode, all on screen
+  const c = toWorld(W / 2, H * 0.4), L = toWorld(W * 0.1, H * 0.4), R = toWorld(W * 0.9, H * 0.4), B = toWorld(W / 2, H * 0.92);
+  persp.vp = [{ x: c.x, y: c.y }, { x: L.x, y: L.y }, { x: R.x, y: R.y }, { x: B.x, y: B.y }];   // 0: 1-point centre; 1, 2: left and right; 3: the third (vertical) point
+}
+const perspVPs = () => persp.n === 1 ? [0] : persp.n === 2 ? [1, 2] : [1, 2, 3];
+function setPersp(on) {
+  persp.on = on;
+  if (on) {
+    const vs = persp.vp && perspVPs().map(i => persp.vp[i]);
+    const seen = vs && vs.some(v => { const x = v.x * view.z + view.x, y = v.y * view.z + view.y; return x > -W && x < 2 * W && y > -H && y < 2 * H; });
+    if (!persp.vp || !seen) perspDefault();
+    toast('Perspective guide on (' + persp.n + '-point). ' + (persp.snap ? 'Strokes snap to it; turn Snap off to draw freely.' : 'Snap is off.') + ' Drag the points to set it up');
+  }
+  syncPersp(); savePersp(); perspKey = ''; dirtyOverlay();
+}
+function syncPersp() {
+  $('tPersp').classList.toggle('on', persp.on); $('tPersp').setAttribute('aria-pressed', persp.on);
+  $('pOpts').hidden = !persp.on;
+  for (const n of [1, 2, 3]) $('pN' + n).classList.toggle('on', persp.n === n);
+  $('pSnap').classList.toggle('on', persp.snap); $('pSnap').setAttribute('aria-pressed', persp.snap);
+}
+function perspDir(x0, y0, dx, dy) {   // the snapping direction (a unit vector) that best matches the pen's first movement
+  const m = Math.hypot(dx, dy) || 1, ux = dx / m, uy = dy / m, cands = [];
+  for (const i of perspVPs()) { const v = persp.vp[i], vx = v.x - x0, vy = v.y - y0, d = Math.hypot(vx, vy); if (d > 1e-3) cands.push([vx / d, vy / d]); }
+  if (persp.n === 1) cands.push([1, 0]);
+  if (persp.n < 3) cands.push([0, 1]);
+  let best = cands[0], bd = -1;
+  for (const c of cands) { const d = Math.abs(c[0] * ux + c[1] * uy); if (d > bd) { bd = d; best = c; } }
+  return best;
+}
+function perspHit(x, y) {
+  if (!persp.on || !persp.vp) return -1;
+  let best = -1, bd = 14;
+  for (const i of perspVPs()) { const v = persp.vp[i], d = Math.hypot(v.x * view.z + view.x - x, v.y * view.z + view.y - y); if (d < bd) { bd = d; best = i; } }
+  return best;
+}
+function dragPersp(A, e) {
+  const w = toWorld(e.clientX, e.clientY), v = persp.vp[A.i];
+  v.x = w.x - A.ox; v.y = w.y - A.oy;
+  if (A.i === 1 || A.i === 2) persp.vp[3 - A.i].y = v.y;   // the two horizon points stay level
+  perspKey = ''; dirtyOverlay();
+}
+function drawPersp() {
+  const dk = [view.x, view.y, view.z, W, H, dpr, persp.n, JSON.stringify(persp.vp), paperColor()].join();
+  if (dk !== perspKey) {
+    perspKey = dk;
+    if (!perspC) perspC = document.createElement('canvas');
+    if (perspC.width !== ov.width || perspC.height !== ov.height) { perspC.width = ov.width; perspC.height = ov.height; }
+    const g = perspC.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, perspC.width, perspC.height); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const [pr, pg, pb] = hexToRgb(paperColor()), light = (0.299 * pr + 0.587 * pg + 0.114 * pb) / 255 > 0.62;
+    const far = Math.hypot(W, H) * 3, sc = v => [v.x * view.z + view.x, v.y * view.z + view.y];
+    const COLS = light ? ['rgba(160,40,40,', 'rgba(160,40,40,', 'rgba(30,80,170,', 'rgba(30,130,70,'] : ['rgba(255,140,130,', 'rgba(255,140,130,', 'rgba(140,190,255,', 'rgba(140,235,170,'];
+    g.lineWidth = 1;
+    for (const i of perspVPs()) {   // rays every 5°
+      const [x, y] = sc(persp.vp[i]); g.strokeStyle = COLS[i] + '0.3)'; g.beginPath();
+      for (let a = 0; a < 72; a++) { const t = a * Math.PI / 36; g.moveTo(x, y); g.lineTo(x + Math.cos(t) * far, y + Math.sin(t) * far); }
+      g.stroke();
+    }
+    g.strokeStyle = light ? 'rgba(27,37,50,0.55)' : 'rgba(255,255,255,0.7)'; g.lineWidth = 1.25; g.beginPath();   // the horizon
+    const hy = sc(persp.vp[persp.n === 1 ? 0 : 1])[1]; g.moveTo(-far, hy); g.lineTo(far, hy); g.stroke();
+  }
+  octx.save(); octx.setTransform(1, 0, 0, 1, 0, 0); octx.drawImage(perspC, 0, 0); octx.restore();
+  for (const i of perspVPs()) {
+    const v = persp.vp[i], x = v.x * view.z + view.x, y = v.y * view.z + view.y;
+    octx.save(); octx.fillStyle = '#fff'; octx.strokeStyle = '#2d6cb0'; octx.lineWidth = 1.5;
+    octx.beginPath(); octx.arc(x, y, 6, 0, Math.PI * 2); octx.fill(); octx.stroke();
+    octx.beginPath(); octx.moveTo(x - 10, y); octx.lineTo(x + 10, y); octx.moveTo(x, y - 10); octx.lineTo(x, y + 10); octx.stroke();
+    octx.restore();
+  }
+}
+$('tPersp').onclick = () => setPersp(!persp.on);
+for (const n of [1, 2, 3]) $('pN' + n).onclick = () => { if (persp.n === n) return; persp.n = n; if (!persp.vp) perspDefault(); syncPersp(); savePersp(); perspKey = ''; dirtyOverlay(); };
+$('pSnap').onclick = () => { persp.snap = !persp.snap; syncPersp(); savePersp(); toast(persp.snap ? 'Strokes snap to the perspective grid' : 'Snap off: the grid is just a guide'); };
+$('pReset').onclick = () => { perspDefault(); savePersp(); perspKey = ''; dirtyOverlay(); };
+syncPersp();
 
 /* ---------- persistence (IndexedDB) ---------- */
 let db = null; const saveSet = new Set(); let saveTimer = 0, saving = false;
@@ -3560,6 +3663,7 @@ function drawOverlay() {
   if (stroke && stroke.line) drawLineGuide(stroke.line);
   if (xf) drawXf();
   if (hl) drawHighlight();
+  if (persp.on && !xf) drawPersp();
   if (guide.on && !xf) drawGuide();
   if (modHandlesOn()) drawModHandles();
   if (docArea) drawDocArea();
@@ -3859,6 +3963,7 @@ ov.addEventListener('pointerdown', e => {
   if (selTool && selTool !== 'fill') { selDown(e, x, y); return; }
   if (e.altKey || virt.pick) { act = { type: 'pick', id: e.pointerId, prev: S.color }; altHeld = e.altKey; hover = { x, y, type: e.pointerType }; pickAt(x, y); return; }
   if (e.ctrlKey || e.metaKey) { act = { type: 'resize', id: e.pointerId, ax: x, ay: y, s0: S.size }; dirtyOverlay(); return; }
+  if (!xf) { const i = perspHit(x, y); if (i >= 0) { const w = toWorld(x, y); act = { type: 'persph', id: e.pointerId, i, ox: w.x - persp.vp[i].x, oy: w.y - persp.vp[i].y }; return; } }
   if (!xf) { const h = guideHit(x, y); if (h) { const w = toWorld(x, y); act = { type: 'guideh', id: e.pointerId, h, ox: w.x - guide.cx, oy: w.y - guide.cy }; return; } }
   if (modHandlesOn()) { const h = modHit(x, y); if (h) { act = { type: 'modh', id: e.pointerId, h }; return; } }
   if (sym.mode !== 'off' && Math.hypot(x - (sym.cx * view.z + view.x), y - (sym.cy * view.z + view.y)) < 14) { act = { type: 'axis', id: e.pointerId }; return; }
@@ -3892,6 +3997,7 @@ ov.addEventListener('pointermove', e => {
     case 'modh': dragModHandle(act, e); break;
     case 'rot': { const d = angWrap(rawAng(e) - act.a0); if (Math.abs(d) > 0.01) act.moved = true; view.r = snapRot(act.r0 + d, e.shiftKey); rotLayout(); break; }
     case 'guideh': dragGuide(act, e); break;
+    case 'persph': dragPersp(act, e); break;
     case 'board': boardMove(act, e); break;
     case 'axis': { const w = toWorld(e.clientX, e.clientY); sym.cx = w.x; sym.cy = w.y; dirtyOverlay(); break; }
     case 'pick': pickAt(e.clientX, e.clientY); break;
@@ -3947,6 +4053,7 @@ function pointerEnd(e) {
   else if (act.type === 'move') { const A = act; act = null; endMove(A); }
   else if (act.type === 'modh') { saveLayers(); renderMods(); }
   else if (act.type === 'guideh') saveGuide();
+  else if (act.type === 'persph') savePersp();
   else if (act.type === 'board') boardUp(act);
   else if (act.type === 'rot') { keepRot = false; if (!act.moved) { view.r = 0; toast('Rotation reset'); } rotLayout(); }
   else if (act.type === 'pick') { if (virt.pick) setVirt('pick', false); if (S.color !== act.prev) addRecent(S.color); }
@@ -4161,6 +4268,7 @@ addEventListener('keydown', e => {
   else if (k === 'g') setSelTool(selTool === 'fill' ? null : 'fill');
   else if (k === 'o') guideKey('ellipse');
   else if (k === 'u') guideKey('rect');
+  else if (k === 'p') setPersp(!persp.on);
   else if (k === 'b') { setSelTool(null); setErase(false); }
   else if (k === 'e') { const on = selTool ? true : !S.erase; setSelTool(null); setErase(on); }
   else if (k === 'f') { setSelTool(null); setTool(S.smudge ? 'brush' : 'smudge'); }
@@ -4900,7 +5008,7 @@ const wsState = () => {
   for (const z in ZONES) st.zones[z] = st.zones[z] || [];
   st.float = st.float || {}; st.off = st.off || {}; return st;
 };
-function placeFloat(el, at) {
+function placePane(el, at) {
   el.style.left = clamp(at.x, 4 - el.offsetWidth + 60, innerWidth - 60) + 'px';
   el.style.top = clamp(at.y, 36, innerHeight - 30) + 'px';
 }
@@ -4910,13 +5018,13 @@ function applyWorkspace() {
   for (const z in ZONES) st.zones[z] = st.zones[z].filter(id => PANE[id] && !placed.has(id) && (put(id, z), true));
   for (const id in st.float) {
     if (!PANE[id] || placed.has(id)) { delete st.float[id]; continue; }
-    const el = $(PANE[id][1]); el.classList.remove('moved'); el.style.transform = ''; $('zFloat').appendChild(el); placeFloat(el, st.float[id]); placed.add(id);
+    const el = $(PANE[id][1]); el.classList.remove('moved'); el.style.transform = ''; $('zFloat').appendChild(el); placePane(el, st.float[id]); placed.add(id);
   }
   for (const [id] of PANES) if (!placed.has(id)) { const z = Object.keys(WS_DEFAULT).find(k => WS_DEFAULT[k].includes(id)) || 'top'; st.zones[z].push(id); put(id, z); }
   for (const [id, eid] of PANES) $(eid).classList.toggle('winoff', !!st.off[id]);
   const tabs = $('tabs'); if (tabs.parentNode !== $('ui')) $('ui').appendChild(tabs);
 }
-addEventListener('resize', () => { const st = wsState(); for (const id in st.float) placeFloat($(PANE[id][1]), st.float[id]); });
+addEventListener('resize', () => { const st = wsState(); for (const id in st.float) placePane($(PANE[id][1]), st.float[id]); });
 function dropZone(x, y) {
   const E = 64, mb = $('menubar').getBoundingClientRect().bottom, top = $('zTop').getBoundingClientRect();
   if (x < E) return 'left';
@@ -5011,6 +5119,7 @@ const KEYS = [
     [K('V'), 'Color menu'],
     [K('M'), 'Cycle mirror: off, left/right, top/bottom, both, radial'],
     [K('Shift') + ' + ' + K('M'), 'Mirror on/off (comes back in the last mode you used)'],
+    [K('P'), 'Perspective guide: 1, 2 or 3-point grid (toolbar). With Snap on, strokes lock to its lines: towards a vanishing point, or straight across or up. Drag the points to set it up'],
     [K('U'), 'Rectangle guide: strokes that start on it follow it, with sharp corners. Same handles as the ellipse guide'],
     ['Swipe right', 'On a layer (or Shift+click): adds it to the selection. Group, merge or delete them all from the bar under the list'],
     [K('O'), 'Ellipse guide: strokes that start on it follow it. Drag the square to size and turn it, the round handle to squash it (Shift: circle), the diamond to scale it evenly, the center to move it'],
@@ -5248,6 +5357,7 @@ const CMDS = [
   ['View', 'unrotate', 'Straighten the canvas', '', () => { view.flip = false; setRot(0); }],
   ['View', 'guide', 'Ellipse guide', 'O', () => guideKey('ellipse')],
   ['View', 'rguide', 'Rectangle guide', 'U', () => guideKey('rect')],
+  ['View', 'persp', 'Perspective guide', 'P', () => setPersp(!persp.on)],
   ['View', 'mirror', 'Mirror on/off', 'Shift+M', () => toggleSym(), null, () => sym.mode !== 'off'],
   '-View',
   ['Window', 'w_tools', 'Tools', '', () => winToggle('tools'), null, () => winOn('tools')],

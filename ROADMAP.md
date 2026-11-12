@@ -75,6 +75,8 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] Hover tooltips on every control; Shift+M mirror on/off; uniform-scale handle on the ellipse guide
 - [x] **Gradient Map** (Image → Adjustments): presets plus an editable gradient (add, move, recolor and remove stops)
 - [x] **Rectangle guide** (U): like the ellipse guide, with sharp corners
+- [x] **Perspective guide** (P): 1, 2 or 3-point grid with snapping strokes
+- [x] Fixed: Doc size did nothing (a function name clash); the rectangle guide and Rectangle select buttons were crossed
 - [x] iPad: numbered group-jump buttons on the touch dock; Procreate-style multi-layer selection (swipe right) with Group / Merge / Delete
 - [ ] Later: adjustment *layers* (non-destructive), Selective Color, Match Color; transform and move several selected layers at once
 
