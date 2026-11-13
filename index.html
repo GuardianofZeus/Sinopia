@@ -3174,7 +3174,7 @@ function setPersp(on) {
   if (on) {
     const vs = persp.vp && perspVPs().map(i => persp.vp[i]);
     const seen = vs && vs.some(v => { const x = v.x * view.z + view.x, y = v.y * view.z + view.y; return x > -W && x < 2 * W && y > -H && y < 2 * H; });
-    if (!persp.vp || !seen) perspDefault();
+    if (!persp.vp || (!seen && !ws.doc)) perspDefault();   // a document keeps the grid it was made with, even off screen (Ben, 2026-11-12)
     toast('Perspective guide on (' + persp.n + '-point). ' + (persp.snap ? 'Strokes snap to it; turn Snap off to draw freely.' : 'Snap is off.') + ' Drag the points to set it up');
   }
   syncPersp(); savePersp(); perspKey = ''; dirtyOverlay();
