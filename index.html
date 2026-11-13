@@ -3848,18 +3848,20 @@ function startPinch() {
   const c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   act = { type: 'pinch', d0: Math.hypot(a.rx - b.rx, a.ry - b.ry) || 1, z0: view.z, w: toWorld(c.x, c.y), a0: Math.atan2(b.ry - a.ry, b.rx - a.rx), r0: view.r || 0, twist: false, mode: null };
 }
-/* Two fingers always pan. Each gesture then commits to ONE of zoom or rotate, whichever passes its threshold first:
-   spreading or closing by 6% zooms (no rotation for the rest of that gesture), twisting 15° while the spread is still
-   under that rotates (no zoom). Lift the fingers to switch. Committing re-anchors, so nothing jumps. */
-const PINCH_ZOOM = 0.06, PINCH_TWIST = 0.26;
+/* Two fingers always pan. Each gesture then commits to ONE of zoom or rotate (lift the fingers to switch); committing
+   re-anchors, so nothing jumps. The two are scored on comparable scales, spread change / 10% against twist / 10°, and
+   once either passes its mark the bigger score wins. Before (2026-11-13, Ben: rotate on iPad "has a hard time
+   registering") zoom was checked first at 6%, and fingers drift apart that much in almost any twist. */
+const PINCH_ZOOM = 0.10, PINCH_TWIST = 10 * Math.PI / 180;
 function movePinch() {
   const [a, b] = [...touches.values()];
   const ang = Math.atan2(b.ry - a.ry, b.rx - a.rx), d = Math.hypot(a.rx - b.rx, a.ry - b.ry) || 1;
   const [mx, my] = unrot((a.rx + b.rx) / 2, (a.ry + b.ry) / 2);
   if (!act.mode) {
     const sc = Math.abs(Math.log(d / act.d0)), tw = Math.abs(angWrap(ang - act.a0));
-    if (sc > PINCH_ZOOM) { act.mode = 'zoom'; act.d0 = d; act.z0 = view.z; act.w = toWorld(mx, my); }
-    else if (tw > PINCH_TWIST) { act.mode = 'rot'; act.twist = true; act.a0 = ang; act.r0 = view.r || 0; keepRot = true; }
+    const zs = sc / PINCH_ZOOM, ts = tw / PINCH_TWIST;
+    if (zs >= 1 && zs >= ts) { act.mode = 'zoom'; act.d0 = d; act.z0 = view.z; act.w = toWorld(mx, my); }
+    else if (ts >= 1) { act.mode = 'rot'; act.twist = true; act.a0 = ang; act.r0 = view.r || 0; keepRot = true; }
   }
   if (act.mode === 'rot') {
     view.r = snapRot(act.r0 + angWrap(ang - act.a0), false); rotLayout();
