@@ -188,8 +188,8 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 }
 .panel h2{margin:0; font-size:10.5px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
 .section{display:flex; flex-direction:column; gap:8px}
-.head{display:flex; align-items:center; justify-content:space-between; gap:4px}
-.head .tools{display:flex; gap:1px}
+.head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px}
+.head .tools{display:flex; flex-wrap:wrap; justify-content:flex-end; gap:1px; margin-left:auto}   /* wraps instead of clipping: on iPad the bigger buttons pushed Delete out of the Layers panel (2026-11-12) */
 
 .layers{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; max-height:210px; overflow:auto; border:1px solid var(--line); border-radius:3px; padding:3px; background:var(--chrome-2)}
 .layer{display:flex; align-items:center; gap:6px; height:32px; padding:0 4px 0 2px; border-radius:3px; cursor:pointer; font-size:12.5px}
@@ -1346,15 +1346,19 @@ function setLineMode(on) {
   if (!stroke || stroke.ending || !!stroke.line === on) return;
   if (on) {
     if (!stroke.w) stroke.s.finish();   // draw any pending sample so the stroke really ends at the anchor
-    stroke.line = { ax: stroke.sx, ay: stroke.sy, p0: stroke.raw.p, pe: null, pw: 0, end: null, box: null, snap: new Map(), known: new Set(stroke.T.entries.values()) };
+    stroke.line = { ax: stroke.sx, ay: stroke.sy, p0: stroke.raw.p, pe: null, hist: [], end: null, box: null, snap: new Map(), known: new Set(stroke.T.entries.values()) };
   } else commitLine();
   dirtyOverlay();
 }
 function lineMove(wx, wy, p) {
   const L = stroke.line, dx = wx - L.ax, dy = wy - L.ay;
   stroke.cursor = { x: wx, y: wy, p };
-  // one weight for the whole line: the firmest smoothed pressure so far, so it doesn't thin out toward either end
-  L.pe = L.pe == null ? p : L.pe + (p - L.pe) * 0.25; L.pw = Math.max(L.pw, L.pe); p = L.pw;
+  /* one weight for the whole line that follows the pen both ways (Ben, 2026-11-12: it only ever grew). It's the smoothed
+     pressure, held at its firmest over the last 100 ms, so lifting the pen at the end doesn't thin the line. */
+  const now = performance.now(), H = L.hist;
+  L.pe = L.pe == null ? p : L.pe + (p - L.pe) * 0.25; H.push(now, L.pe);
+  while (H.length > 2 && H[0] < now - 100) H.splice(0, 2);
+  p = 0; for (let i = 1; i < H.length; i += 2) if (H[i] > p) p = H[i];
   if (Math.hypot(dx, dy) * view.z < 2) { L.end = null; stroke.raw = { x: L.ax, y: L.ay, p }; }
   else {
     // snap to 10° steps, and also onto the 45° diagonals the guides show (45° isn't a 10° step)
