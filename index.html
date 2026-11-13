@@ -224,6 +224,7 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .grp.hid .eye{color:var(--muted)}
 .grp input{flex:1; min-width:0; height:24px; border:1px solid var(--accent); border-radius:2px; background:var(--chrome); color:var(--ink); font:600 12px var(--font-ui); padding:0 5px}
 .dgrp{box-shadow:inset 3px 0 0 var(--dc); background:color-mix(in srgb, var(--dc) 13%, transparent); cursor:default}
+.dgrp.on{background:color-mix(in srgb, var(--dc) 32%, transparent); box-shadow:inset 3px 0 0 var(--dc), inset 0 0 0 1px var(--dc)}
 .dgrp:hover{background:color-mix(in srgb, var(--dc) 22%, transparent)}
 .dgrp .lock{color:var(--dc); pointer-events:none}
 .dgrp .op{font-weight:500; color:var(--muted); font-size:11px; padding:0 2px}
@@ -1588,6 +1589,7 @@ const layerSnap = () => ({ kind: 'layers', list: layers.slice(), active: cur, gr
 function layerOp(mutate) { settle(); const before = layerSnap(); mutate(); tidyGroups(); pushUndo(before); saveLayers(); renderLayers(); dirtyScene(); }
 function addLayer() { layerOp(() => { const L = newLayer(); L.g = cur.g; layers.splice(layers.indexOf(cur) + 1, 0, L); cur = L; }); }
 function dupLayer() {
+  if (docPicked()) { dupDoc(selDoc); return; }   // a document row or board is selected on the canvas
   layerOp(() => {
     const L = newLayer(cur.name + ' copy'); L.opacity = cur.opacity; L.visible = cur.visible; L.g = cur.g; L.blend = cur.blend; L.mods = JSON.parse(JSON.stringify(cur.mods));
     for (const [k, t] of cur.tiles) L.tiles.set(k, mkTile(cloneCanvas(t.c)));
@@ -1595,6 +1597,7 @@ function dupLayer() {
   });
 }
 function delLayer() {
+  if (docPicked()) { deleteBoard(selDoc); return; }
   if (picked.size) { deletePicked(); return; }
   if (layers.length < 2) { toast('Can’t delete the only layer'); return; }
   const G = groupOf(cur), last = G && layers.filter(L => L.g === G.id).length === 1;
@@ -2284,6 +2287,7 @@ function openDoc(A) {   // A: {x, y, w, h} in canvas world px; A.blank makes an 
   const D = { id: newDocId(), name: 'Untitled ' + (++docSeq), doc: { w, h }, paper: S.paper, layers: [], groups: [], undo: [], redo: [], sel: null, open: true,
     at: freeSpot(A.x + A.w + Math.max(48, Math.round(Math.min(A.w, A.h) * 0.06)), A.y, w, h) };   // its board sits beside the area
   docColor(D);
+  if (persp.on && persp.vp) D.persp = perspState(Math.round(b.x0), Math.round(b.y0));   // perspective carries over, lined up with the copy
   for (const L of A.blank ? [] : layers) {
     if (!shown(L) || !L.tiles.size) continue;
     const N = newLayer(L.name); N.doc = true; N.opacity = L.opacity;
@@ -2387,6 +2391,7 @@ function applyResize(e) {   // {kind:'resize', w, h, dx, dy}: move the content b
   for (const L of layers) shiftLayer(L, e.dx, e.dy);
   sel = shiftSel(sel, e.dx, e.dy); selChanged();
   ws.doc.w = e.w; ws.doc.h = e.h;
+  if (persp.vp) { for (const v of persp.vp) { v.x += e.dx; v.y += e.dy; } savePersp(); }
   if (ws.at) { ws.at = { x: ws.at.x - e.dx, y: ws.at.y - e.dy }; boardGen++; }   // the board keeps its content where it was on the canvas
   saveDocs();
   view.x -= e.dx * view.z; view.y -= e.dy * view.z;   // the content stays put on screen; the page edges move
@@ -2427,12 +2432,13 @@ function switchWS(t) {
   if (flt) fltEnd(true);
   if (xf) xfEnd(true);
   settle(); if (anim) { cancelAnimationFrame(anim); anim = 0; }
-  Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: normV(view), sel });
+  Object.assign(ws, { layers, cur, groups, undo: undoStack.splice(0), redo: redoStack.splice(0), view: normV(view), sel, persp: perspState() });
   const old = ws; ws = t;
   if (old.doc) { makeThumb(old); saveDocs(); }   // its board on the canvas shows the latest
   layers = t.layers; cur = t.cur; groups = t.groups; sel = t.sel;
   undoStack.push(...t.undo); redoStack.push(...t.redo); view.r = 0; view.flip = false; Object.assign(view, t.view); rotLayout(true);
-  hl = null; if (noteMode) setNoteMode(false);
+  loadPersp(t.persp || (t === canvasWS ? S.persp : null));
+  hl = null; selDoc = null; if (noteMode) setNoteMode(false);
   notesEl.hidden = notesEl2.hidden = !!t.doc; $('paper').style.background = paperColor(); if (CP.on === 'paper') closeCP();
   $('newDoc').textContent = t.doc ? 'Doc size' : 'New doc'; $('newDocMenu').hidden = !!t.doc;
   $('newDoc').title = t.doc ? 'Change the page size (Canvas Size)' : 'New document from the selection, or from what\'s on screen';
@@ -2463,7 +2469,7 @@ function flushDocs() { if (docTimer) writeDocs(); }
 function writeDocs() {
   docTimer = 0; if (fileGone) return;
   LS.set(fkey('docs'), { nextId, seq: docSeq, list: docs.map(D => { const d = wsData(D); return {
-    id: D.id, name: D.name, color: docColor(D), hide: !!D.hide, w: D.doc.w, h: D.doc.h, paper: d.paper, at: D.at, view: d.view, active: d.cur && d.cur.id,
+    id: D.id, name: D.name, color: docColor(D), hide: !!D.hide, w: D.doc.w, h: D.doc.h, paper: d.paper, at: D.at, view: d.view, active: d.cur && d.cur.id, persp: D === ws ? perspState() : D.persp || null,
     groups: d.groups.map(G => ({ id: G.id, name: G.name, visible: G.visible, open: G.open, active: G.active })),
     layers: d.layers.map(L => ({ id: L.id, name: L.name, visible: L.visible, opacity: L.opacity, g: L.g, blend: L.blend, mods: L.mods, mask: L.mask ? { id: L.mask.id, on: L.mask.on } : null })) }; }) });
 }
@@ -2481,7 +2487,7 @@ function initDocs() {
     });
     if (!ls.length) { const L = { id: nextId++, name: 'Layer 1', visible: true, opacity: 1, tiles: new Map(), g: null, blend: 'normal', mods: [], doc: true }; allLayers.set(L.id, L); ls.push(L); }
     docs.push({ id: m.id || newDocId(), name: m.name || 'Untitled', color: m.color || null, hide: !!m.hide, doc: { w: m.w, h: m.h }, paper: m.paper || S.paper, at: m.at || { x: 0, y: 0 }, layers: ls, groups: gs,
-      undo: [], redo: [], sel: null, view: m.view || null, cur: ls.find(L => L.id === m.active) || ls[ls.length - 1], open: false });
+      undo: [], redo: [], sel: null, view: m.view || null, cur: ls.find(L => L.id === m.active) || ls[ls.length - 1], open: false, persp: m.persp || null });
   }
 }
 function freeSpot(x, y, w, h) {   // the first spot at (x, y) or further right that no other board overlaps
@@ -2543,15 +2549,20 @@ function openBoard(D) {
   if (!D.view) { const z = clamp(Math.min(W * 0.84 / D.doc.w, (H - 120) * 0.84 / D.doc.h), 0.02 / dpr, 1 / dpr); D.view = { z, x: W / 2 - D.doc.w / 2 * z, y: H / 2 + 20 - D.doc.h / 2 * z }; }
   D.open = true; switchWS(D);
 }
-function boardDown(e, D, x, y) {
-  if (e.button === 2) {   // right-click: a small menu at the pointer
-    const rx = e.rawX ?? e.clientX, ry = e.rawY ?? e.clientY;
+function boardMenu(D, rx, ry) {
     showMenu({ getBoundingClientRect: () => ({ left: rx, right: rx, top: ry, bottom: ry - 6 }) }, [
       { label: 'Open ' + D.name, sub: 'double-click', fn: () => openBoard(D) },
+      { label: 'Duplicate beside it', sub: 'a new version', fn: () => dupDoc(D) },
       { label: 'Delete document…', fn: () => deleteBoard(D) }]);
-    return;
-  }
-  act = { type: 'board', id: e.pointerId, D, sx: x, sy: y, ax: D.at.x, ay: D.at.y, moved: false };
+}
+function boardDown(e, D, x, y) {
+  const rx = e.rawX ?? e.clientX, ry = e.rawY ?? e.clientY;
+  if (e.button === 2) { boardMenu(D, rx, ry); return; }   // right-click: a small menu at the pointer
+  const A = act = { type: 'board', id: e.pointerId, D, sx: x, sy: y, ax: D.at.x, ay: D.at.y, moved: false };
+  if (e.pointerType !== 'mouse') A.hold = setTimeout(() => {   // long-press on touch or pen: the same menu
+    if (act !== A || A.moved) return;
+    act = null; ov.classList.remove('mv'); boardKey = ''; dirtyScene(); lastBoardClick = null; boardMenu(D, rx, ry);
+  }, 550);
   docs = docs.filter(o => o !== D); docs.push(D);   // to the top
   ov.classList.add('mv'); boardKey = ''; dirtyScene();
 }
@@ -2561,11 +2572,47 @@ function boardMove(A, e) {
   A.moved = true; A.D.at = { x: Math.round(A.ax + dx / view.z), y: Math.round(A.ay + dy / view.z) }; boardGen++; dirtyScene();
 }
 function boardUp(A) {
+  clearTimeout(A.hold); pickDoc(A.D);
   ov.classList.remove('mv'); boardKey = ''; dirtyScene();
   if (A.moved) { saveDocs(); lastBoardClick = null; return; }
   const now = performance.now();
   if (lastBoardClick && lastBoardClick.D === A.D && now - lastBoardClick.t < 450) { lastBoardClick = null; setTimeout(() => openBoard(A.D)); return; }
   lastBoardClick = { D: A.D, t: now };
+}
+/* Duplicate a document (2026-11-12, Ben: "duplicate my pop-outs and place them next to each other … to view different
+   versions"). A full copy: every layer, mask, group, modifier, blend mode and the paper, with new ids. Its board goes
+   right beside the original (freeSpot slides it past others) and it's named "<name> v2", v3… The copy isn't opened, so you
+   stay where you are; undo history isn't copied. */
+function versionName(name) {
+  const base = name.replace(/ v\d+$/, '');
+  let n = 1; for (const o of docs) if (o.name.startsWith(base + ' v')) { const v = +o.name.slice(base.length + 2); if (v) n = Math.max(n, v); }
+  return base + ' v' + (n + 1);
+}
+function dupDoc(D) {
+  if (act || stroke) return;
+  settle();
+  const d = wsData(D), w = D.doc.w, h = D.doc.h, gmap = new Map(), lmap = new Map();
+  const N = { id: newDocId(), name: versionName(D.name), doc: { w, h }, paper: d.paper, layers: [], groups: [], undo: [], redo: [], sel: null, open: false,
+    view: d.view ? Object.assign({}, d.view) : null, persp: JSON.parse(JSON.stringify(ws === D ? perspState() : D.persp || null)), at: freeSpot(D.at.x + w + Math.max(48, Math.round(Math.min(w, h) * 0.06)), D.at.y, w, h) };
+  docColor(N);
+  const copyTiles = (from, to) => { for (const [k, t] of from.tiles) if (!t.blank) to.tiles.set(k, mkTile(cloneCanvas(t.c))); };
+  for (const G of d.groups) { const id = allocGid(); gmap.set(G.id, id); N.groups.push(Object.assign({}, G, { id, key: null })); }
+  for (const L of d.layers) {
+    const C = { id: allocId(), name: L.name, visible: L.visible, opacity: L.opacity, tiles: new Map(), g: L.g != null && gmap.has(L.g) ? gmap.get(L.g) : null,
+      blend: L.blend || 'normal', mods: JSON.parse(JSON.stringify(L.mods || [])), doc: true };
+    allLayers.set(C.id, C); copyTiles(L, C); lmap.set(L.id, C.id);
+    if (L.mask) { C.mask = mkMask(C); C.mask.on = L.mask.on; copyTiles(L.mask, C.mask); }
+    N.layers.push(C); if (L === d.cur) N.cur = C;
+  }
+  for (const G of N.groups) G.active = lmap.get(G.active) ?? null;
+  N.cur = N.cur || N.layers[N.layers.length - 1];
+  docs.push(N);
+  for (const C of N.layers) { markSave(C, C.tiles.keys()); if (C.mask) markSave(C.mask, C.mask.tiles.keys()); }
+  if (D.thumb) { N.thumb = cloneCanvas(D.thumb); } else makeThumb(N);
+  if (ws === D) makeThumb(N);   // the original is open, so its saved picture may be behind: draw the copy's from its layers
+  saveDocs(); boardGen++; renderLayers(); renderTabs(); dirtyScene();
+  toast(N.name + ' made beside ' + D.name + (ws.doc ? '. It’s on the canvas; double-click it there to open it.' : '. Double-click it to open it.'));
+  return N;
 }
 async function deleteBoard(D) {
   if (!(await ask('Delete “' + D.name + '”? Its layers are removed from this drawing. This can’t be undone.', 'Delete'))) return;
@@ -3104,7 +3151,15 @@ syncGuideBtns();
    it. The grid is drawn once into a cached canvas and only redrawn when the view or the guide changes. */
 const persp = Object.assign({ on: false, n: 2, snap: true, vp: null }, S.persp || {}, { on: !!(S.persp && S.persp.on) });
 let perspC = null, perspKey = '';
-function savePersp() { S.persp = { on: persp.on, n: persp.n, snap: persp.snap, vp: persp.vp }; saveSettings(); }
+/* Each workspace has its own grid: the canvas's is in settings (S.persp), a document's in its saved meta (D.persp).
+   A new document gets the canvas grid moved into page space, so it lines up with the copied drawing. */
+const perspState = (dx = 0, dy = 0) => ({ on: persp.on, n: persp.n, snap: persp.snap, vp: persp.vp && persp.vp.map(v => ({ x: v.x - dx, y: v.y - dy })) });
+function savePersp() { if (ws.doc) { ws.persp = perspState(); saveDocs(); return; } S.persp = perspState(); saveSettings(); }
+function loadPersp(P) {   // on switching workspace
+  Object.assign(persp, P ? { on: !!P.on, n: P.n || persp.n, snap: P.snap !== false, vp: P.vp ? P.vp.map(v => ({ x: v.x, y: v.y })) : null } : { on: false, vp: null });
+  if (persp.on && !persp.vp) perspDefault();
+  syncPersp(); perspKey = '';
+}
 function perspDefault() {   // horizon at 40% of the screen; VPs placed for the current mode, all on screen
   const c = toWorld(W / 2, H * 0.4), L = toWorld(W * 0.1, H * 0.4), R = toWorld(W * 0.9, H * 0.4), B = toWorld(W / 2, H * 0.92);
   persp.vp = [{ x: c.x, y: c.y }, { x: L.x, y: L.y }, { x: R.x, y: R.y }, { x: B.x, y: B.y }];   // 0: 1-point centre; 1, 2: left and right; 3: the third (vertical) point
@@ -3948,7 +4003,12 @@ ov.addEventListener('pointerdown', e => {
       startPinch(); return;
     }
     if (touches.size > 2 || act) return;
-    if (penSeen) { act = { type: 'pan', id: e.pointerId, lx: x, ly: y }; return; }
+    if (penSeen) {   // a finger pans once a pen has been seen; on a board, a tap selects it and a long-press opens its menu
+      const A = act = { type: 'pan', id: e.pointerId, lx: x, ly: y, sx: x, sy: y };
+      const D = !ws.doc && !flt && !xf && docs.length ? boardHit(x, y) : null;
+      if (D) { A.board = D; const rx = e.rawX ?? x, ry = e.rawY ?? y; A.hold = setTimeout(() => { if (act === A && Math.hypot(A.lx - A.sx, A.ly - A.sy) < 10) { act = null; boardMenu(D, rx, ry); } }, 550); }
+      return;
+    }
   }
   if (act) return;
   if (rHeld) { act = { type: 'rot', id: e.pointerId, a0: rawAng(e), r0: view.r || 0, moved: false }; keepRot = true; rotLayout(); return; }
@@ -4055,6 +4115,7 @@ function pointerEnd(e) {
   else if (act.type === 'guideh') saveGuide();
   else if (act.type === 'persph') savePersp();
   else if (act.type === 'board') boardUp(act);
+  else if (act.type === 'pan' && act.board) { clearTimeout(act.hold); if (Math.hypot(act.lx - act.sx, act.ly - act.sy) < 10) pickDoc(act.board); }
   else if (act.type === 'rot') { keepRot = false; if (!act.moved) { view.r = 0; toast('Rotation reset'); } rotLayout(); }
   else if (act.type === 'pick') { if (virt.pick) setVirt('pick', false); if (S.color !== act.prev) addRecent(S.color); }
   act = null; ov.classList.remove('grabbing'); saveSettings(); dirtyOverlay();
@@ -4658,9 +4719,16 @@ function startRowDrag(ev, src) {
 /* On the canvas, each document shows as a locked group in its own color (Ben, 2026-11-09): its layers live only inside
    the document, so the row has no expand arrow and shows nothing of what's in it. Click glides to the board,
    double-click opens it, the eye hides the board, × deletes the document (after asking). */
+const DUP_ICON = '<svg viewBox="0 0 18 18"><rect x="6.5" y="6.5" width="8" height="8" rx="1"/><path d="M11.5 6.5V4.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>';
 const LOCKED = '<svg viewBox="0 0 18 18"><rect x="4.5" y="8" width="9" height="6.5" rx="1"/><path d="M6.5 8V6a2.5 2.5 0 0 1 5 0v2"/></svg>';
+/* The selected document (2026-11-12, Ben on iPad: Duplicate copied the last layer, "the pop ups may not be actually
+   selected"). Tapping a doc row or a board selects it; the panel's Duplicate and Delete buttons then act on it.
+   Picking a layer, or opening a workspace, clears it. */
+let selDoc = null;
+const docPicked = () => !ws.doc && selDoc && docs.includes(selDoc) ? selDoc : null;
+function pickDoc(D) { if (selDoc === D) return; selDoc = D; renderLayers(); }
 function docRow(D) {
-  const li = document.createElement('li'); li.className = 'grp dgrp' + (D.hide ? ' hid' : ''); li.tabIndex = 0;
+  const li = document.createElement('li'); li.className = 'grp dgrp' + (D.hide ? ' hid' : '') + (docPicked() === D ? ' on' : ''); li.tabIndex = 0;
   li.style.setProperty('--dc', docColor(D));
   li.title = 'Document: double-click to open it, click to go to its board';
   const lock = document.createElement('span'); lock.className = 'eye lock'; lock.innerHTML = LOCKED;
@@ -4668,13 +4736,15 @@ function docRow(D) {
   const sz = document.createElement('span'); sz.className = 'op'; sz.textContent = D.doc.w + '×' + D.doc.h;
   const x = document.createElement('button'); x.className = 'eye'; x.innerHTML = UNGROUP; x.title = 'Delete this document'; x.setAttribute('aria-label', 'Delete ' + D.name);
   x.onclick = ev => { ev.stopPropagation(); deleteBoard(D); };
+  const dup = document.createElement('button'); dup.className = 'eye'; dup.innerHTML = DUP_ICON; dup.title = 'Duplicate this document beside it (a new version)'; dup.setAttribute('aria-label', 'Duplicate ' + D.name);
+  dup.onclick = ev => { ev.stopPropagation(); dupDoc(D); };
   const eye = eyeBtn(!D.hide, 'board', () => { D.hide = !D.hide; boardGen++; saveDocs(); });
-  li.append(lock, eye, name, sz, x);
+  li.append(lock, eye, name, sz, dup, x);
   const go = () => { if (D.hide) { D.hide = false; boardGen++; saveDocs(); renderLayers(); }
     const pad = 0.14, z = clamp(Math.min(W * (1 - 2 * pad) / D.doc.w, H * (1 - 2 * pad) / D.doc.h), 0.02 / dpr, 1 / dpr);
     animateView(z, D.at.x + D.doc.w / 2, D.at.y + D.doc.h / 2); };
   let clickT = 0;
-  li.onclick = () => { clearTimeout(clickT); clickT = setTimeout(go, 260); };   // wait, so a double-click doesn't glide first
+  li.onclick = () => { pickDoc(D); clearTimeout(clickT); clickT = setTimeout(go, 260); };   // wait, so a double-click doesn't glide first
   li.ondblclick = ev => { ev.preventDefault(); clearTimeout(clickT); if (!act && !stroke) openBoard(D); };
   li.onkeydown = ev => { if (ev.key === 'Enter') openBoard(D); };
   return li;
@@ -4758,7 +4828,7 @@ function renderLayers() {
     lastG = G ? G.id : 0;
     if (G && !G.open) continue;
     const li = document.createElement('li');
-    li.className = 'layer' + (G ? ' in' : '') + (L === cur ? ' on' : '') + (picked.has(L) ? ' pk' : '') + (L.visible ? '' : ' hid'); li.tabIndex = 0;
+    li.className = 'layer' + (G ? ' in' : '') + (L === cur && !docPicked() ? ' on' : '') + (picked.has(L) ? ' pk' : '') + (L.visible ? '' : ' hid'); li.tabIndex = 0;
     li.setAttribute('aria-selected', L === cur);
     const name = document.createElement('span'); name.className = 'name'; name.textContent = L.name;
     const op = document.createElement('span'); op.className = 'op'; op.textContent = opText(L);
@@ -4770,7 +4840,7 @@ function renderLayers() {
       li.append(ch);
     }
     li.append(op);
-    li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight([L], L.name); else if (ev.shiftKey) togglePick(L); else if (cur !== L || maskEdit || picked.size) { cur = L; maskEdit = false; picked.clear(); saveLayers(); renderLayers(); syncSelUI(); } };
+    li.onclick = ev => { if (rowDragged) return; if (ev.ctrlKey || ev.metaKey) highlight([L], L.name); else if (ev.shiftKey) togglePick(L); else if (cur !== L || maskEdit || picked.size || selDoc) { selDoc = null; cur = L; maskEdit = false; picked.clear(); saveLayers(); renderLayers(); syncSelUI(); } };
     li.onkeydown = ev => { if (ev.key === 'Enter') { cur = L; saveLayers(); renderLayers(); } };
     renamable(li, name, L, 'Layer name');
     const row = { li, L }; layerRows.push(row); li.addEventListener('pointerdown', ev => startRowDrag(ev, row));
@@ -4781,7 +4851,8 @@ function renderLayers() {
   renderMods();
   const i = layers.indexOf(cur);
   $('layerUp').disabled = !layerMove(1); $('layerDown').disabled = !layerMove(-1);
-  $('layerMerge').disabled = i <= 0; $('layerDel').disabled = layers.length < 2;
+  $('layerMerge').disabled = i <= 0; $('layerDel').disabled = layers.length < 2 && !docPicked();
+  $('layerDup').title = docPicked() ? 'Duplicate ' + selDoc.name + ' beside it' : 'Duplicate layer'; $('layerDel').title = docPicked() ? 'Delete ' + selDoc.name : 'Delete layer';
   if (!cur.mask) maskEdit = false;
   $('layerMask').classList.toggle('on', !!cur.mask);
   renderPickBar(); renderDockGroups();
@@ -5123,6 +5194,7 @@ const KEYS = [
     [K('U'), 'Rectangle guide: strokes that start on it follow it, with sharp corners. Same handles as the ellipse guide'],
     ['Swipe right', 'On a layer (or Shift+click): adds it to the selection. Group, merge or delete them all from the bar under the list'],
     [K('O'), 'Ellipse guide: strokes that start on it follow it. Drag the square to size and turn it, the round handle to squash it (Shift: circle), the diamond to scale it evenly, the center to move it'],
+    ['Duplicate a document', 'Right-click its board → Duplicate beside it, the ⧉ button on its row in the Layers panel, or File → Duplicate document. The copy (v2, v3…) sits right beside the original, for comparing versions'],
     ['Double-click', 'A document board on the canvas opens it in a tab. Drag a board to move it; right-click it to delete it'],
     ['Layers panel', 'On the canvas, each document is a locked row in its own color: click goes to its board, double-click opens it, the eye hides the board, × deletes the document'],
   ]],
@@ -5281,6 +5353,7 @@ const CMDS = [
   ['File', 'openexr', 'Open EXR (Cryptomatte)…', '', () => { $('exrFile').value = ''; $('exrFile').click(); }],
   ['File', 'export', 'Export PNG…', 'Ctrl+Shift+E', () => doExport()],
   ['File', 'closedoc', 'Close document', '', () => ws.doc && closeDoc(ws), 'doc'],
+  ['File', 'dupdoc', 'Duplicate document', '', () => ws.doc && dupDoc(ws), 'doc'],
   ['Edit', 'undo', 'Undo', 'Ctrl+Z', () => undo()],
   ['Edit', 'redo', 'Redo', 'Ctrl+Shift+Z', () => redo()],
   '-Edit',

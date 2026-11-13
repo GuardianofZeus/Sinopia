@@ -69,7 +69,7 @@ Both editions are the same code. The App's extra features load only when the app
 - [x] **Smudge tool** (F): finger-paint smearing with its own size, strength and pressure
 - [x] Fill sampling is a clear toolbar option: All layers or This layer (Shift+G)
 - [x] Smudge **Blend** mode (default) for blending two colors; the old pull is **Smear**
-- [x] **Documents are saved** and live on the canvas as boards: double-click to open, drag to move, right-click to delete
+- [x] **Documents are saved** and live on the canvas as boards: double-click to open, drag to move, right-click to duplicate (v2, v3… placed beside it, for comparing versions) or delete
 - [x] **Document groups:** each document is a locked, colored row in the canvas Layers panel (go to, open, hide, delete; its layers stay private to the document)
 - [x] **iPad speed pass:** pinch commits to zoom *or* rotate, fewer full-screen layers, smaller per-frame uploads, `?perf` readout
 - [x] Hover tooltips on every control; Shift+M mirror on/off; uniform-scale handle on the ellipse guide
