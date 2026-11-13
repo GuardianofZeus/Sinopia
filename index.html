@@ -655,6 +655,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
 <div class="status">
   <button class="pill" id="zoomOut" title="Reset zoom to 100%">100%</button>
   <span class="pill res" id="resOut"></span>
+  <button class="pill" id="lineOut" title="Straight-line angle snap (Shift lines): click to choose the step">∠ 10°</button>
   <button class="pill" id="rotOut" title="Canvas rotation: click to straighten" hidden>0°</button>
   <span class="pill hint" id="hint">Hold Shift while drawing for straight lines · V opens colors · Ctrl-drag resizes · Space-drag pans · Ctrl+Space-drag zooms · Hold Alt to pick a color · Ctrl+1–9 jumps to a group · T adds a note · X deletes the layer</span>
   <button class="pill collab" id="collabOut" title="Drawing together: click for details" hidden></button>
@@ -665,7 +666,7 @@ body.homeopen .status{z-index:5} body.homeopen .status > :not(.toast){visibility
   <h1>Sinopia</h1>
   <p>An infinite sketch surface. Draw anywhere and the paper grows with you. Your drawing saves in this browser as you go.</p>
   <div class="keys">
-    <span>Hold <kbd>Shift</kbd></span><span>Straight line, snapped to 10° and the 45° guides</span>
+    <span>Hold <kbd>Shift</kbd></span><span>Straight line, snapped to 10° and the 45° guides (change it with the ∠ pill)</span>
     <span><kbd>Ctrl</kbd> + drag</span><span>Resize the brush</span>
     <span><kbd>Space</kbd> + drag</span><span>Pan (or middle mouse, or two fingers)</span>
     <span>Hold <kbd>Alt</kbd></span><span>Pick a color. <kbd>V</kbd> opens the color menu</span>
@@ -1343,7 +1344,16 @@ function beginStroke(wx, wy, p, erase, local) {
    Main-thread strokes preview with the real brush: the touched buffer area is restored from a snapshot and the
    line re-rasterized on each move. Worker strokes preview as a plain line on the overlay.
    Shift up or pen up commits the line through the real Stroke, so freehand carries on from its end. */
-const LINE_STEP = Math.PI / 18;   // 10°
+/* the angle snap is a setting (Ben, 2026-11-13: "adjust the granularity … something like a little menu"): S.lineStep in
+   degrees, 0 = free. The ∠ pill in the status bar (and View → Line angle snap) opens the menu. */
+const LINE_STEPS = [0, 1, 5, 10, 15, 22.5, 30, 45];
+const lineStepDeg = () => S.lineStep ?? 10;
+function syncLineOut() { const d = lineStepDeg(); $('lineOut').textContent = '∠ ' + (d ? d + '°' : 'free'); }
+function setLineStep(d) { S.lineStep = d; saveSettings(); syncLineOut(); toast(d ? 'Straight lines snap every ' + d + '°' + (45 % d ? ', plus the 45° guides' : '') : 'Straight lines follow the pen freely (no angle snap)'); }
+function lineSnapMenu(anchor) {
+  const cur = lineStepDeg();
+  showMenu(anchor || $('lineOut'), LINE_STEPS.map(d => ({ label: d ? d + '°' : 'Free', sub: d === 10 ? 'default' : d ? '' : 'no snap', on: d === cur, fn: () => setLineStep(d) })));
+}
 function setLineMode(on) {
   if (!stroke || stroke.ending || !!stroke.line === on) return;
   if (on) {
@@ -1364,8 +1374,8 @@ function lineMove(wx, wy, p) {
   if (Math.hypot(dx, dy) * view.z < 2) { L.end = null; stroke.raw = { x: L.ax, y: L.ay, p }; }
   else {
     // snap to 10° steps, and also onto the 45° diagonals the guides show (45° isn't a 10° step)
-    const raw = Math.atan2(dy, dx), a10 = Math.round(raw / LINE_STEP) * LINE_STEP, a45 = Math.round(raw / (Math.PI / 4)) * (Math.PI / 4);
-    const a = Math.abs(raw - a45) <= Math.abs(raw - a10) ? a45 : a10, ux = Math.cos(a), uy = Math.sin(a), t = dx * ux + dy * uy;
+    const st = lineStepDeg() * Math.PI / 180, raw = Math.atan2(dy, dx), as = st ? Math.round(raw / st) * st : raw, a45 = Math.round(raw / (Math.PI / 4)) * (Math.PI / 4);
+    const a = st && Math.abs(raw - a45) <= Math.abs(raw - as) ? a45 : as, ux = Math.cos(a), uy = Math.sin(a), t = dx * ux + dy * uy;
     L.end = { x: L.ax + ux * t, y: L.ay + uy * t, p };
     stroke.raw = { x: L.end.x, y: L.end.y, p };   // so pen-up smoothing adds nothing past the line's end
   }
@@ -4539,6 +4549,7 @@ $('dLine').addEventListener('pointerdown', e => {
   addEventListener('pointerup', up); addEventListener('pointercancel', up);
 });
 $('dPick').onclick = () => setVirt('pick', !virt.pick);
+$('lineOut').onclick = () => lineSnapMenu($('lineOut')); syncLineOut();
 $('dUndo').onclick = () => undo();
 $('dRedo').onclick = () => redo();
 { const coarse = matchMedia('(any-pointer: coarse)'); const show = () => { $('dock').hidden = !(S.touchDock ?? (coarse.matches || IOS)); }; showDock = show; show(); coarse.addEventListener && coarse.addEventListener('change', show); }
@@ -5187,7 +5198,8 @@ $('layoutReset').onclick = () => resetWorkspace();
 const K = (...a) => a.map(x => '<kbd>' + x + '</kbd>').join(' + ');
 const KEYS = [
   ['Draw', [
-    ['Hold ' + K('Shift'), 'Straight line (a ruler): snaps to 10° and the 45° guides, one steady weight. Works with the eraser'],
+    ['Hold ' + K('Shift'), 'Straight line (a ruler): snaps to 10° and the 45° guides, one even weight that follows your pressure. Works with the eraser'],
+    ['∠ pill (bottom)', 'Change the straight-line angle snap: free, 1°, 5°, 10°, 15°, 22.5°, 30° or 45°. Also View → Line angle snap'],
     [K('Ctrl') + ' + drag', 'Resize the brush (same speed at any zoom)'],
     [K('[') + ' ' + K(']'), 'Smaller / larger brush (or type it in the px box)'],
     [K('B') + ' ' + K('E'), 'Brush / eraser'],
@@ -5433,6 +5445,7 @@ const CMDS = [
   ['View', 'zoomout', 'Zoom out', 'Ctrl+-', () => zoomAt(W / 2, H / 2, view.z / 1.25)],
   ['View', 'zoom100', 'Actual size (100%)', '0', () => zoomAt(W / 2, H / 2, 1 / dpr)],
   ['View', 'fit', 'Fit the drawing on screen', 'Ctrl+0', () => fitView()],
+  ['View', 'linesnap', 'Line angle snap…', '', () => lineSnapMenu($('lineOut'))],
   '-View',
   ['View', 'flip', 'Flip view horizontally', 'Shift+H', () => { view.flip = !view.flip; rotLayout(); saveSettings(); toast(view.flip ? 'View flipped (the drawing itself isn’t changed)' : 'View back to normal'); }],
   ['View', 'unrotate', 'Straighten the canvas', '', () => { view.flip = false; setRot(0); }],
